@@ -1,17 +1,252 @@
 ---
-
+const locations = [
+	{ name: 'Bandung', href: '/oz-bandung/', number: '01', detail: 'WEST JAVA' },
+	{ name: 'Bali', href: '/oz-bali/', number: '02', detail: 'THE ISLAND' },
+];
 ---
 
+<!doctype html>
 <html lang="en">
 	<head>
 		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
 		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
+		<meta name="theme-color" content="#f5f1e8" />
+		<meta name="description" content="Choose your O.Z. Radio location: Bandung or Bali." />
+		<title>O.Z. Radio — Choose your frequency</title>
 	</head>
 	<body>
-		<h1>Astro</h1>
+		<main class="landing">
+			<header class="topline">
+				<a class="wordmark" href="/" aria-label="O.Z. Radio home">O<span>.</span>Z.</a>
+				<span class="topline-note">INDEPENDENT RADIO · INDONESIA</span>
+				<span class="topline-index">EST. MMXXIV</span>
+			</header>
+
+			<section class="chooser" aria-labelledby="page-title">
+				<p class="eyebrow"><span class="live-dot"></span> TWO PLACES, ONE FREQUENCY</p>
+				<h1 id="page-title">Where are<br />you <span>tuning in?</span></h1>
+				<p class="intro">Pick a location and find your way into the O.Z. Radio universe.</p>
+
+				<nav class="locations" aria-label="Choose a location">
+					{locations.map((location) => (
+						<a class="location-card" href={location.href}>
+							<span class="card-top">
+								<span>{location.number} / LOCATION</span>
+								<span class="arrow" aria-hidden="true">↗</span>
+							</span>
+							<span class="location-name">{location.name}</span>
+							<span class="card-bottom">
+								<span>{location.detail}</span>
+								<span class="tune-in">TUNE IN <span aria-hidden="true">→</span></span>
+							</span>
+						</a>
+					))}
+				</nav>
+			</section>
+
+			<footer class="footer">
+				<span>GOOD MUSIC TRAVELS.</span>
+				<span>SELECT YOUR LOCATION TO CONTINUE <span aria-hidden="true">↓</span></span>
+				<span>JAVA · BALI</span>
+			</footer>
+		</main>
 	</body>
 </html>
+
+<style>
+	:global(*) {
+		box-sizing: border-box;
+	}
+
+	:global(body) {
+		margin: 0;
+		background: #f5f1e8;
+		color: #201d18;
+		font-family: Arial, Helvetica, sans-serif;
+	}
+
+	:global(a) {
+		color: inherit;
+	}
+
+	.landing {
+		min-height: 100svh;
+		display: flex;
+		flex-direction: column;
+		padding: 30px clamp(22px, 5vw, 76px) 22px;
+	}
+
+	.topline,
+	.footer {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 20px;
+		font-size: 10px;
+		font-weight: 700;
+		letter-spacing: 0.12em;
+	}
+
+	.wordmark {
+		font-size: 25px;
+		font-weight: 900;
+		letter-spacing: -0.09em;
+		text-decoration: none;
+	}
+
+	.wordmark span {
+		color: #ef5537;
+	}
+
+	.topline-index,
+	.topline-note,
+	.footer {
+		color: #777167;
+	}
+
+	.chooser {
+		width: min(820px, 100%);
+		margin: auto;
+		padding: 70px 0 90px;
+		text-align: center;
+	}
+
+	.eyebrow {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 9px;
+		margin: 0 0 22px;
+		color: #716c62;
+		font-size: 10px;
+		font-weight: 700;
+		letter-spacing: 0.16em;
+	}
+
+	.live-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: #ef5537;
+		box-shadow: 0 0 0 4px rgb(239 85 55 / 12%);
+	}
+
+	h1 {
+		margin: 0;
+		font-size: clamp(58px, 9vw, 112px);
+		font-weight: 800;
+		letter-spacing: -0.085em;
+		line-height: 0.91;
+	}
+
+	h1 span {
+		color: #ef5537;
+	}
+
+	.intro {
+		margin: 24px 0 38px;
+		color: #777167;
+		font-size: 14px;
+		line-height: 1.6;
+	}
+
+	.locations {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 14px;
+		text-align: left;
+	}
+
+	.location-card {
+		min-height: 206px;
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+		padding: 20px 22px 18px;
+		border: 1px solid #ded9ce;
+		border-radius: 3px;
+		background: #fbf9f4;
+		text-decoration: none;
+		transition: background 180ms ease, color 180ms ease, border-color 180ms ease, transform 180ms ease;
+	}
+
+	.location-card:hover,
+	.location-card:focus-visible {
+		transform: translateY(-4px);
+		border-color: #201d18;
+		background: #201d18;
+		color: #f5f1e8;
+		outline: none;
+	}
+
+	.card-top,
+	.card-bottom {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 10px;
+		font-size: 9px;
+		font-weight: 700;
+		letter-spacing: 0.12em;
+	}
+
+	.card-top {
+		color: #888277;
+	}
+
+	.arrow {
+		color: #ef5537;
+		font-size: 20px;
+		line-height: 1;
+	}
+
+	.location-name {
+		font-size: clamp(38px, 5vw, 58px);
+		font-weight: 800;
+		letter-spacing: -0.075em;
+	}
+
+	.card-bottom {
+		color: #888277;
+	}
+
+	.tune-in {
+		color: #ef5537;
+	}
+
+	.tune-in span {
+		margin-left: 6px;
+	}
+
+	.footer {
+		padding-top: 16px;
+		border-top: 1px solid #ded9ce;
+		font-size: 9px;
+	}
+
+	@media (max-width: 560px) {
+		.landing {
+			padding: 22px 18px 18px;
+		}
+
+		.topline-note {
+			display: none;
+		}
+
+		.chooser {
+			padding: 68px 0;
+		}
+
+		.locations {
+			grid-template-columns: 1fr;
+		}
+
+		.location-card {
+			min-height: 170px;
+		}
+
+		.footer span:nth-child(2) {
+			display: none;
+		}
+	}
+</style>

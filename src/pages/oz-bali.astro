@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="theme-color" content="#f5f1e8" />
+		<meta name="description" content="O.Z. Radio Bali — coming soon." />
+		<title>O.Z. Bali — O.Z. Radio</title>
+	</head>
+	<body>
+		<main class="bali-page">
+			<header class="topbar">
+				<a class="wordmark" href="/" aria-label="O.Z. Radio home">O<span>.</span>Z.</a>
+				<a class="back-link" href="/">← ALL LOCATIONS</a>
+				<span class="location-tag">LOCATION 02 · BALI</span>
+			</header>
+			<section class="message">
+				<p class="eyebrow"><span class="live-dot"></span> THE ISLAND FREQUENCY</p>
+				<h1>O.Z. Bali<span>.</span></h1>
+				<p>Something good is tuning in.<br />Check back soon.</p>
+				<a class="back-button" href="/">← BACK TO LOCATIONS</a>
+			</section>
+			<footer class="footer"><span>GOOD MUSIC TRAVELS.</span><span>BALI · INDONESIA</span></footer>
+		</main>
+	</body>
+</html>
+
+<style>
+	:global(*) {
+		box-sizing: border-box;
+	}
+
+	:global(body) {
+		margin: 0;
+		background: #f5f1e8;
+		color: #201d18;
+		font-family: Arial, Helvetica, sans-serif;
+	}
+
+	:global(a) {
+		color: inherit;
+	}
+
+	.bali-page {
+		min-height: 100svh;
+		display: flex;
+		flex-direction: column;
+		padding: 26px clamp(20px, 5vw, 64px) 20px;
+	}
+
+	.topbar,
+	.footer {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 20px;
+	}
+
+	.wordmark {
+		font-size: 25px;
+		font-weight: 900;
+		letter-spacing: -0.09em;
+		text-decoration: none;
+	}
+
+	.wordmark span,
+	h1 span {
+		color: #ef5537;
+	}
+
+	.back-link,
+	.location-tag,
+	.footer {
+		color: #777167;
+		font-size: 9px;
+		font-weight: 700;
+		letter-spacing: 0.12em;
+		text-decoration: none;
+	}
+
+	.message {
+		margin: auto;
+		padding: 90px 0;
+		text-align: center;
+	}
+
+	.eyebrow {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 9px;
+		margin: 0 0 22px;
+		color: #777167;
+		font-size: 9px;
+		font-weight: 700;
+		letter-spacing: 0.16em;
+	}
+
+	.live-dot {
+		width: 7px;
+		height: 7px;
+		border-radius: 50%;
+		background: #ef5537;
+	}
+
+	h1 {
+		margin: 0;
+		font-size: clamp(54px, 10vw, 96px);
+		font-weight: 800;
+		letter-spacing: -0.085em;
+		line-height: 1;
+	}
+
+	.message > p:not(.eyebrow) {
+		margin: 20px 0 28px;
+		color: #777167;
+		font-size: 14px;
+		line-height: 1.7;
+	}
+
+	.back-button {
+		display: inline-block;
+		padding: 14px 18px;
+		border: 1px solid #ded9ce;
+		border-radius: 2px;
+		font-size: 9px;
+		font-weight: 700;
+		letter-spacing: 0.12em;
+		text-decoration: none;
+		transition: background 180ms ease, color 180ms ease;
+	}
+
+	.back-button:hover {
+		background: #201d18;
+		color: #f5f1e8;
+	}
+
+	.footer {
+		padding-top: 16px;
+		border-top: 1px solid #ded9ce;
+	}
+</style>

@@ -1,0 +1,498 @@
+---
+const audioStreamUrl = '';
+const twitchChannel = '';
+const isConfigured = Boolean(audioStreamUrl || twitchChannel);
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="theme-color" content="#181714" />
+		<meta name="description" content="Listen live from O.Z. Radio Bandung." />
+		<title>O.Z. Bandung — O.Z. Radio</title>
+	</head>
+	<body>
+		<main class="bandung-page">
+			<header class="topbar">
+				<a class="wordmark" href="/" aria-label="O.Z. Radio home">O<span>.</span>Z.</a>
+				<a class="back-link" href="/">← ALL LOCATIONS</a>
+				<span class="location-tag"><span class="live-dot"></span> BANDUNG, WEST JAVA</span>
+			</header>
+
+			<section class="intro" aria-labelledby="page-title">
+				<p class="eyebrow">YOUR LOCAL FREQUENCY · 01</p>
+				<h1 id="page-title">O.Z. Radio<br /><span>Bandung.</span></h1>
+				<p class="intro-copy">Broadcasting good things from the city in the clouds.</p>
+			</section>
+
+			<section class="broadcast" aria-label="O.Z. Bandung broadcast">
+				<div class="section-heading">
+					<div>
+						<p class="eyebrow">BANDUNG STUDIO FEED</p>
+						<h2>The broadcast</h2>
+					</div>
+					<span class="on-air">
+						<span class:list={['live-dot', { 'is-idle': !isConfigured }]}></span>
+						{isConfigured ? 'STREAM READY' : 'COMING SOON'}
+					</span>
+				</div>
+
+				<div class="player-grid">
+					<article class="player-card audio-card">
+						<div class="card-heading">
+							<span class="icon" aria-hidden="true">♫</span>
+							<span class="media-label">AUDIO STREAM</span>
+						</div>
+						<div class="audio-content">
+							<div class="equalizer" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+							<h3>Radio, wherever you are.</h3>
+							<p>Settle in and let the Bandung frequency find you.</p>
+							{audioStreamUrl ? (
+								<audio controls preload="none" src={audioStreamUrl} aria-label="O.Z. Bandung audio stream">
+									Your browser does not support audio playback.
+								</audio>
+							) : (
+								<div class="audio-placeholder">
+									<span class="play-icon" aria-hidden="true">▶</span>
+									<span>Audio stream link coming soon</span>
+								</div>
+							)}
+						</div>
+						<div class="card-foot">
+							<span>O.Z. BANDUNG</span>
+							<span>{audioStreamUrl ? 'STREAM READY' : 'LINK NEEDED'}</span>
+						</div>
+					</article>
+
+					<article class="player-card video-card">
+						<div class="card-heading">
+							<span class="icon video-icon" aria-hidden="true">▶</span>
+							<span class="media-label">VIDEO · TWITCH</span>
+							<span class="on-air video-live">
+								<span class:list={['live-dot', { 'is-idle': !twitchChannel }]}></span>
+								{twitchChannel ? 'LIVE' : 'SETUP'}
+							</span>
+						</div>
+						<div class="video-frame">
+							{twitchChannel ? (
+								<iframe
+									title="O.Z. Bandung Twitch livestream"
+									data-twitch-channel={twitchChannel}
+									allow="autoplay; fullscreen"
+									allowfullscreen
+								></iframe>
+							) : (
+								<div class="video-placeholder">
+									<span class="placeholder-play" aria-hidden="true">▶</span>
+									<p>From the studio to your screen.</p>
+									<span class="placeholder-caption">TWITCH LIVESTREAM · CHANNEL TO BE ADDED</span>
+								</div>
+							)}
+						</div>
+						<div class="card-foot"><span>BANDUNG STUDIO CAM</span><span>VIDEO FEED</span></div>
+					</article>
+				</div>
+				<p class="setup-note">Audio and video streams will be available here soon.</p>
+			</section>
+
+			<footer class="footer">
+				<a href="/">← BACK TO LOCATIONS</a>
+				<span>GOOD MUSIC TRAVELS.</span>
+				<a href="/oz-bali/">NEXT STOP: BALI →</a>
+			</footer>
+		</main>
+	</body>
+</html>
+
+<script>
+	const twitchPlayer = document.querySelector<HTMLIFrameElement>('[data-twitch-channel]');
+	const channel = twitchPlayer?.dataset.twitchChannel;
+
+	if (twitchPlayer && channel) {
+		const playerUrl = new URL('https://player.twitch.tv/');
+		playerUrl.searchParams.set('channel', channel);
+		playerUrl.searchParams.set('parent', window.location.hostname);
+		playerUrl.searchParams.set('muted', 'true');
+		twitchPlayer.src = playerUrl.toString();
+	}
+</script>
+
+<style>
+	:global(*) {
+		box-sizing: border-box;
+	}
+
+	:global(body) {
+		margin: 0;
+		background: #181714;
+		color: #f5f1e8;
+		font-family: Arial, Helvetica, sans-serif;
+	}
+
+	:global(a) {
+		color: inherit;
+	}
+
+	.bandung-page {
+		width: min(1120px, 100%);
+		min-height: 100svh;
+		margin: 0 auto;
+		padding: 26px clamp(20px, 5vw, 64px) 20px;
+	}
+
+	.topbar,
+	.footer {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 20px;
+	}
+
+	.wordmark {
+		font-size: 25px;
+		font-weight: 900;
+		letter-spacing: -0.09em;
+		text-decoration: none;
+	}
+
+	.wordmark span {
+		color: #ef5537;
+	}
+
+	.back-link,
+	.location-tag,
+	.footer {
+		color: #aaa59b;
+		font-size: 9px;
+		font-weight: 700;
+		letter-spacing: 0.12em;
+		text-decoration: none;
+	}
+
+	.back-link:hover,
+	.footer a:hover {
+		color: #f5f1e8;
+	}
+
+	.location-tag,
+	.on-air {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.live-dot {
+		width: 7px;
+		height: 7px;
+		border-radius: 50%;
+		background: #ef5537;
+		box-shadow: 0 0 0 4px rgb(239 85 55 / 14%);
+	}
+
+	.live-dot.is-idle {
+		background: #77736b;
+		box-shadow: 0 0 0 4px rgb(119 115 107 / 14%);
+	}
+
+	.intro {
+		padding: 54px 0 48px;
+	}
+
+	.eyebrow {
+		margin: 0 0 15px;
+		color: #aaa59b;
+		font-size: 9px;
+		font-weight: 700;
+		letter-spacing: 0.17em;
+	}
+
+	h1 {
+		margin: 0;
+		font-size: clamp(58px, 9vw, 100px);
+		font-weight: 800;
+		letter-spacing: -0.085em;
+		line-height: 0.88;
+	}
+
+	h1 span {
+		color: #ef5537;
+	}
+
+	.intro-copy {
+		margin: 20px 0 0;
+		color: #aaa59b;
+		font-size: 13px;
+	}
+
+	.broadcast {
+		padding: 26px;
+		border: 1px solid #37352f;
+		border-radius: 4px;
+		background: #201f1b;
+	}
+
+	.section-heading {
+		display: flex;
+		align-items: flex-end;
+		justify-content: space-between;
+		gap: 20px;
+		margin-bottom: 20px;
+	}
+
+	.section-heading .eyebrow {
+		margin-bottom: 7px;
+	}
+
+	h2 {
+		margin: 0;
+		font-size: 24px;
+		font-weight: 700;
+		letter-spacing: -0.04em;
+	}
+
+	.on-air {
+		padding: 7px 10px;
+		border: 1px solid #514036;
+		border-radius: 2px;
+		color: #ef856e;
+		font-size: 9px;
+		font-weight: 700;
+		letter-spacing: 0.12em;
+	}
+
+	.player-grid {
+		display: grid;
+		grid-template-columns: 0.8fr 1.2fr;
+		gap: 14px;
+	}
+
+	.player-card {
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		border: 1px solid #37352f;
+		border-radius: 3px;
+		background: #181714;
+	}
+
+	.card-heading,
+	.card-foot {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 13px 15px;
+	}
+
+	.card-heading {
+		min-height: 48px;
+		border-bottom: 1px solid #37352f;
+	}
+
+	.media-label,
+	.card-foot {
+		color: #aaa59b;
+		font-size: 8px;
+		font-weight: 700;
+		letter-spacing: 0.13em;
+	}
+
+	.icon {
+		color: #ef5537;
+		font-size: 18px;
+		line-height: 1;
+	}
+
+	.video-icon {
+		font-size: 12px;
+	}
+
+	.audio-content {
+		flex: 1;
+		padding: 24px 19px 20px;
+	}
+
+	.equalizer {
+		height: 32px;
+		display: flex;
+		align-items: center;
+		gap: 4px;
+	}
+
+	.equalizer i {
+		width: 4px;
+		height: 10px;
+		border-radius: 4px;
+		background: #ef5537;
+		opacity: 0.72;
+	}
+
+	.equalizer i:nth-child(3n) {
+		height: 23px;
+	}
+
+	.equalizer i:nth-child(3n + 1) {
+		height: 15px;
+	}
+
+	h3 {
+		margin: 15px 0 8px;
+		font-size: clamp(19px, 2vw, 23px);
+		letter-spacing: -0.045em;
+	}
+
+	.audio-content > p {
+		margin: 0;
+		color: #aaa59b;
+		font-size: 11px;
+		line-height: 1.6;
+	}
+
+	.audio-placeholder {
+		display: flex;
+		align-items: center;
+		gap: 11px;
+		margin-top: 22px;
+		padding: 11px;
+		border: 1px solid #37352f;
+		border-radius: 2px;
+		color: #aaa59b;
+		font-size: 10px;
+	}
+
+	.play-icon {
+		width: 27px;
+		height: 27px;
+		display: grid;
+		place-items: center;
+		border-radius: 50%;
+		background: #ef5537;
+		color: #181714;
+		font-size: 9px;
+	}
+
+	audio {
+		width: 100%;
+		margin-top: 18px;
+	}
+
+	.video-live {
+		margin-left: auto;
+		padding: 5px 7px;
+		font-size: 8px;
+	}
+
+	.video-frame {
+		width: 100%;
+		aspect-ratio: 16 / 9;
+		background:
+			radial-gradient(ellipse at 50% 110%, rgb(239 85 55 / 12%), transparent 53%),
+			#11110f;
+	}
+
+	.video-frame iframe {
+		width: 100%;
+		height: 100%;
+		border: 0;
+	}
+
+	.video-placeholder {
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 16px;
+		text-align: center;
+	}
+
+	.placeholder-play {
+		width: 39px;
+		height: 39px;
+		display: grid;
+		place-items: center;
+		margin-bottom: 12px;
+		border: 1px solid #ef5537;
+		border-radius: 50%;
+		color: #ef5537;
+		font-size: 11px;
+	}
+
+	.video-placeholder p {
+		margin: 0 0 10px;
+		font-size: clamp(15px, 2vw, 20px);
+		font-weight: 700;
+		letter-spacing: -0.03em;
+	}
+
+	.placeholder-caption {
+		color: #aaa59b;
+		font-size: 8px;
+		font-weight: 700;
+		letter-spacing: 0.12em;
+	}
+
+	.card-foot {
+		justify-content: space-between;
+		border-top: 1px solid #37352f;
+		font-size: 7px;
+	}
+
+	.setup-note {
+		margin: 17px 0 0;
+		color: #77736b;
+		font-size: 10px;
+		text-align: center;
+	}
+
+	.footer {
+		margin-top: 32px;
+		padding-top: 16px;
+		border-top: 1px solid #37352f;
+	}
+
+	.footer a {
+		text-decoration: none;
+	}
+
+	@media (max-width: 700px) {
+		.bandung-page {
+			padding: 20px 17px;
+		}
+
+		.location-tag {
+			font-size: 8px;
+		}
+
+		.intro {
+			padding: 54px 0 38px;
+		}
+
+		.broadcast {
+			padding: 16px;
+		}
+
+		.player-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.audio-content {
+			padding: 19px;
+		}
+	}
+
+	@media (max-width: 430px) {
+		.topbar {
+			flex-wrap: wrap;
+		}
+
+		.location-tag {
+			width: 100%;
+		}
+
+		.footer span {
+			display: none;
+		}
+	}
+</style>
