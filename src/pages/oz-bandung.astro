@@ -4,6 +4,11 @@ import SectionNav from '../components/SectionNav.astro';
 const audioStreamUrl = '';
 const twitchChannel = '';
 const youtubeChannelUrl = '';
+const youtubeVideos = [
+	{ id: '', title: 'Featured video' },
+	{ id: '', title: 'Studio session' },
+	{ id: '', title: 'Live set' },
+];
 const instagramUrl = '';
 
 const sections = [
@@ -151,10 +156,36 @@ const sections = [
 					<div class="feature-grid social-grid">
 						<article class="feature-card social-card youtube-card">
 							<div class="social-topline"><span class="social-mark">▶</span><span>OZ RADIO BANDUNG · YOUTUBE</span></div>
-							<div class="channel-preview">
-								<span class="preview-play">▶</span>
-								<span class="preview-caption">PODCASTS<br />&amp; LIVESTREAMS</span>
-								<span class="preview-duration">CHANNEL PREVIEW</span>
+							<div class="youtube-carousel" data-youtube-carousel>
+								<div class="channel-preview" data-youtube-player>
+									<span class="preview-play">▶</span>
+									<span class="preview-caption">PODCASTS<br />&amp; LIVESTREAMS</span>
+									<span class="preview-duration">YOUTUBE VIDEO TO BE ADDED</span>
+								</div>
+								<div class="youtube-carousel-nav">
+									<button class="carousel-arrow" type="button" data-youtube-previous aria-label="Previous video">←</button>
+									<div class="video-picker" role="group" aria-label="Select a YouTube video">
+										{youtubeVideos.map((video, index) => (
+											<button
+												class="video-picker-item"
+												type="button"
+												data-youtube-video
+												data-youtube-id={video.id}
+												data-youtube-title={video.title}
+												aria-label={`Select ${video.title}`}
+												aria-pressed={index === 0 ? 'true' : 'false'}
+											>
+												<span>{String(index + 1).padStart(2, '0')}</span>
+												{video.title}
+											</button>
+										))}
+									</div>
+									<button class="carousel-arrow" type="button" data-youtube-next aria-label="Next video">→</button>
+								</div>
+								<div class="youtube-current" aria-live="polite">
+									<strong data-youtube-current-title>{youtubeVideos[0].title}</strong>
+									<span data-youtube-current-count>01 / {String(youtubeVideos.length).padStart(2, '0')}</span>
+								</div>
 							</div>
 							<div class="social-card-bottom">
 								<div><h3>Watch podcasts.</h3><p>Live sets, studio sessions and more from OZ Radio Bandung.</p></div>
@@ -266,6 +297,59 @@ const sections = [
 </html>
 
 <script>
+	const youtubeCarousel = document.querySelector<HTMLElement>('[data-youtube-carousel]');
+	const youtubePlayer = youtubeCarousel?.querySelector<HTMLElement>('[data-youtube-player]');
+	const youtubeVideoButtons = youtubeCarousel?.querySelectorAll<HTMLButtonElement>('[data-youtube-video]');
+	const youtubeCurrentTitle = youtubeCarousel?.querySelector<HTMLElement>('[data-youtube-current-title]');
+	const youtubeCurrentCount = youtubeCarousel?.querySelector<HTMLElement>('[data-youtube-current-count]');
+
+	if (youtubeCarousel && youtubePlayer && youtubeVideoButtons?.length && youtubeCurrentTitle && youtubeCurrentCount) {
+		const videos = Array.from(youtubeVideoButtons, (button) => ({
+			id: button.dataset.youtubeId ?? '',
+			title: button.dataset.youtubeTitle ?? '',
+		}));
+		let currentVideoIndex = 0;
+
+		const showVideo = (index: number) => {
+			currentVideoIndex = (index + videos.length) % videos.length;
+			const video = videos[currentVideoIndex];
+
+			youtubePlayer.replaceChildren();
+			if (video.id) {
+				const iframe = document.createElement('iframe');
+				iframe.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(video.id)}`;
+				iframe.title = video.title;
+				iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+				iframe.allowFullscreen = true;
+				iframe.loading = 'lazy';
+				iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+				youtubePlayer.append(iframe);
+			} else {
+				const placeholder = document.createElement('div');
+				placeholder.className = 'youtube-placeholder';
+				placeholder.textContent = `Add a YouTube video ID for "${video.title}"`;
+				youtubePlayer.append(placeholder);
+			}
+
+			youtubeCurrentTitle.textContent = video.title;
+			youtubeCurrentCount.textContent = `${String(currentVideoIndex + 1).padStart(2, '0')} / ${String(videos.length).padStart(2, '0')}`;
+			youtubeVideoButtons.forEach((button, buttonIndex) => {
+				button.setAttribute('aria-pressed', String(buttonIndex === currentVideoIndex));
+			});
+		};
+
+		youtubeCarousel.querySelector('[data-youtube-previous]')?.addEventListener('click', () => {
+			showVideo(currentVideoIndex - 1);
+		});
+		youtubeCarousel.querySelector('[data-youtube-next]')?.addEventListener('click', () => {
+			showVideo(currentVideoIndex + 1);
+		});
+		youtubeVideoButtons.forEach((button, index) => {
+			button.addEventListener('click', () => showVideo(index));
+		});
+		showVideo(0);
+	}
+
 	const twitchPlayer = document.querySelector<HTMLIFrameElement>('[data-twitch-channel]');
 	const channel = twitchPlayer?.dataset.twitchChannel;
 
@@ -680,7 +764,7 @@ const sections = [
 
 	.channel-preview {
 		position: relative;
-		aspect-ratio: 16 / 7;
+		aspect-ratio: 16 / 9;
 		display: grid;
 		place-items: center;
 		overflow: hidden;
@@ -689,6 +773,103 @@ const sections = [
 			linear-gradient(130deg, transparent 46%, rgba(242, 189, 87, 0.16) 46% 48%, transparent 48%),
 			radial-gradient(ellipse at 70% 120%, rgba(242, 189, 87, 0.26), transparent 50%),
 			#12110f;
+	}
+
+	.channel-preview iframe {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		border: 0;
+	}
+
+	.youtube-placeholder {
+		max-width: 80%;
+		color: #aaa59b;
+		font-size: 9px;
+		line-height: 1.5;
+		text-align: center;
+	}
+
+	.youtube-carousel-nav {
+		display: flex;
+		align-items: stretch;
+		gap: 6px;
+	}
+
+	.carousel-arrow,
+	.video-picker-item {
+		border: 1px solid #514b40;
+		border-radius: 2px;
+		background: #181714;
+		color: #aaa59b;
+		font: inherit;
+		cursor: pointer;
+	}
+
+	.carousel-arrow {
+		width: 30px;
+		flex: 0 0 30px;
+		font-size: 14px;
+	}
+
+	.video-picker {
+		min-width: 0;
+		flex: 1;
+		display: flex;
+		gap: 5px;
+		overflow-x: auto;
+	}
+
+	.video-picker-item {
+		min-width: 0;
+		flex: 1 0 74px;
+		display: grid;
+		gap: 3px;
+		padding: 5px 7px;
+		font-size: 8px;
+		text-align: left;
+		white-space: nowrap;
+	}
+
+	.video-picker-item span {
+		color: #aaa59b;
+		font-size: 7px;
+		letter-spacing: 0.1em;
+	}
+
+	.video-picker-item[aria-pressed='true'] {
+		border-color: #f2bd57;
+		color: #fad38b;
+	}
+
+	.carousel-arrow:hover,
+	.video-picker-item:hover {
+		border-color: #f2bd57;
+		color: #f5f1e8;
+	}
+
+	.carousel-arrow:focus-visible,
+	.video-picker-item:focus-visible {
+		outline: 2px solid #f2bd57;
+		outline-offset: 2px;
+	}
+
+	.youtube-current {
+		display: flex;
+		justify-content: space-between;
+		gap: 10px;
+		margin-top: 7px;
+		color: #aaa59b;
+		font-size: 8px;
+	}
+
+	.youtube-current strong {
+		overflow: hidden;
+		color: #f5f1e8;
+		font-weight: 600;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.preview-play {
@@ -1192,7 +1373,7 @@ const sections = [
 		}
 
 		.channel-preview {
-			aspect-ratio: 16 / 5;
+			aspect-ratio: 16 / 9;
 			margin: 7px 0;
 		}
 
