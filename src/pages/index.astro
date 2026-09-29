@@ -11,22 +11,23 @@ const locations = [
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width" />
 		<meta name="theme-color" content="#f5f1e8" />
-		<meta name="description" content="Choose your O.Z. Radio location: Bandung or Bali." />
-		<title>O.Z. Radio — Choose your frequency</title>
+		<meta name="description" content="Location select for OZ Radio" />
+		<title>OZ Radio — Choose your frequency</title>
 	</head>
 	<body>
 		<main class="landing">
 			<header class="topline">
-				<a class="wordmark" href="/" aria-label="O.Z. Radio home">O<span>.</span>Z.</a>
-				<span class="topline-note">INDEPENDENT RADIO · INDONESIA</span>
-				<span class="topline-index">EST. MMXXIV</span>
+				<a class="wordmark" href="/" aria-label="OZ Radio home">O<span></span>Z</a>
+				<span class="topline-note">PLACEHOLDER</span>
+				<span class="topline-index">PLACEHOLDER</span>
 			</header>
 
 			<section class="chooser" aria-labelledby="page-title">
 				<p class="eyebrow"><span class="live-dot"></span> TWO PLACES, ONE FREQUENCY</p>
-				<h1 id="page-title">Where are<br />you <span>tuning in?</span></h1>
-				<p class="intro">Pick a location and find your way into the O.Z. Radio universe.</p>
-
+				<h1 id="page-title">OZ <span>Media</span></h1>
+				<p class="intro">Lorem ipsum dolor sit amet consectetur adipisicing elit. Optio, cum ullam? Quam at delectus maiores neque veritatis error quibusdam. Reprehenderit reiciendis aperiam odio eveniet iste, vel a quas nemo similique?</p>
+				
+				<!-- button cards -->
 				<nav class="locations" aria-label="Choose a location">
 					{locations.map((location) => (
 						<a class="location-card" href={location.href}>
@@ -34,7 +35,7 @@ const locations = [
 								<span>{location.number} / LOCATION</span>
 								<span class="arrow" aria-hidden="true">↗</span>
 							</span>
-							<span class="location-name">{location.name}</span>
+							<span class="location-name">OZ Radio<br />{location.name}</span>
 							<span class="card-bottom">
 								<span>{location.detail}</span>
 								<span class="tune-in">TUNE IN <span aria-hidden="true">→</span></span>
@@ -43,11 +44,12 @@ const locations = [
 					))}
 				</nav>
 			</section>
-
+			
+			<!-- ini footer -->
 			<footer class="footer">
-				<span>GOOD MUSIC TRAVELS.</span>
-				<span>SELECT YOUR LOCATION TO CONTINUE <span aria-hidden="true">↓</span></span>
-				<span>JAVA · BALI</span>
+				<span>PLACEHOLDER TEXT</span>
+				<span>ANOTHER PLACEHOLDER BUT LONGER <span aria-hidden="true">↓</span></span>
+				<span>BANDUNG · BALI</span>
 			</footer>
 		</main>
 	</body>
@@ -95,7 +97,7 @@ const locations = [
 	}
 
 	.wordmark span {
-		color: #ef5537;
+		color: #f2bd57;
 	}
 
 	.topline-index,
@@ -127,7 +129,7 @@ const locations = [
 		width: 8px;
 		height: 8px;
 		border-radius: 50%;
-		background: #ef5537;
+		background: #f2bd57;
 		box-shadow: 0 0 0 4px rgb(239 85 55 / 12%);
 	}
 
@@ -140,7 +142,7 @@ const locations = [
 	}
 
 	h1 span {
-		color: #ef5537;
+		color: #f2bd57;
 	}
 
 	.intro {
@@ -195,13 +197,13 @@ const locations = [
 	}
 
 	.arrow {
-		color: #ef5537;
+		color: #f2bd57;
 		font-size: 20px;
 		line-height: 1;
 	}
 
 	.location-name {
-		font-size: clamp(38px, 5vw, 58px);
+		font-size: clamp(40px, 5vw, 38px);
 		font-weight: 800;
 		letter-spacing: -0.075em;
 	}
@@ -211,7 +213,7 @@ const locations = [
 	}
 
 	.tune-in {
-		color: #ef5537;
+		color: #f2bd57;
 	}
 
 	.tune-in span {

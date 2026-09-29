@@ -10,24 +10,23 @@ const isConfigured = Boolean(audioStreamUrl || twitchChannel);
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width" />
 		<meta name="theme-color" content="#181714" />
-		<meta name="description" content="Listen live from O.Z. Radio Bandung." />
-		<title>O.Z. Bandung — O.Z. Radio</title>
+		<meta name="description" content="Listen live from OZ Radio Bandung." />
+		<title>OZ Radio Bandung</title>
 	</head>
 	<body>
 		<main class="bandung-page">
 			<header class="topbar">
-				<a class="wordmark" href="/" aria-label="O.Z. Radio home">O<span>.</span>Z.</a>
-				<a class="back-link" href="/">← ALL LOCATIONS</a>
+				<a class="wordmark" href="/" aria-label="OZ Radio home">O<span></span>Z</a>
 				<span class="location-tag"><span class="live-dot"></span> BANDUNG, WEST JAVA</span>
 			</header>
 
 			<section class="intro" aria-labelledby="page-title">
 				<p class="eyebrow">YOUR LOCAL FREQUENCY · 01</p>
-				<h1 id="page-title">O.Z. Radio<br /><span>Bandung.</span></h1>
-				<p class="intro-copy">Broadcasting good things from the city in the clouds.</p>
+				<h1 id="page-title">OZ Radio<br /><span>Bandung.</span></h1>
+				<p class="intro-copy">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
 			</section>
 
-			<section class="broadcast" aria-label="O.Z. Bandung broadcast">
+			<section class="broadcast" aria-label="OZ Radio Bandung broadcast">
 				<div class="section-heading">
 					<div>
 						<p class="eyebrow">BANDUNG STUDIO FEED</p>
@@ -47,21 +46,21 @@ const isConfigured = Boolean(audioStreamUrl || twitchChannel);
 						</div>
 						<div class="audio-content">
 							<div class="equalizer" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-							<h3>Radio, wherever you are.</h3>
-							<p>Settle in and let the Bandung frequency find you.</p>
+							<h3>Radio, audio player</h3>
+							<p>lore ipsum dolor sit amet, consectetur adipiscing elit.</p>
 							{audioStreamUrl ? (
-								<audio controls preload="none" src={audioStreamUrl} aria-label="O.Z. Bandung audio stream">
+								<audio controls preload="none" src={audioStreamUrl} aria-label="OZ Bandung audio stream">
 									Your browser does not support audio playback.
 								</audio>
 							) : (
 								<div class="audio-placeholder">
 									<span class="play-icon" aria-hidden="true">▶</span>
-									<span>Audio stream link coming soon</span>
+									<span>TODO: Audio stream link coming soon</span>
 								</div>
 							)}
 						</div>
 						<div class="card-foot">
-							<span>O.Z. BANDUNG</span>
+							<span>OZ RADIO BANDUNG</span>
 							<span>{audioStreamUrl ? 'STREAM READY' : 'LINK NEEDED'}</span>
 						</div>
 					</article>
@@ -69,7 +68,7 @@ const isConfigured = Boolean(audioStreamUrl || twitchChannel);
 					<article class="player-card video-card">
 						<div class="card-heading">
 							<span class="icon video-icon" aria-hidden="true">▶</span>
-							<span class="media-label">VIDEO · TWITCH</span>
+							<span class="media-label">LIVE · TWITCH</span>
 							<span class="on-air video-live">
 								<span class:list={['live-dot', { 'is-idle': !twitchChannel }]}></span>
 								{twitchChannel ? 'LIVE' : 'SETUP'}
@@ -78,7 +77,7 @@ const isConfigured = Boolean(audioStreamUrl || twitchChannel);
 						<div class="video-frame">
 							{twitchChannel ? (
 								<iframe
-									title="O.Z. Bandung Twitch livestream"
+									title="OZ Bandung Twitch livestream"
 									data-twitch-channel={twitchChannel}
 									allow="autoplay; fullscreen"
 									allowfullscreen
@@ -86,7 +85,7 @@ const isConfigured = Boolean(audioStreamUrl || twitchChannel);
 							) : (
 								<div class="video-placeholder">
 									<span class="placeholder-play" aria-hidden="true">▶</span>
-									<p>From the studio to your screen.</p>
+									<p>Lorem ipsum dolor sit amet</p>
 									<span class="placeholder-caption">TWITCH LIVESTREAM · CHANNEL TO BE ADDED</span>
 								</div>
 							)}
@@ -94,12 +93,11 @@ const isConfigured = Boolean(audioStreamUrl || twitchChannel);
 						<div class="card-foot"><span>BANDUNG STUDIO CAM</span><span>VIDEO FEED</span></div>
 					</article>
 				</div>
-				<p class="setup-note">Audio and video streams will be available here soon.</p>
+				<p class="setup-note">TODO: Audio and video streams, needs setup.</p>
 			</section>
 
 			<footer class="footer">
 				<a href="/">← BACK TO LOCATIONS</a>
-				<span>GOOD MUSIC TRAVELS.</span>
 				<a href="/oz-bali/">NEXT STOP: BALI →</a>
 			</footer>
 		</main>
@@ -158,7 +156,7 @@ const isConfigured = Boolean(audioStreamUrl || twitchChannel);
 	}
 
 	.wordmark span {
-		color: #ef5537;
+		color: #f2bd57;
 	}
 
 	.back-link,
@@ -187,7 +185,7 @@ const isConfigured = Boolean(audioStreamUrl || twitchChannel);
 		width: 7px;
 		height: 7px;
 		border-radius: 50%;
-		background: #ef5537;
+		background: #f2bd57;
 		box-shadow: 0 0 0 4px rgb(239 85 55 / 14%);
 	}
 
@@ -217,7 +215,7 @@ const isConfigured = Boolean(audioStreamUrl || twitchChannel);
 	}
 
 	h1 span {
-		color: #ef5537;
+		color: #f2bd57;
 	}
 
 	.intro-copy {
@@ -256,7 +254,7 @@ const isConfigured = Boolean(audioStreamUrl || twitchChannel);
 		padding: 7px 10px;
 		border: 1px solid #514036;
 		border-radius: 2px;
-		color: #ef856e;
+		color: #f2bd57;
 		font-size: 9px;
 		font-weight: 700;
 		letter-spacing: 0.12em;
@@ -299,7 +297,7 @@ const isConfigured = Boolean(audioStreamUrl || twitchChannel);
 	}
 
 	.icon {
-		color: #ef5537;
+		color: #f2bd57;
 		font-size: 18px;
 		line-height: 1;
 	}
@@ -324,7 +322,7 @@ const isConfigured = Boolean(audioStreamUrl || twitchChannel);
 		width: 4px;
 		height: 10px;
 		border-radius: 4px;
-		background: #ef5537;
+		background: #f2bd57;
 		opacity: 0.72;
 	}
 
@@ -367,7 +365,7 @@ const isConfigured = Boolean(audioStreamUrl || twitchChannel);
 		display: grid;
 		place-items: center;
 		border-radius: 50%;
-		background: #ef5537;
+		background: #f2bd57;
 		color: #181714;
 		font-size: 9px;
 	}
@@ -413,9 +411,9 @@ const isConfigured = Boolean(audioStreamUrl || twitchChannel);
 		display: grid;
 		place-items: center;
 		margin-bottom: 12px;
-		border: 1px solid #ef5537;
+		border: 1px solid #f2bd57;
 		border-radius: 50%;
-		color: #ef5537;
+		color: #f2bd57;
 		font-size: 11px;
 	}
 
