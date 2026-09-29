@@ -1,0 +1,75 @@
+---
+interface Props {
+	sections: { id: string; label: string }[];
+	current: string;
+}
+
+const { sections, current } = Astro.props;
+const currentIndex = sections.findIndex((section) => section.id === current);
+const previous = sections[currentIndex - 1];
+const next = sections[currentIndex + 1];
+---
+
+<nav class="section-footer" aria-label="Section navigation">
+	<a href={previous ? `#${previous.id}` : '/'}>{previous ? '← ' + previous.label : '← ALL LOCATIONS'}</a>
+	<div class="progress" aria-label={`Section ${currentIndex + 1} of ${sections.length}`}>
+		{sections.map((section) => (
+			<a
+				href={`#${section.id}`}
+				aria-label={`Go to ${section.label}`}
+				aria-current={section.id === current ? 'step' : undefined}
+			></a>
+		))}
+	</div>
+	<a href={next ? `#${next.id}` : '/oz-bali/'}>{next ? next.label + ' →' : 'NEXT: BALI →'}</a>
+</nav>
+
+<style>
+	.section-footer {
+		min-height: 28px;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 20px;
+		color: #aaa59b;
+		font-size: 9px;
+		font-weight: 700;
+		letter-spacing: 0.12em;
+	}
+
+	a {
+		color: inherit;
+		text-decoration: none;
+	}
+
+	a:hover {
+		color: #f5f1e8;
+	}
+
+	.progress {
+		display: flex;
+		gap: 5px;
+	}
+
+	.progress a {
+		width: 18px;
+		height: 3px;
+		background: #514b40;
+	}
+
+	.progress a[aria-current='step'] {
+		background: #ef5537;
+	}
+
+	@media (max-width: 650px) {
+		.section-footer {
+			min-height: 24px;
+			gap: 8px;
+			font-size: 7px;
+		}
+
+		.progress a {
+			width: 10px;
+		}
+	}
+</style>
