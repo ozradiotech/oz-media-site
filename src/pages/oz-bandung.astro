@@ -22,28 +22,26 @@ const sections = [
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width" />
 		<meta name="theme-color" content="#181714" />
-		<meta name="description" content="Listen, watch and connect with O.Z. Radio Bandung." />
-		<title>O.Z. Bandung — O.Z. Radio</title>
+		<meta name="description" content="Listen, watch and connect with OZ Radio Bandung." />
+		<title>OZ Bandung — OZ Radio</title>
 	</head>
 	<body>
 		<main class="bandung-page">
 			<section class="screen listen-screen" id="listen" aria-labelledby="listen-title">
 				<header class="topbar">
-					<a class="wordmark" href="/" aria-label="O.Z. Radio home">O<span>.</span>Z.</a>
-					<a class="back-link" href="/">← ALL LOCATIONS</a>
+					<a class="wordmark" href="/" aria-label="OZ Radio home">O<span>Z</span></a>
 					<span class="location-tag"><span class="live-dot"></span> BANDUNG, WEST JAVA</span>
 				</header>
 
 				<div class="screen-content listen-content">
 					<div class="screen-heading listen-heading">
 						<div>
-							<p class="eyebrow">YOUR LOCAL FREQUENCY · 01</p>
-							<h1 id="listen-title">O.Z. Radio <span>Bandung.</span></h1>
+							<p class="eyebrow">PLACEHOLDER · 01</p>
+							<h1 id="listen-title">OZ Radio <span>Bandung</span></h1>
 						</div>
-						<p class="intro-copy">Broadcasting good things from the city in the clouds.</p>
 					</div>
 
-					<div class="broadcast" aria-label="O.Z. Bandung broadcast">
+					<div class="broadcast" aria-label="OZ Bandung broadcast">
 						<div class="broadcast-heading">
 							<div class="broadcast-label"><span class="live-dot idle-dot"></span> LIVE FROM THE STUDIO</div>
 							<span class="on-air">AUDIO + VIDEO</span>
@@ -67,11 +65,11 @@ const sections = [
 						<div class="audio-bar">
 							<span class="icon" aria-hidden="true">♫</span>
 							<div class="audio-copy">
-								<strong>O.Z. Bandung Radio</strong>
+								<strong>OZ Bandung Radio</strong>
 								<span>{audioStreamUrl ? 'Streaming now' : 'Audio stream link coming soon'}</span>
 							</div>
 							{audioStreamUrl ? (
-								<audio controls preload="none" src={audioStreamUrl} aria-label="O.Z. Bandung audio stream">
+								<audio controls preload="none" src={audioStreamUrl} aria-label="OZ Bandung audio stream">
 									Your browser does not support audio playback.
 								</audio>
 							) : (
@@ -82,7 +80,7 @@ const sections = [
 
 					<aside class="ad-space" aria-label="Advertisement space">
 						<span class="ad-tag">ADVERTISEMENT</span>
-						<strong>Your brand could be here.</strong>
+						<strong>Advertisement.</strong>
 						<span>AD SPACE · BANDUNG</span>
 					</aside>
 				</div>
@@ -91,35 +89,49 @@ const sections = [
 			</section>
 
 			<section class="screen" id="programs" aria-labelledby="programs-title">
-				<header class="section-topline">
-					<a class="wordmark" href="/" aria-label="O.Z. Radio home">O<span>.</span>Z.</a>
-					<span class="section-label">O.Z. RADIO · BANDUNG</span>
-				</header>
 				<div class="screen-content">
 					<div class="section-heading">
 						<div>
 							<p class="eyebrow">02 / ON AIR PROGRAM</p>
-							<h2 id="programs-title">Good company, <span>good sound.</span></h2>
+							<h2 id="programs-title">Our<span> on air</span> program</h2>
 						</div>
-						<p class="section-deck">Meet the shows bringing Bandung together, one track at a time.</p>
+						<p class="section-deck">Placeholder for general description.</p>
 					</div>
 					<div class="feature-grid program-grid">
 						<article class="feature-card program-card">
-							<span class="card-index">01 / MUSIC</span>
+							<span class="card-index">01 / TYPE</span>
 							<span class="card-symbol" aria-hidden="true">♫</span>
-							<div><h3>O.Z. Selects</h3><p>A little bit of everything, picked by the people who know.</p></div>
+							<div><h3>OZ Riental</h3><p>Description.</p></div>
 							<span class="card-status">PROGRAM DETAILS COMING SOON</span>
 						</article>
 						<article class="feature-card program-card">
-							<span class="card-index">02 / CULTURE</span>
+							<span class="card-index">02 / TYPE</span>
 							<span class="card-symbol" aria-hidden="true">◌</span>
-							<div><h3>City Frequencies</h3><p>Stories, sounds and new perspectives from around town.</p></div>
+							<div><h3>OZ We Go</h3><p>Description.</p></div>
 							<span class="card-status">PROGRAM DETAILS COMING SOON</span>
 						</article>
 						<article class="feature-card program-card">
-							<span class="card-index">03 / COMMUNITY</span>
+							<span class="card-index">03 / TYPE</span>
 							<span class="card-symbol" aria-hidden="true">✳</span>
-							<div><h3>Open Studio</h3><p>Good conversations with the voices shaping our scene.</p></div>
+							<div><h3>Morning Rush</h3><p>Description.</p></div>
+							<span class="card-status">PROGRAM DETAILS COMING SOON</span>
+						</article>
+						<article class="feature-card program-card">
+							<span class="card-index">04 / TYPE</span>
+							<span class="card-symbol" aria-hidden="true">♫</span>
+							<div><h3>Main Aman</h3><p>Description.</p></div>
+							<span class="card-status">PROGRAM DETAILS COMING SOON</span>
+						</article>
+						<article class="feature-card program-card">
+							<span class="card-index">05 / TYPE</span>
+							<span class="card-symbol" aria-hidden="true">◌</span>
+							<div><h3>Thursday Nite Club</h3><p>Description.</p></div>
+							<span class="card-status">PROGRAM DETAILS COMING SOON</span>
+						</article>
+						<article class="feature-card program-card">
+							<span class="card-index">06 / TYPE</span>
+							<span class="card-symbol" aria-hidden="true">✳</span>
+							<div><h3>Miming Bebeg</h3><p>Description.</p></div>
 							<span class="card-status">PROGRAM DETAILS COMING SOON</span>
 						</article>
 					</div>
@@ -128,42 +140,38 @@ const sections = [
 			</section>
 
 			<section class="screen" id="online" aria-labelledby="online-title">
-				<header class="section-topline">
-					<a class="wordmark" href="/" aria-label="O.Z. Radio home">O<span>.</span>Z.</a>
-					<span class="section-label">O.Z. RADIO · BANDUNG</span>
-				</header>
 				<div class="screen-content">
 					<div class="section-heading">
 						<div>
-							<p class="eyebrow">03 / ONLINE DIGITAL</p>
-							<h2 id="online-title">Find us <span>out there.</span></h2>
+							<p class="eyebrow">03 / ONLINE</p>
+							<h2 id="online-title">Online <span>digital</span></h2>
 						</div>
-						<p class="section-deck">The studio keeps going, on screen and in your feed.</p>
+						<p class="section-deck">Placeholder for general description.</p>
 					</div>
 					<div class="feature-grid social-grid">
 						<article class="feature-card social-card youtube-card">
-							<div class="social-topline"><span class="social-mark">▶</span><span>O.Z. RADIO BANDUNG · YOUTUBE</span></div>
+							<div class="social-topline"><span class="social-mark">▶</span><span>OZ RADIO BANDUNG · YOUTUBE</span></div>
 							<div class="channel-preview">
 								<span class="preview-play">▶</span>
-								<span class="preview-caption">STUDIO SESSIONS<br />&amp; LIVE MOMENTS</span>
+								<span class="preview-caption">PODCASTS<br />&amp; LIVESTREAMS</span>
 								<span class="preview-duration">CHANNEL PREVIEW</span>
 							</div>
 							<div class="social-card-bottom">
-								<div><h3>Watch the frequency.</h3><p>Live sets, studio sessions and more from O.Z. Bandung.</p></div>
+								<div><h3>Watch podcasts.</h3><p>Live sets, studio sessions and more from OZ Radio Bandung.</p></div>
 								<a class="outline-link" href={youtubeChannelUrl || undefined} aria-disabled={!youtubeChannelUrl}>
 									{youtubeChannelUrl ? 'VISIT YOUTUBE ↗' : 'CHANNEL LINK COMING SOON'}
 								</a>
 							</div>
 						</article>
 						<article class="feature-card social-card instagram-card">
-							<div class="social-topline"><span class="social-mark instagram-mark">◎</span><span>O.Z. RADIO BANDUNG · INSTAGRAM</span></div>
+							<div class="social-topline"><span class="social-mark instagram-mark">◎</span><span>OZ RADIO BANDUNG · INSTAGRAM</span></div>
 							<div class="instagram-preview">
-								<div class="insta-tile tile-one"><span>O.Z.</span></div>
-								<div class="insta-tile tile-two"><span>ON AIR</span></div>
-								<div class="insta-tile tile-three"><span>BDG</span></div>
+								<div class="insta-tile tile-one"><span>IMG</span></div>
+								<div class="insta-tile tile-two"><span>IMG</span></div>
+								<div class="insta-tile tile-three"><span>IMG</span></div>
 							</div>
 							<div class="social-card-bottom">
-								<div><h3>Stay in the loop.</h3><p>Behind the scenes and everything happening around the station.</p></div>
+								<div><h3>Stay in the loop.</h3><p>Behind the scenes and everything.</p></div>
 								<a class="outline-link" href={instagramUrl || undefined} aria-disabled={!instagramUrl}>
 									{instagramUrl ? 'VISIT INSTAGRAM ↗' : 'PROFILE LINK COMING SOON'}
 								</a>
@@ -175,30 +183,26 @@ const sections = [
 			</section>
 
 			<section class="screen" id="activities" aria-labelledby="activities-title">
-				<header class="section-topline">
-					<a class="wordmark" href="/" aria-label="O.Z. Radio home">O<span>.</span>Z.</a>
-					<span class="section-label">O.Z. RADIO · BANDUNG</span>
-				</header>
 				<div class="screen-content">
 					<div class="section-heading">
 						<div>
 							<p class="eyebrow">04 / ON GROUND ACTIVITY</p>
-							<h2 id="activities-title">Out of the studio, <span>into the city.</span></h2>
+							<h2 id="activities-title">On ground <span>activity.</span></h2>
 						</div>
-						<p class="section-deck">A meeting point for music, people and good ideas.</p>
+						<p class="section-deck">Placeholder for general description.</p>
 					</div>
 					<div class="feature-grid activity-grid">
 						<article class="feature-card activity-card">
 							<div class="activity-art art-listen"><span>LISTEN<br />CLOSER</span></div>
-							<div class="activity-info"><span class="card-index">LIVE MUSIC</span><h3>O.Z. Listening Room</h3><p>Intimate sessions, unexpected sounds.</p><span class="card-status">UPCOMING EVENTS COMING SOON</span></div>
+							<div class="activity-info"><span class="card-index">LIVE MUSIC</span><h3>OZubathon</h3><p>Lorem ipsum dolor sit amet.</p><span class="card-status">UPCOMING EVENTS COMING SOON</span></div>
 						</article>
 						<article class="feature-card activity-card">
 							<div class="activity-art art-meet"><span>MEET<br />IN PERSON</span></div>
-							<div class="activity-info"><span class="card-index">COMMUNITY</span><h3>Radio Social Club</h3><p>Good people and even better conversations.</p><span class="card-status">UPCOMING EVENTS COMING SOON</span></div>
+							<div class="activity-info"><span class="card-index">COMMUNITY</span><h3>Siaran Di Cafe</h3><p>Lorem ipsum dolor sit amet.</p><span class="card-status">UPCOMING EVENTS COMING SOON</span></div>
 						</article>
 						<article class="feature-card activity-card">
 							<div class="activity-art art-create"><span>MAKE<br />SOME NOISE</span></div>
-							<div class="activity-info"><span class="card-index">WORKSHOPS</span><h3>Make Some Noise</h3><p>Learn, share and create with the local scene.</p><span class="card-status">UPCOMING EVENTS COMING SOON</span></div>
+							<div class="activity-info"><span class="card-index">WORKSHOPS</span><h3>Placeholder</h3><p>Lorem ipsum dolor sit amet.</p><span class="card-status">UPCOMING EVENTS COMING SOON</span></div>
 						</article>
 					</div>
 				</div>
@@ -206,32 +210,28 @@ const sections = [
 			</section>
 
 			<section class="screen" id="news" aria-labelledby="news-title">
-				<header class="section-topline">
-					<a class="wordmark" href="/" aria-label="O.Z. Radio home">O<span>.</span>Z.</a>
-					<span class="section-label">O.Z. RADIO · BANDUNG</span>
-				</header>
 				<div class="screen-content">
 					<div class="section-heading">
 						<div>
-							<p class="eyebrow">05 / OZ-NEWS TODAY</p>
-							<h2 id="news-title">Fresh from <span>the frequency.</span></h2>
+							<p class="eyebrow">05 / OZ NEWS TODAY</p>
+							<h2 id="news-title">OZ <span>News.</span></h2>
 						</div>
-						<p class="section-deck">Notes, news and what's next from O.Z. Radio Bandung.</p>
+						<p class="section-deck">Placeholder for general description.</p>
 					</div>
 					<div class="news-layout">
 						<article class="feature-card lead-story">
-							<div class="story-art"><span class="story-stamp">O.Z.<br />JOURNAL</span><span class="story-date">LATEST<br />FROM BDG</span></div>
+							<div class="story-art"><span class="story-stamp">OZ<br />NEWS</span><span class="story-date">LATEST<br />FROM BDG</span></div>
 							<div class="story-copy">
 								<span class="card-index">THE LATEST · EDITORIAL</span>
-								<h3>A new voice in the city is finding its frequency.</h3>
-								<p>News and stories from the O.Z. Radio Bandung community will be shared here. Check back for our first post.</p>
+								<h3>News title</h3>
+								<p>Lorem ipsum dolor sit amet consectetur adipiscing elit.</p>
 								<span class="card-status">FIRST STORY COMING SOON</span>
 							</div>
 						</article>
 						<aside class="feature-card calendar-card">
 							<div class="calendar-head"><span class="card-index">SAVE THE DATE</span><span class="calendar-icon">▦</span></div>
-							<div class="calendar-date"><span>OZ-NEWS</span><strong>Coming<br />up next.</strong></div>
-							<div class="calendar-event"><span class="live-dot idle-dot"></span><div><strong>Next O.Z. Radio event</strong><span>Date and details to be announced</span></div></div>
+							<div class="calendar-date"><span>OZ NEWS</span><strong>Event<br />calendar.</strong></div>
+							<div class="calendar-event"><span class="live-dot idle-dot"></span><div><strong>Next OZ Radio event</strong><span>Date and details to be announced</span></div></div>
 							<a class="outline-link" href="#activities">EXPLORE ACTIVITIES ↓</a>
 						</aside>
 					</div>
@@ -240,30 +240,26 @@ const sections = [
 			</section>
 
 			<section class="screen contact-screen" id="contact" aria-labelledby="contact-title">
-				<header class="section-topline">
-					<a class="wordmark" href="/" aria-label="O.Z. Radio home">O<span>.</span>Z.</a>
-					<span class="section-label">O.Z. RADIO · BANDUNG</span>
-				</header>
 				<div class="screen-content">
 					<div class="section-heading">
 						<div>
 							<p class="eyebrow">06 / LET'S TALK BUSINESS</p>
-							<h2 id="contact-title">Good things start <span>with a hello.</span></h2>
+							<h2 id="contact-title">Contact <span>Information.</span></h2>
 						</div>
 						<p class="section-deck">Partnerships, collaborations, ideas — we’re listening.</p>
 					</div>
 					<div class="contact-layout">
-						<div class="contact-intro"><span class="contact-mark">O<span>.</span>Z.</span><p>Let’s make something meaningful together.</p><span class="card-status">CONTACT DETAILS TO BE ADDED</span></div>
+						<div class="contact-intro"><span class="contact-mark">O<span>Z</span></span><p>Let’s make something meaningful together.</p><span class="card-status">CONTACT DETAILS TO BE ADDED</span></div>
 						<div class="contact-details">
-							<div class="contact-item"><span>EMAIL</span><strong>Coming soon</strong><small>Business &amp; general enquiries</small></div>
-							<div class="contact-item"><span>PHONE / WHATSAPP</span><strong>Coming soon</strong><small>Reach the O.Z. team</small></div>
+							<div class="contact-item"><span>EMAIL</span><strong>TBA</strong><small>Business &amp; general enquiries</small></div>
+							<div class="contact-item"><span>PHONE / WHATSAPP</span><strong>TBA</strong><small>Reach the OZ team</small></div>
 							<div class="contact-item"><span>STUDIO</span><strong>Bandung, West Java</strong><small>Full address coming soon</small></div>
 							<div class="contact-item"><span>PARTNERSHIPS</span><strong>Let’s work together</strong><small>Contact information coming soon</small></div>
 						</div>
 					</div>
 				</div>
-				<footer class="contact-footer"><a href="/">← ALL LOCATIONS</a><span>GOOD MUSIC TRAVELS.</span><a href="/oz-bali/">NEXT STOP: BALI →</a></footer>
 				<SectionNav sections={sections} current="contact" />
+				<footer class="contact-footer"><br /><span>FOOTER</span><br /></footer>
 			</section>
 		</main>
 	</body>
@@ -344,7 +340,7 @@ const sections = [
 	h1 span,
 	.section-heading h2 span,
 	.contact-mark > span {
-		color: #ef5537;
+		color: #f2bd57;
 	}
 
 	.back-link,
@@ -379,7 +375,7 @@ const sections = [
 		flex: 0 0 auto;
 		border-radius: 50%;
 		background: #f2bd57;
-		box-shadow: 0 0 0 4px rgb(239 85 55 / 14%);
+		box-shadow: 0 0 0 4px rgba(242, 189, 87, 0.14);
 	}
 
 	.idle-dot {
@@ -448,7 +444,7 @@ const sections = [
 	.broadcast-label,
 	.on-air,
 	.broadcast-heading .on-air {
-		color: #ef856e;
+		color: #f2bd57;
 		font-size: 8px;
 		font-weight: 700;
 		letter-spacing: 0.12em;
@@ -458,7 +454,7 @@ const sections = [
 		width: 100%;
 		aspect-ratio: 16 / 7;
 		background:
-			radial-gradient(ellipse at 50% 110%, rgb(239 85 55 / 12%), transparent 53%),
+			radial-gradient(ellipse at 50% 110%, rgba(242, 189, 87, 0.14), transparent 53%),
 			#11110f;
 	}
 
@@ -484,9 +480,9 @@ const sections = [
 		display: grid;
 		place-items: center;
 		margin-bottom: 8px;
-		border: 1px solid #ef5537;
+		border: 1px solid #f2bd57;
 		border-radius: 50%;
-		color: #ef5537;
+		color: #f2bd57;
 		font-size: 10px;
 	}
 
@@ -518,7 +514,7 @@ const sections = [
 
 	.icon,
 	.card-symbol {
-		color: #ef5537;
+		color: #f2bd57;
 	}
 
 	.icon {
@@ -553,7 +549,7 @@ const sections = [
 		flex: 0 0 auto;
 		place-items: center;
 		border-radius: 50%;
-		background: #ef5537;
+		background: #f2bd57;
 		color: #181714;
 		font-size: 9px;
 	}
@@ -678,7 +674,7 @@ const sections = [
 	}
 
 	.social-mark {
-		color: #ef5537;
+		color: #f2bd57;
 		font-size: 15px;
 	}
 
@@ -690,8 +686,8 @@ const sections = [
 		overflow: hidden;
 		margin: 12px 0;
 		background:
-			linear-gradient(130deg, transparent 46%, rgb(239 85 55 / 16%) 46% 48%, transparent 48%),
-			radial-gradient(ellipse at 70% 120%, rgb(239 85 55 / 26%), transparent 50%),
+			linear-gradient(130deg, transparent 46%, rgba(242, 189, 87, 0.16) 46% 48%, transparent 48%),
+			radial-gradient(ellipse at 70% 120%, rgba(242, 189, 87, 0.26), transparent 50%),
 			#12110f;
 	}
 
@@ -700,9 +696,9 @@ const sections = [
 		height: 37px;
 		display: grid;
 		place-items: center;
-		border: 1px solid #ef5537;
+		border: 1px solid #f2bd57;
 		border-radius: 50%;
-		color: #ef5537;
+		color: #f2bd57;
 		font-size: 10px;
 	}
 
@@ -744,7 +740,7 @@ const sections = [
 		padding: 7px 9px;
 		border: 1px solid #514b40;
 		border-radius: 2px;
-		color: #ef856e;
+		color: #fad38b;
 		font-size: 7px;
 		font-weight: 700;
 		letter-spacing: 0.09em;
@@ -769,14 +765,14 @@ const sections = [
 		display: grid;
 		place-items: center;
 		background: #161512;
-		color: #ef856e;
+		color: #fad38b;
 		font-size: 10px;
 		font-weight: 700;
 		letter-spacing: 0.12em;
 	}
 
 	.tile-one {
-		background: radial-gradient(circle, rgb(239 85 55 / 20%), transparent 58%), #161512;
+		background: radial-gradient(circle, rgba(242, 189, 87, 0.2), transparent 58%), #161512;
 	}
 
 	.tile-two {
@@ -784,7 +780,7 @@ const sections = [
 	}
 
 	.tile-three {
-		background: radial-gradient(ellipse at 70% 20%, rgb(239 85 55 / 18%), transparent 65%), #161512;
+		background: radial-gradient(ellipse at 70% 20%, rgba(242, 189, 87, 0.18), transparent 65%), #161512;
 	}
 
 	.activity-card {
@@ -806,7 +802,7 @@ const sections = [
 	}
 
 	.art-listen {
-		background: radial-gradient(ellipse at 70% 100%, rgb(239 85 55 / 40%), transparent 50%), #26231d;
+		background: radial-gradient(ellipse at 70% 100%, rgba(242, 189, 87, 0.40), transparent 50%), #26231d;
 	}
 
 	.art-meet {
@@ -814,7 +810,7 @@ const sections = [
 	}
 
 	.art-create {
-		background: radial-gradient(circle at 30% 30%, rgb(239 85 55 / 22%), transparent 50%), #1d1b17;
+		background: radial-gradient(circle at 30% 30%, rgba(242, 189, 87, 0.22), transparent 50%), #1d1b17;
 	}
 
 	.activity-info {
@@ -854,7 +850,7 @@ const sections = [
 		justify-content: space-between;
 		padding: 18px;
 		background:
-			radial-gradient(ellipse at 20% 100%, rgb(239 85 55 / 28%), transparent 50%),
+			radial-gradient(ellipse at 20% 100%, rgba(242, 189, 87, 0.28), transparent 50%),
 			linear-gradient(135deg, #2c2821, #141310);
 	}
 
@@ -904,7 +900,7 @@ const sections = [
 	}
 
 	.calendar-icon {
-		color: #ef5537;
+		color: #f2bd57;
 		font-size: 19px;
 	}
 
@@ -918,7 +914,7 @@ const sections = [
 	}
 
 	.calendar-date > span {
-		color: #ef856e;
+		color: #f2bd57;
 		font-size: 8px;
 		font-weight: 700;
 		letter-spacing: 0.12em;
@@ -1013,7 +1009,7 @@ const sections = [
 	}
 
 	.contact-item > span {
-		color: #ef856e;
+		color: #f2bd57;
 		font-size: 8px;
 		font-weight: 700;
 		letter-spacing: 0.12em;
@@ -1045,7 +1041,7 @@ const sections = [
 	}
 
 	.progress a[aria-current='step'] {
-		background: #ef5537;
+		background: #f2bd57;
 	}
 
 	@media (max-width: 650px) {
