@@ -49,39 +49,66 @@ const sections = [
 					<div class="broadcast" aria-label="OZ Bandung broadcast">
 						<div class="broadcast-heading">
 							<div class="broadcast-label"><span class="live-dot idle-dot"></span> LIVE FROM THE STUDIO</div>
-							<span class="on-air">AUDIO + VIDEO</span>
+							<span class="on-air">CHOOSE A BROADCAST</span>
 						</div>
-						<div class="video-frame">
-							{twitchChannel ? (
-								<iframe
-									title="OZ Bandung Twitch livestream"
-									data-twitch-channel={twitchChannel}
-									allow="autoplay; fullscreen"
-									allowfullscreen
-								></iframe>
-							) : (
-								<div class="video-placeholder">
-									<span class="placeholder-play" aria-hidden="true">▶</span>
-									<p>Lorem ipsum dolor sit amet</p>
-									<span class="placeholder-caption">TWITCH LIVESTREAM · CHANNEL TO BE ADDED</span>
+						<div class="broadcast-options" role="group" aria-label="Choose audio or video">
+							<button class="broadcast-option" type="button" data-broadcast-choice="audio" aria-pressed="false">♫ <span>Listen to audio</span></button>
+							<button class="broadcast-option" type="button" data-broadcast-choice="video" aria-pressed="false">▶ <span>Watch the studio</span></button>
+						</div>
+						<div class="broadcast-panel" data-broadcast-panel="audio" hidden>
+							<div class="audio-bar">
+								<span class="icon" aria-hidden="true">♫</span>
+								<div class="audio-copy">
+									<strong>OZ Bandung Radio</strong>
+									<span>{audioStreamUrl ? 'Streaming now' : 'Audio stream link coming soon'}</span>
 								</div>
-							)}
-						</div>
-						<div class="audio-bar">
-							<span class="icon" aria-hidden="true">♫</span>
-							<div class="audio-copy">
-								<strong>OZ Bandung Radio</strong>
-								<span>{audioStreamUrl ? 'Streaming now' : 'Audio stream link coming soon'}</span>
+								{audioStreamUrl ? (
+									<audio data-audio-player controls preload="none" src={audioStreamUrl} aria-label="OZ Bandung audio stream">
+										Your browser does not support audio playback.
+									</audio>
+								) : (
+									<span class="stream-status">AUDIO NOT CONNECTED</span>
+								)}
 							</div>
-							{audioStreamUrl ? (
-								<audio controls preload="none" src={audioStreamUrl} aria-label="OZ Bandung audio stream">
-									Your browser does not support audio playback.
-								</audio>
-							) : (
-								<span class="play-icon" aria-hidden="true">▶</span>
-							)}
+						</div>
+						<div class="broadcast-panel" data-broadcast-panel="video" hidden>
+							<div class="video-frame">
+								{twitchChannel ? (
+									<iframe
+										title="OZ Bandung Twitch livestream"
+										data-twitch-channel={twitchChannel}
+										allow="autoplay; fullscreen"
+										allowfullscreen
+									></iframe>
+								) : (
+									<div class="video-placeholder">
+										<span class="placeholder-play" aria-hidden="true">▶</span>
+										<p>Studio stream coming soon</p>
+										<span class="placeholder-caption">TWITCH LIVESTREAM · CHANNEL TO BE ADDED</span>
+									</div>
+								)}
+							</div>
 						</div>
 					</div>
+
+					<dialog class="listener-dialog" data-listener-dialog aria-labelledby="listener-dialog-title">
+						<form class="listener-form" data-listener-form>
+							<button class="dialog-close" type="button" data-dialog-close aria-label="Close">×</button>
+							<p class="eyebrow" data-dialog-eyebrow>LISTENER DETAILS</p>
+							<h2 id="listener-dialog-title" data-dialog-title>Before you tune in</h2>
+							<div data-listener-fields>
+								<label class="listener-field">Name<input name="name" autocomplete="name" required maxlength="80" /></label>
+								<label class="listener-field">Age<input name="age" type="number" inputmode="numeric" min="1" max="120" step="1" required /></label>
+								<label class="listener-field">Gender<select name="gender" required>
+									<option value="" selected disabled>Select gender</option>
+									<option>Female</option><option>Male</option><option>Non-binary</option><option>Prefer not to say</option><option>Self-describe</option>
+								</select></label>
+								<label class="listener-field">Location<input name="location" autocomplete="address-level2" required maxlength="100" /></label>
+							</div>
+							<div class="listener-confirmation" data-listener-confirmation hidden aria-live="polite"></div>
+							<button class="listener-submit" type="submit" data-listener-submit>Continue</button>
+						</form>
+					</dialog>
 
 					<aside class="ad-space" aria-label="Advertisement space">
 						<span class="ad-tag">ADVERTISEMENT</span>
@@ -350,21 +377,114 @@ const sections = [
 		showVideo(0);
 	}
 
+	const broadcastChoices = document.querySelectorAll<HTMLButtonElement>('[data-broadcast-choice]');
+	const broadcastPanels = document.querySelectorAll<HTMLElement>('[data-broadcast-panel]');
+	const broadcastEmpty = document.querySelector<HTMLElement>('[data-broadcast-empty]');
+	const listenerDialog = document.querySelector<HTMLDialogElement>('[data-listener-dialog]');
+	const listenerForm = listenerDialog?.querySelector<HTMLFormElement>('[data-listener-form]');
+	const listenerFields = listenerForm?.querySelector<HTMLElement>('[data-listener-fields]');
+	const listenerConfirmation = listenerForm?.querySelector<HTMLElement>('[data-listener-confirmation]');
+	const listenerSubmit = listenerForm?.querySelector<HTMLButtonElement>('[data-listener-submit]');
+	const dialogTitle = listenerForm?.querySelector<HTMLElement>('[data-dialog-title]');
 	const twitchPlayer = document.querySelector<HTMLIFrameElement>('[data-twitch-channel]');
-	const channel = twitchPlayer?.dataset.twitchChannel;
+	const audioPlayer = document.querySelector<HTMLAudioElement>('[data-audio-player]');
+	let selectedBroadcast: 'audio' | 'video' | null = null;
 
-	if (twitchPlayer && channel) {
-		const playerUrl = new URL('https://player.twitch.tv/');
-		playerUrl.searchParams.set('channel', channel);
-		playerUrl.searchParams.set('parent', window.location.hostname);
-		playerUrl.searchParams.set('muted', 'true');
-		twitchPlayer.src = playerUrl.toString();
-	}
+	const stopBroadcast = () => {
+		audioPlayer?.pause();
+		twitchPlayer?.removeAttribute('src');
+		broadcastPanels.forEach((panel) => { panel.hidden = true; });
+		if (broadcastEmpty) broadcastEmpty.hidden = false;
+	};
+
+	const startBroadcast = () => {
+		if (!selectedBroadcast) return;
+		broadcastPanels.forEach((panel) => {
+			panel.hidden = panel.dataset.broadcastPanel !== selectedBroadcast;
+		});
+		if (broadcastEmpty) broadcastEmpty.hidden = true;
+
+		if (selectedBroadcast === 'audio') {
+			audioPlayer?.play().catch(() => {});
+			return;
+		}
+
+		const channel = twitchPlayer?.dataset.twitchChannel;
+		if (twitchPlayer && channel) {
+			const playerUrl = new URL('https://player.twitch.tv/');
+			playerUrl.searchParams.set('channel', channel);
+			playerUrl.searchParams.set('parent', window.location.hostname);
+			playerUrl.searchParams.set('muted', 'true');
+			twitchPlayer.src = playerUrl.toString();
+		}
+	};
+
+	broadcastChoices.forEach((choice) => {
+		choice.addEventListener('click', () => {
+			if (!listenerDialog || !listenerForm || !listenerFields || !listenerConfirmation || !listenerSubmit || !dialogTitle) return;
+			stopBroadcast();
+			selectedBroadcast = choice.dataset.broadcastChoice === 'video' ? 'video' : 'audio';
+			broadcastChoices.forEach((button) => {
+				button.setAttribute('aria-pressed', String(button === choice));
+			});
+			listenerForm.reset();
+			listenerFields.hidden = false;
+			listenerFields.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select').forEach((field) => { field.disabled = false; });
+			listenerConfirmation.hidden = true;
+			listenerConfirmation.replaceChildren();
+			listenerSubmit.textContent = 'Continue';
+			dialogTitle.textContent = 'Before you tune in';
+			listenerDialog.showModal();
+			listenerFields.querySelector<HTMLInputElement>('input')?.focus();
+		});
+	});
+
+	listenerDialog?.querySelector('[data-dialog-close]')?.addEventListener('click', () => listenerDialog.close());
+
+	listenerForm?.addEventListener('submit', (event) => {
+		event.preventDefault();
+		if (!listenerFields || !listenerConfirmation || !listenerSubmit || !dialogTitle) return;
+
+		if (!listenerFields.hidden) {
+			if (!listenerForm.reportValidity()) return;
+			const listener = new FormData(listenerForm);
+			const details = [
+				['Name', listener.get('name')],
+				['Age', listener.get('age')],
+				['Gender', listener.get('gender')],
+				['Location', listener.get('location')],
+			] as const;
+			const message = document.createElement('p');
+			message.textContent = `You are ready to ${selectedBroadcast === 'video' ? 'watch' : 'listen'}.`;
+			const summary = document.createElement('dl');
+			details.forEach(([label, value]) => {
+				const term = document.createElement('dt');
+				term.textContent = label;
+				const description = document.createElement('dd');
+				description.textContent = String(value ?? '');
+				summary.append(term, description);
+			});
+			listenerConfirmation.replaceChildren(message, summary);
+			listenerFields.hidden = true;
+			listenerFields.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select').forEach((field) => { field.disabled = true; });
+			listenerConfirmation.hidden = false;
+			listenerSubmit.textContent = selectedBroadcast === 'video' ? 'Start watching' : 'Start listening';
+			dialogTitle.textContent = 'You’re all set';
+			return;
+		}
+
+		listenerDialog?.close();
+		startBroadcast();
+	});
 </script>
 
 <style>
 	:global(*) {
 		box-sizing: border-box;
+	}
+
+	:global([hidden]) {
+		display: none !important;
 	}
 
 	:global(html) {
@@ -514,6 +634,186 @@ const sections = [
 		border: 1px solid #37352f;
 		border-radius: 4px;
 		background: #201f1b;
+	}
+
+	.broadcast-options {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 1px;
+		border-top: 1px solid #37352f;
+		background: #37352f;
+	}
+
+	.broadcast-option {
+		min-height: 54px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 9px;
+		border: 0;
+		background: #201f1b;
+		color: #aaa59b;
+		font: inherit;
+		font-size: 10px;
+		font-weight: 700;
+		cursor: pointer;
+	}
+
+	.broadcast-option[aria-pressed='true'] {
+		background: #30291c;
+		color: #fad38b;
+		box-shadow: inset 0 -2px #f2bd57;
+	}
+
+	.broadcast-option:hover,
+	.broadcast-option:focus-visible {
+		color: #f5f1e8;
+	}
+
+	.broadcast-option:focus-visible,
+	.listener-submit:focus-visible,
+	.dialog-close:focus-visible {
+		outline: 2px solid #f2bd57;
+		outline-offset: -3px;
+	}
+
+	.broadcast-panel[hidden],
+	.broadcast-empty[hidden] {
+		display: none;
+	}
+
+	.broadcast-empty {
+		padding: 24px 16px;
+		color: #aaa59b;
+		font-size: 10px;
+		text-align: center;
+	}
+
+	.stream-status {
+		color: #aaa59b;
+		font-size: 7px;
+		font-weight: 700;
+		letter-spacing: 0.1em;
+	}
+
+	.listener-dialog {
+		width: min(460px, calc(100% - 28px));
+		max-width: none;
+		max-height: min(90dvh, 680px);
+		overflow: auto;
+		padding: clamp(22px, 5vw, 34px);
+		border: 1px solid #514b40;
+		border-radius: 4px;
+		background: #201f1b;
+		color: #f5f1e8;
+		box-shadow: 0 24px 80px rgb(0 0 0 / 55%);
+	}
+
+	.listener-dialog::backdrop {
+		background: rgb(10 10 9 / 78%);
+		backdrop-filter: blur(3px);
+	}
+
+	.listener-form {
+		position: relative;
+		display: grid;
+		gap: 14px;
+	}
+
+	.listener-form .eyebrow {
+		margin: 0;
+		color: #f2bd57;
+	}
+
+	.listener-form h2 {
+		margin: 0 30px 4px 0;
+		font-size: 25px;
+		line-height: 1.1;
+	}
+
+	.dialog-close {
+		position: absolute;
+		top: -12px;
+		right: -12px;
+		width: 34px;
+		height: 34px;
+		border: 1px solid #514b40;
+		border-radius: 50%;
+		background: #181714;
+		color: #f5f1e8;
+		font-size: 20px;
+		cursor: pointer;
+	}
+
+	.listener-field {
+		display: grid;
+		gap: 6px;
+		color: #d2cec4;
+		font-size: 10px;
+		font-weight: 700;
+	}
+
+	.listener-field input,
+	.listener-field select {
+		width: 100%;
+		min-height: 42px;
+		padding: 9px 10px;
+		border: 1px solid #514b40;
+		border-radius: 2px;
+		background: #181714;
+		color: #f5f1e8;
+		font: inherit;
+		font-size: 13px;
+	}
+
+	.listener-field input:focus,
+	.listener-field select:focus {
+		border-color: #f2bd57;
+		outline: 1px solid #f2bd57;
+	}
+
+	.listener-submit {
+		min-height: 42px;
+		margin-top: 3px;
+		border: 1px solid #f2bd57;
+		border-radius: 2px;
+		background: #f2bd57;
+		color: #181714;
+		font: inherit;
+		font-size: 10px;
+		font-weight: 800;
+		cursor: pointer;
+	}
+
+	.listener-confirmation p {
+		margin: 0 0 13px;
+		color: #aaa59b;
+		font-size: 12px;
+		line-height: 1.5;
+	}
+
+	.listener-confirmation dl {
+		display: grid;
+		grid-template-columns: 80px 1fr;
+		gap: 9px 12px;
+		margin: 0;
+		padding: 14px 0;
+		border-top: 1px solid #37352f;
+		border-bottom: 1px solid #37352f;
+	}
+
+	.listener-confirmation dt {
+		color: #aaa59b;
+		font-size: 9px;
+		font-weight: 700;
+		text-transform: uppercase;
+	}
+
+	.listener-confirmation dd {
+		min-width: 0;
+		margin: 0;
+		font-size: 11px;
+		overflow-wrap: anywhere;
 	}
 
 	.broadcast-heading {
