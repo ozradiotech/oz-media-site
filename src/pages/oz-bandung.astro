@@ -1,7 +1,7 @@
 ---
 import SectionNav from '../components/SectionNav.astro';
 
-const audioStreamUrl = '';
+const audioStreamUrl = 'https://streaming.ozradio.id:8443/ozbandung';
 const twitchChannel = '';
 const youtubeChannelUrl = '';
 const youtubeVideos = [
@@ -388,6 +388,11 @@ const sections = [
 	const dialogTitle = listenerForm?.querySelector<HTMLElement>('[data-dialog-title]');
 	const twitchPlayer = document.querySelector<HTMLIFrameElement>('[data-twitch-channel]');
 	const audioPlayer = document.querySelector<HTMLAudioElement>('[data-audio-player]');
+	const listenerSessionKey = 'oz-listener-details-saved';
+	let listenerDetailsSaved = false;
+	try {
+		listenerDetailsSaved = sessionStorage.getItem(listenerSessionKey) === 'true';
+	} catch {}
 	let selectedBroadcast: 'audio' | 'video' | null = null;
 
 	const stopBroadcast = () => {
@@ -427,6 +432,10 @@ const sections = [
 			broadcastChoices.forEach((button) => {
 				button.setAttribute('aria-pressed', String(button === choice));
 			});
+			if (listenerDetailsSaved) {
+				startBroadcast();
+				return;
+			}
 			listenerForm.reset();
 			listenerFields.hidden = false;
 			listenerFields.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select').forEach((field) => { field.disabled = false; });
@@ -441,13 +450,42 @@ const sections = [
 
 	listenerDialog?.querySelector('[data-dialog-close]')?.addEventListener('click', () => listenerDialog.close());
 
-	listenerForm?.addEventListener('submit', (event) => {
+	listenerForm?.addEventListener('submit', async (event) => {
 		event.preventDefault();
 		if (!listenerFields || !listenerConfirmation || !listenerSubmit || !dialogTitle) return;
 
 		if (!listenerFields.hidden) {
 			if (!listenerForm.reportValidity()) return;
 			const listener = new FormData(listenerForm);
+		listenerSubmit.disabled = true;
+		listenerSubmit.textContent = 'Saving...';
+		try {
+			const response = await fetch('/api/listeners', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					name: String(listener.get('name')).trim(),
+					age: Number(listener.get('age')),
+					gender: listener.get('gender'),
+					location: String(listener.get('location')).trim(),
+					broadcast: selectedBroadcast,
+				}),
+			});
+			if (!response.ok) throw new Error('Listener details could not be saved. Please try again.');
+			listenerDetailsSaved = true;
+			try {
+				sessionStorage.setItem(listenerSessionKey, 'true');
+			} catch {}
+		} catch (error) {
+			const message = document.createElement('p');
+			message.textContent = error instanceof Error ? error.message : 'Listener details could not be saved. Please try again.';
+			listenerConfirmation.replaceChildren(message);
+			listenerConfirmation.hidden = false;
+			listenerSubmit.disabled = false;
+			listenerSubmit.textContent = 'Continue';
+			return;
+		}
+		listenerSubmit.disabled = false;
 			const details = [
 				['Name', listener.get('name')],
 				['Age', listener.get('age')],

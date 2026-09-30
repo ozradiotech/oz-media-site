@@ -1,5 +1,7 @@
 # build output
 dist/
+# listener records
+data/listeners.jsonl
 # generated types
 .astro/
 
