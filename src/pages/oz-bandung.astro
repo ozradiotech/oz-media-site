@@ -59,8 +59,8 @@ const sections = [
 							<div class="audio-bar">
 								<span class="icon" aria-hidden="true">♫</span>
 								<div class="audio-copy">
-									<strong>OZ Bandung Radio</strong>
-									<span>{audioStreamUrl ? 'Streaming now' : 'Audio stream link coming soon'}</span>
+									<strong data-track-title>{audioStreamUrl ? 'Loading track...' : 'Audio stream unavailable'}</strong>
+									<span data-track-artist aria-live="polite"></span>
 								</div>
 								{audioStreamUrl ? (
 									<audio data-audio-player controls preload="none" src={audioStreamUrl} aria-label="OZ Bandung audio stream">
@@ -388,14 +388,58 @@ const sections = [
 	const dialogTitle = listenerForm?.querySelector<HTMLElement>('[data-dialog-title]');
 	const twitchPlayer = document.querySelector<HTMLIFrameElement>('[data-twitch-channel]');
 	const audioPlayer = document.querySelector<HTMLAudioElement>('[data-audio-player]');
+	const trackTitle = document.querySelector<HTMLElement>('[data-track-title]');
+	const trackArtist = document.querySelector<HTMLElement>('[data-track-artist]');
 	const listenerSessionKey = 'oz-listener-details-saved';
 	let listenerDetailsSaved = false;
 	try {
 		listenerDetailsSaved = sessionStorage.getItem(listenerSessionKey) === 'true';
 	} catch {}
 	let selectedBroadcast: 'audio' | 'video' | null = null;
+	let nowPlayingTimer: number | undefined;
+
+	const stopNowPlayingUpdates = () => {
+		if (nowPlayingTimer !== undefined) {
+			window.clearInterval(nowPlayingTimer);
+			nowPlayingTimer = undefined;
+		}
+	};
+
+	const updateNowPlaying = async () => {
+		if (!trackTitle || !trackArtist) return;
+
+		try {
+			const response = await fetch('/api/now-playing', { cache: 'no-store' });
+			if (!response.ok) throw new Error('Track title unavailable.');
+
+			const data = (await response.json()) as { title?: unknown };
+			const metadata = typeof data.title === 'string' ? data.title.trim() : '';
+			const separatorIndex = metadata.lastIndexOf(' - ');
+			if (separatorIndex > 0 && separatorIndex < metadata.length - 3) {
+				trackTitle.textContent = metadata.slice(0, separatorIndex).trim();
+				trackArtist.textContent = metadata.slice(separatorIndex + 3).trim();
+			} else {
+				trackTitle.textContent = metadata || 'Track title unavailable';
+				trackArtist.textContent = '';
+			}
+		} catch {
+			trackTitle.textContent = 'Track title unavailable';
+			trackArtist.textContent = '';
+		}
+	};
+
+	const startNowPlayingUpdates = () => {
+		if (nowPlayingTimer !== undefined || !trackTitle || !trackArtist) return;
+		void updateNowPlaying();
+		nowPlayingTimer = window.setInterval(() => { void updateNowPlaying(); }, 30_000);
+	};
+
+	audioPlayer?.addEventListener('play', startNowPlayingUpdates);
+	audioPlayer?.addEventListener('pause', stopNowPlayingUpdates);
+	audioPlayer?.addEventListener('ended', stopNowPlayingUpdates);
 
 	const stopBroadcast = () => {
+		stopNowPlayingUpdates();
 		audioPlayer?.pause();
 		twitchPlayer?.removeAttribute('src');
 		broadcastPanels.forEach((panel) => { panel.hidden = true; });
@@ -410,6 +454,7 @@ const sections = [
 		if (broadcastEmpty) broadcastEmpty.hidden = true;
 
 		if (selectedBroadcast === 'audio') {
+			startNowPlayingUpdates();
 			audioPlayer?.play().catch(() => {});
 			return;
 		}
