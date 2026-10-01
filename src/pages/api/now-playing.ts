@@ -3,6 +3,8 @@ import type { APIRoute } from 'astro';
 type IcecastSource = {
 	listenurl?: string;
 	title?: string;
+	listeners?: number;
+	listener_peak?: number;
 };
 
 type IcecastStatus = {
@@ -25,12 +27,16 @@ export const GET: APIRoute = async () => {
 		const source = sources.find((item) => item?.listenurl?.endsWith('/ozbandung'));
 
 		return Response.json(
-			{ title: source?.title?.trim() ?? '' },
+			{
+				title: source?.title?.trim() ?? '',
+				listeners: source?.listeners ?? null,
+				peakListeners: source?.listener_peak ?? null,
+			},
 			{ headers: { 'Cache-Control': 'no-store' } },
 		);
 	} catch {
 		return Response.json(
-			{ title: '' },
+			{ title: '', listeners: null, peakListeners: null },
 			{ status: 502, headers: { 'Cache-Control': 'no-store' } },
 		);
 	}

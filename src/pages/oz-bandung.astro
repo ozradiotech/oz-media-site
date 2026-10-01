@@ -3,13 +3,13 @@ import SectionNav from '../components/SectionNav.astro';
 
 const audioStreamUrl = 'https://streaming.ozradio.id:8443/ozbandung';
 const twitchChannel = '';
-const youtubeChannelUrl = '';
+const youtubeChannelUrl = 'https://www.youtube.com/@OZMEDIANET';
 const youtubeVideos = [
-	{ id: '', title: 'Featured video' },
-	{ id: '', title: 'Studio session' },
-	{ id: '', title: 'Live set' },
+	{ id: 'UDmfDJTzg4w', title: 'Featured video' },
+	{ id: 'dn73m2_u71E', title: 'Studio session' },
+	{ id: 'ZStRwkoiTQY', title: 'Live set' },
 ];
-const instagramUrl = '';
+const instagramUrl = 'https://www.instagram.com/ozradiobandung';
 
 const sections = [
 	{ id: 'listen', label: 'ON AIR' },
@@ -70,6 +70,10 @@ const sections = [
 									<span class="stream-status">AUDIO NOT CONNECTED</span>
 								)}
 							</div>
+							<div class="listener-stats" aria-live="polite" aria-label="Live listener statistics">
+								<span>LISTENERS <strong data-listener-count>—</strong></span>
+								<span>PEAK LISTENERS <strong data-listener-peak>—</strong></span>
+							</div>
 						</div>
 						<div class="broadcast-panel" data-broadcast-panel="video" hidden>
 							<div class="video-frame">
@@ -101,7 +105,7 @@ const sections = [
 								<label class="listener-field">Age<input name="age" type="number" inputmode="numeric" min="1" max="120" step="1" required /></label>
 								<label class="listener-field">Gender<select name="gender" required>
 									<option value="" selected disabled>Select gender</option>
-									<option>Female</option><option>Male</option><option>Non-binary</option><option>Prefer not to say</option><option>Self-describe</option>
+									<option>Female</option><option>Male</option>>
 								</select></label>
 								<label class="listener-field">Location<input name="location" autocomplete="address-level2" required maxlength="100" /></label>
 							</div>
@@ -224,10 +228,15 @@ const sections = [
 						<article class="feature-card social-card instagram-card">
 							<div class="social-topline"><span class="social-mark instagram-mark">◎</span><span>OZ RADIO BANDUNG · INSTAGRAM</span></div>
 							<div class="instagram-preview">
-								<div class="insta-tile tile-one"><span>IMG</span></div>
-								<div class="insta-tile tile-two"><span>IMG</span></div>
-								<div class="insta-tile tile-three"><span>IMG</span></div>
+								<blockquote
+									class="instagram-media"
+									data-instgrm-permalink="https://www.instagram.com/ozradiobandung/"
+									data-instgrm-version="14"
+								>
+									<a href={instagramUrl}>View this profile on Instagram</a>
+								</blockquote>
 							</div>
+							<script async src="https://www.instagram.com/embed.js" is:inline></script>
 							<div class="social-card-bottom">
 								<div><h3>Stay in the loop.</h3><p>Behind the scenes and everything.</p></div>
 								<a class="outline-link" href={instagramUrl || undefined} aria-disabled={!instagramUrl}>
@@ -390,6 +399,8 @@ const sections = [
 	const audioPlayer = document.querySelector<HTMLAudioElement>('[data-audio-player]');
 	const trackTitle = document.querySelector<HTMLElement>('[data-track-title]');
 	const trackArtist = document.querySelector<HTMLElement>('[data-track-artist]');
+	const listenerCount = document.querySelector<HTMLElement>('[data-listener-count]');
+	const listenerPeak = document.querySelector<HTMLElement>('[data-listener-peak]');
 	const listenerSessionKey = 'oz-listener-details-saved';
 	let listenerDetailsSaved = false;
 	try {
@@ -406,14 +417,20 @@ const sections = [
 	};
 
 	const updateNowPlaying = async () => {
-		if (!trackTitle || !trackArtist) return;
+		if (!trackTitle || !trackArtist || !listenerCount || !listenerPeak) return;
 
 		try {
 			const response = await fetch('/api/now-playing', { cache: 'no-store' });
 			if (!response.ok) throw new Error('Track title unavailable.');
 
-			const data = (await response.json()) as { title?: unknown };
+			const data = (await response.json()) as {
+				title?: unknown;
+				listeners?: unknown;
+				peakListeners?: unknown;
+			};
 			const metadata = typeof data.title === 'string' ? data.title.trim() : '';
+			listenerCount.textContent = typeof data.listeners === 'number' ? data.listeners.toLocaleString() : '—';
+			listenerPeak.textContent = typeof data.peakListeners === 'number' ? data.peakListeners.toLocaleString() : '—';
 			const separatorIndex = metadata.lastIndexOf(' - ');
 			if (separatorIndex > 0 && separatorIndex < metadata.length - 3) {
 				trackTitle.textContent = metadata.slice(0, separatorIndex).trim();
@@ -425,6 +442,8 @@ const sections = [
 		} catch {
 			trackTitle.textContent = 'Track title unavailable';
 			trackArtist.textContent = '';
+			listenerCount.textContent = '—';
+			listenerPeak.textContent = '—';
 		}
 	};
 
@@ -979,6 +998,24 @@ const sections = [
 		border-top: 1px solid #37352f;
 	}
 
+	.listener-stats {
+		display: flex;
+		gap: 20px;
+		padding: 8px 13px 10px;
+		border-top: 1px solid #37352f;
+		color: #aaa59b;
+		font-size: 8px;
+		font-weight: 700;
+		letter-spacing: 0.1em;
+	}
+
+	.listener-stats strong {
+		margin-left: 5px;
+		color: #f5f1e8;
+		font-size: 10px;
+		letter-spacing: 0;
+	}
+
 	.icon,
 	.card-symbol {
 		color: #f2bd57;
@@ -1158,7 +1195,7 @@ const sections = [
 			#12110f;
 	}
 
-	.channel-preview iframe {
+	:global(.channel-preview iframe) {
 		position: absolute;
 		inset: 0;
 		width: 100%;
@@ -1318,33 +1355,23 @@ const sections = [
 	}
 
 	.instagram-preview {
-		display: grid;
-		grid-template-columns: repeat(3, 1fr);
-		gap: 7px;
+		height: 260px;
+		overflow: auto;
+		scrollbar-width: none;
 		margin: 12px 0;
-	}
-
-	.insta-tile {
-		aspect-ratio: 1;
-		display: grid;
-		place-items: center;
 		background: #161512;
-		color: #fad38b;
-		font-size: 10px;
-		font-weight: 700;
-		letter-spacing: 0.12em;
 	}
 
-	.tile-one {
-		background: radial-gradient(circle, rgba(242, 189, 87, 0.2), transparent 58%), #161512;
+	:global(.instagram-preview::-webkit-scrollbar) {
+		display: none;
 	}
 
-	.tile-two {
-		background: linear-gradient(145deg, #26231d, #11110f);
-	}
-
-	.tile-three {
-		background: radial-gradient(ellipse at 70% 20%, rgba(242, 189, 87, 0.18), transparent 65%), #161512;
+	:global(.instagram-preview iframe) {
+		display: block;
+		width: 100% !important;
+		min-width: 0 !important;
+		max-width: 100% !important;
+		border: 0;
 	}
 
 	.activity-card {
@@ -1772,13 +1799,8 @@ const sections = [
 		}
 
 		.instagram-preview {
-			gap: 5px;
+			height: 190px;
 			margin: 7px 0;
-		}
-
-		.insta-tile {
-			aspect-ratio: 2.1 / 1;
-			font-size: 8px;
 		}
 
 		.social-card-bottom {
