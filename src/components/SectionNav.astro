@@ -10,28 +10,39 @@ const previous = sections[currentIndex - 1];
 const next = sections[currentIndex + 1];
 ---
 
-<nav class="section-footer" aria-label="Section navigation">
-	<a href={previous ? `#${previous.id}` : '/'}>{previous ? '← ' + previous.label : '← ALL LOCATIONS'}</a>
-	<div class="progress" aria-label={`Section ${currentIndex + 1} of ${sections.length}`}>
+<nav class="section-footer" aria-label="Section navigation" data-section-nav>
+	<a data-section-previous href={previous ? `#${previous.id}` : '/'}>{previous ? '← ' + previous.label : '← ALL LOCATIONS'}</a>
+	<div class="progress" aria-label={`Section ${currentIndex + 1} of ${sections.length}`} data-section-progress>
 		{sections.map((section) => (
 			<a
 				href={`#${section.id}`}
 				aria-label={`Go to ${section.label}`}
 				aria-current={section.id === current ? 'step' : undefined}
+				data-section-id={section.id}
+				data-section-label={section.label}
 			></a>
 		))}
 	</div>
-	<a href={next ? `#${next.id}` : '/oz-bali/'}>{next ? next.label + ' →' : 'NEXT: BALI →'}</a>
+	<a data-section-next href={next ? `#${next.id}` : '/oz-bali/'}>{next ? next.label + ' →' : 'NEXT: BALI →'}</a>
 </nav>
 
 <style>
 	.section-footer {
-		min-height: 28px;
+		position: fixed;
+		z-index: 1000;
+		bottom: 0;
+		left: 50%;
+		width: min(1280px, 100%);
+		min-height: 56px;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		gap: 20px;
-		color: #aaa59b;
+		padding: 0 clamp(20px, 5vw, 64px);
+		transform: translateX(-50%);
+		border-top: 1px solid #D8D8CC;
+		background: #FFFFF3;
+		color: #77776F;
 		font-size: 9px;
 		font-weight: 700;
 		letter-spacing: 0.12em;
@@ -43,7 +54,7 @@ const next = sections[currentIndex + 1];
 	}
 
 	a:hover {
-		color: #f5f1e8;
+		color: #000000;
 	}
 
 	.progress {
@@ -54,7 +65,7 @@ const next = sections[currentIndex + 1];
 	.progress a {
 		width: 18px;
 		height: 3px;
-		background: #514b40;
+		background: #D8D8CC;
 	}
 
 	.progress a[aria-current='step'] {
@@ -63,8 +74,9 @@ const next = sections[currentIndex + 1];
 
 	@media (max-width: 650px) {
 		.section-footer {
-			min-height: 24px;
+			min-height: 48px;
 			gap: 8px;
+			padding: 0 16px;
 			font-size: 7px;
 		}
 

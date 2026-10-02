@@ -26,18 +26,18 @@ const sections = [
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width" />
-		<meta name="theme-color" content="#181714" />
+		<meta name="theme-color" content="#FFFFF3" />
 		<meta name="description" content="Listen, watch and connect with OZ Radio Bandung." />
 		<title>OZ Bandung — OZ Radio</title>
 	</head>
 	<body>
 		<main class="bandung-page">
-			<section class="screen listen-screen" id="listen" aria-labelledby="listen-title">
-				<header class="topbar">
-					<a class="wordmark" href="/" aria-label="OZ Radio home">O<span>Z</span></a>
-					<span class="location-tag"><span class="live-dot"></span> BANDUNG, WEST JAVA</span>
-				</header>
+			<header class="topbar">
+				<a class="wordmark" href="/" aria-label="OZ Radio home">O<span>Z</span></a>
+				<span class="location-tag"><span class="live-dot"></span> BANDUNG, WEST JAVA</span>
+			</header>
 
+			<section class="screen listen-screen" id="listen" aria-labelledby="listen-title">
 				<div class="screen-content listen-content">
 					<div class="screen-heading listen-heading">
 						<div>
@@ -121,7 +121,6 @@ const sections = [
 					</aside>
 				</div>
 
-				<SectionNav sections={sections} current="listen" />
 			</section>
 
 			<section class="screen" id="programs" aria-labelledby="programs-title">
@@ -133,46 +132,47 @@ const sections = [
 						</div>
 						<p class="section-deck">Placeholder for general description.</p>
 					</div>
-					<div class="feature-grid program-grid">
-						<article class="feature-card program-card">
-							<span class="card-index">01 / TYPE</span>
-							<span class="card-symbol" aria-hidden="true">♫</span>
-							<div><h3>OZ Riental</h3><p>Description.</p></div>
-							<span class="card-status">PROGRAM DETAILS COMING SOON</span>
-						</article>
-						<article class="feature-card program-card">
-							<span class="card-index">02 / TYPE</span>
-							<span class="card-symbol" aria-hidden="true">◌</span>
-							<div><h3>OZ We Go</h3><p>Description.</p></div>
-							<span class="card-status">PROGRAM DETAILS COMING SOON</span>
-						</article>
-						<article class="feature-card program-card">
-							<span class="card-index">03 / TYPE</span>
-							<span class="card-symbol" aria-hidden="true">✳</span>
-							<div><h3>Morning Rush</h3><p>Description.</p></div>
-							<span class="card-status">PROGRAM DETAILS COMING SOON</span>
-						</article>
-						<article class="feature-card program-card">
-							<span class="card-index">04 / TYPE</span>
-							<span class="card-symbol" aria-hidden="true">♫</span>
-							<div><h3>Main Aman</h3><p>Description.</p></div>
-							<span class="card-status">PROGRAM DETAILS COMING SOON</span>
-						</article>
-						<article class="feature-card program-card">
-							<span class="card-index">05 / TYPE</span>
-							<span class="card-symbol" aria-hidden="true">◌</span>
-							<div><h3>Thursday Nite Club</h3><p>Description.</p></div>
-							<span class="card-status">PROGRAM DETAILS COMING SOON</span>
-						</article>
-						<article class="feature-card program-card">
-							<span class="card-index">06 / TYPE</span>
-							<span class="card-symbol" aria-hidden="true">✳</span>
-							<div><h3>Miming Bebeg</h3><p>Description.</p></div>
-							<span class="card-status">PROGRAM DETAILS COMING SOON</span>
-						</article>
+					<div class="program-carousel" data-program-carousel aria-roledescription="carousel" aria-label="On air programs">
+						<div class="program-slides">
+							<article class="program-slide is-active" data-program-slide aria-roledescription="slide" aria-label="1 of 6">
+								<img src="https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&w=1800&q=85" alt="" fetchpriority="high" />
+								<div class="program-slide-copy"><span class="card-index">01 / ON AIR</span><h3>OZ Riental</h3><p>Program details coming soon.</p></div>
+							</article>
+							<article class="program-slide" data-program-slide aria-roledescription="slide" aria-label="2 of 6" hidden>
+								<img src="https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=1800&q=85" alt="" loading="lazy" />
+								<div class="program-slide-copy"><span class="card-index">02 / ON AIR</span><h3>OZ We Go</h3><p>Program details coming soon.</p></div>
+							</article>
+							<article class="program-slide" data-program-slide aria-roledescription="slide" aria-label="3 of 6" hidden>
+								<img src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=1800&q=85" alt="" loading="lazy" />
+								<div class="program-slide-copy"><span class="card-index">03 / ON AIR</span><h3>Morning Rush</h3><p>Program details coming soon.</p></div>
+							</article>
+							<article class="program-slide" data-program-slide aria-roledescription="slide" aria-label="4 of 6" hidden>
+								<img src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=1800&q=85" alt="" loading="lazy" />
+								<div class="program-slide-copy"><span class="card-index">04 / ON AIR</span><h3>Main Aman</h3><p>Program details coming soon.</p></div>
+							</article>
+							<article class="program-slide" data-program-slide aria-roledescription="slide" aria-label="5 of 6" hidden>
+								<img src="https://images.unsplash.com/photo-1506157786151-b8491531f063?auto=format&fit=crop&w=1800&q=85" alt="" loading="lazy" />
+								<div class="program-slide-copy"><span class="card-index">05 / ON AIR</span><h3>Thursday Nite Club</h3><p>Program details coming soon.</p></div>
+							</article>
+							<article class="program-slide" data-program-slide aria-roledescription="slide" aria-label="6 of 6" hidden>
+								<img src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1800&q=85" alt="" loading="lazy" />
+								<div class="program-slide-copy"><span class="card-index">06 / ON AIR</span><h3>Miming Bebeg</h3><p>Program details coming soon.</p></div>
+							</article>
+						</div>
+						<div class="program-carousel-controls">
+							<div class="program-pagination" role="group" aria-label="Choose a program">
+								{['OZ Riental', 'OZ We Go', 'Morning Rush', 'Main Aman', 'Thursday Nite Club', 'Miming Bebeg'].map((program, index) => (
+									<button class="program-dot" type="button" data-program-index={index} aria-label={`Show ${program}`} aria-pressed={index === 0 ? 'true' : 'false'}></button>
+								))}
+							</div>
+							<div class="program-arrows">
+								<button class="carousel-arrow" type="button" data-program-previous aria-label="Previous program">←</button>
+								<span class="program-count" data-program-count aria-live="polite">01 / 06</span>
+								<button class="carousel-arrow" type="button" data-program-next aria-label="Next program">→</button>
+							</div>
+						</div>
 					</div>
 				</div>
-				<SectionNav sections={sections} current="programs" />
 			</section>
 
 			<section class="screen" id="online" aria-labelledby="online-title">
@@ -246,7 +246,6 @@ const sections = [
 						</article>
 					</div>
 				</div>
-				<SectionNav sections={sections} current="online" />
 			</section>
 
 			<section class="screen" id="activities" aria-labelledby="activities-title">
@@ -273,7 +272,6 @@ const sections = [
 						</article>
 					</div>
 				</div>
-				<SectionNav sections={sections} current="activities" />
 			</section>
 
 			<section class="screen" id="news" aria-labelledby="news-title">
@@ -303,7 +301,6 @@ const sections = [
 						</aside>
 					</div>
 				</div>
-				<SectionNav sections={sections} current="news" />
 			</section>
 
 			<section class="screen contact-screen" id="contact" aria-labelledby="contact-title">
@@ -316,23 +313,62 @@ const sections = [
 						<p class="section-deck">Partnerships, collaborations, ideas — we’re listening.</p>
 					</div>
 					<div class="contact-layout">
-						<div class="contact-intro"><span class="contact-mark">O<span>Z</span></span><p>Let’s make something meaningful together.</p><span class="card-status">CONTACT DETAILS TO BE ADDED</span></div>
+						<div class="contact-intro"><span class="contact-mark">O<span>Z</span></span><p>Your friendly station.</p><span class="card-status">CONTACT DETAILS TO BE ADDED</span></div>
 						<div class="contact-details">
 							<div class="contact-item"><span>EMAIL</span><strong>TBA</strong><small>Business &amp; general enquiries</small></div>
-							<div class="contact-item"><span>PHONE / WHATSAPP</span><strong>TBA</strong><small>Reach the OZ team</small></div>
-							<div class="contact-item"><span>STUDIO</span><strong>Bandung, West Java</strong><small>Full address coming soon</small></div>
+							<div class="contact-item"><span>PHONE / WHATSAPP</span><strong>(022) 2013233</strong><small>Reach the OZ team</small></div>
+							<div class="contact-item"><span>STUDIO</span><strong>Jl. Setrasari II No.14, Sukarasa, Kec. Sukasari, Kota Bandung, Jawa Barat 40152</strong><small>Full address coming soon</small></div>
 							<div class="contact-item"><span>PARTNERSHIPS</span><strong>Let’s work together</strong><small>Contact information coming soon</small></div>
 						</div>
 					</div>
 				</div>
-				<SectionNav sections={sections} current="contact" />
 				<footer class="contact-footer"><br /><span>FOOTER</span><br /></footer>
 			</section>
+			<SectionNav sections={sections} current="listen" />
 		</main>
 	</body>
 </html>
 
 <script>
+	const sectionNav = document.querySelector<HTMLElement>('[data-section-nav]');
+	if (sectionNav) {
+		const sectionLinks = Array.from(sectionNav.querySelectorAll<HTMLAnchorElement>('[data-section-id]'));
+		const previousSectionLink = sectionNav.querySelector<HTMLAnchorElement>('[data-section-previous]');
+		const nextSectionLink = sectionNav.querySelector<HTMLAnchorElement>('[data-section-next]');
+		const sectionProgress = sectionNav.querySelector<HTMLElement>('[data-section-progress]');
+
+		const updateSectionNavigation = (sectionId: string) => {
+			const currentIndex = sectionLinks.findIndex((link) => link.dataset.sectionId === sectionId);
+			if (currentIndex < 0) return;
+
+			const previousSection = sectionLinks[currentIndex - 1];
+			const nextSection = sectionLinks[currentIndex + 1];
+			if (previousSectionLink) {
+				previousSectionLink.href = previousSection ? `#${previousSection.dataset.sectionId}` : '/';
+				previousSectionLink.textContent = previousSection ? `← ${previousSection.dataset.sectionLabel}` : '← ALL LOCATIONS';
+			}
+			if (nextSectionLink) {
+				nextSectionLink.href = nextSection ? `#${nextSection.dataset.sectionId}` : '/oz-bali/';
+				nextSectionLink.textContent = nextSection ? `${nextSection.dataset.sectionLabel} →` : 'NEXT: BALI →';
+			}
+			sectionProgress?.setAttribute('aria-label', `Section ${currentIndex + 1} of ${sectionLinks.length}`);
+			sectionLinks.forEach((link, linkIndex) => {
+				if (linkIndex === currentIndex) link.setAttribute('aria-current', 'step');
+				else link.removeAttribute('aria-current');
+			});
+		};
+
+		const sectionObserver = new IntersectionObserver((entries) => {
+			const visibleSection = entries
+				.filter((entry) => entry.isIntersecting)
+				.sort((first, second) => second.intersectionRatio - first.intersectionRatio)[0];
+			if (visibleSection) updateSectionNavigation((visibleSection.target as HTMLElement).id);
+		}, { threshold: 0.5 });
+
+		document.querySelectorAll<HTMLElement>('.screen[id]').forEach((section) => sectionObserver.observe(section));
+		updateSectionNavigation(window.location.hash.slice(1) || 'listen');
+	}
+
 	const youtubeCarousel = document.querySelector<HTMLElement>('[data-youtube-carousel]');
 	const youtubePlayer = youtubeCarousel?.querySelector<HTMLElement>('[data-youtube-player]');
 	const youtubeVideoButtons = youtubeCarousel?.querySelectorAll<HTMLButtonElement>('[data-youtube-video]');
@@ -384,6 +420,37 @@ const sections = [
 			button.addEventListener('click', () => showVideo(index));
 		});
 		showVideo(0);
+	}
+
+	const programCarousel = document.querySelector<HTMLElement>('[data-program-carousel]');
+	const programSlides = programCarousel?.querySelectorAll<HTMLElement>('[data-program-slide]');
+	const programButtons = programCarousel?.querySelectorAll<HTMLButtonElement>('[data-program-index]');
+	const programCount = programCarousel?.querySelector<HTMLElement>('[data-program-count]');
+
+	if (programCarousel && programSlides?.length && programButtons?.length && programCount) {
+		let currentProgramIndex = 0;
+
+		const showProgram = (index: number) => {
+			const nextProgramIndex = (index + programSlides.length) % programSlides.length;
+			if (nextProgramIndex === currentProgramIndex) return;
+			const direction = nextProgramIndex < currentProgramIndex ? -1 : 1;
+			currentProgramIndex = nextProgramIndex;
+			programSlides.forEach((slide, slideIndex) => {
+				const isActive = slideIndex === currentProgramIndex;
+				slide.hidden = !isActive;
+				slide.classList.toggle('is-active', isActive);
+				slide.classList.toggle('from-next', isActive && direction > 0);
+				slide.classList.toggle('from-previous', isActive && direction < 0);
+			});
+			programButtons.forEach((button, buttonIndex) => {
+				button.setAttribute('aria-pressed', String(buttonIndex === currentProgramIndex));
+			});
+			programCount.textContent = `${String(currentProgramIndex + 1).padStart(2, '0')} / ${String(programSlides.length).padStart(2, '0')}`;
+		};
+
+		programCarousel.querySelector('[data-program-previous]')?.addEventListener('click', () => showProgram(currentProgramIndex - 1));
+		programCarousel.querySelector('[data-program-next]')?.addEventListener('click', () => showProgram(currentProgramIndex + 1));
+		programButtons.forEach((button, index) => button.addEventListener('click', () => showProgram(index)));
 	}
 
 	const broadcastChoices = document.querySelectorAll<HTMLButtonElement>('[data-broadcast-choice]');
@@ -591,13 +658,13 @@ const sections = [
 
 	:global(html) {
 		scroll-behavior: smooth;
-		scroll-padding-block: 0;
+		scroll-padding-block: 64px 56px;
 	}
 
 	:global(body) {
 		margin: 0;
-		background: #181714;
-		color: #f5f1e8;
+		background: #FFFFF3;
+		color: #000000;
 		font-family: Arial, Helvetica, sans-serif;
 	}
 
@@ -620,8 +687,14 @@ const sections = [
 		gap: 12px;
 		overflow: hidden;
 		margin: 0 auto;
-		padding: clamp(14px, 3vh, 26px) clamp(20px, 5vw, 64px);
-		border-bottom: 1px solid #37352f;
+		padding: calc(clamp(14px, 3vh, 26px) + 64px) clamp(20px, 5vw, 64px) calc(clamp(14px, 3vh, 26px) + 56px);
+		border-bottom: 1px solid #D8D8CC;
+	}
+
+	.listen-screen {
+		position: relative;
+		isolation: isolate;
+		overflow: visible;
 	}
 
 	.topbar,
@@ -633,6 +706,19 @@ const sections = [
 		align-items: center;
 		justify-content: space-between;
 		gap: 20px;
+	}
+
+	.topbar {
+		position: fixed;
+		z-index: 1000;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 64px;
+		min-height: 64px;
+		padding: 0 clamp(20px, 5vw, 64px);
+		border-bottom: 1px solid #D8D8CC;
+		background: #FFFFF3;
 	}
 
 	.wordmark {
@@ -654,7 +740,7 @@ const sections = [
 	.section-label,
 	.section-footer,
 	.contact-footer {
-		color: #aaa59b;
+		color: #77776F;
 		font-size: 9px;
 		font-weight: 700;
 		letter-spacing: 0.12em;
@@ -664,7 +750,7 @@ const sections = [
 	.back-link:hover,
 	.section-footer a:hover,
 	.contact-footer a:hover {
-		color: #f5f1e8;
+		color: #000000;
 	}
 
 	.location-tag,
@@ -685,8 +771,8 @@ const sections = [
 	}
 
 	.idle-dot {
-		background: #77736b;
-		box-shadow: 0 0 0 4px rgb(119 115 107 / 14%);
+		background: #77776F;
+		box-shadow: 0 0 0 4px rgb(119 119 111 / 14%);
 	}
 
 	.screen-content {
@@ -695,7 +781,37 @@ const sections = [
 	}
 
 	.listen-content {
+		position: relative;
+		isolation: isolate;
 		max-width: 880px;
+		min-height: clamp(360px, 68vh, 560px);
+		display: flex;
+		flex-direction: column;
+		justify-content: flex-end;
+		padding: clamp(14px, 3vw, 28px);
+	}
+
+	.listen-screen::before {
+		position: absolute;
+		z-index: -1;
+		top: 64px;
+		right: calc((100% - 100vw) / 2);
+		bottom: 0;
+		left: calc((100% - 100vw) / 2);
+		pointer-events: none;
+		background:
+			linear-gradient(to bottom, rgb(255 255 243 / 4%) 4%, rgb(255 255 243 / 58%) 24%, rgb(255 255 243 / 94%) 55%, #FFFFF3 100%),
+			url('https://images.unsplash.com/photo-1618609377864-68609b857e90?q=80&w=1228&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D') center 38% / cover no-repeat;
+		content: '';
+	}
+
+	.listen-content .broadcast-label,
+	.listen-content .broadcast-heading .on-air {
+		color: #000000;
+	}
+
+	.listen-heading h1 span {
+		color: #f2bd57;
 	}
 
 	.screen-heading {
@@ -708,7 +824,7 @@ const sections = [
 
 	.eyebrow {
 		margin: 0 0 9px;
-		color: #aaa59b;
+		color: #77776F;
 		font-size: 9px;
 		font-weight: 700;
 		letter-spacing: 0.17em;
@@ -726,24 +842,25 @@ const sections = [
 	.section-deck {
 		max-width: 240px;
 		margin: 0;
-		color: #aaa59b;
+		color: #77776F;
 		font-size: 11px;
 		line-height: 1.6;
 	}
 
 	.broadcast {
 		overflow: hidden;
-		border: 1px solid #37352f;
+		border: 1px solid #D8D8CC;
 		border-radius: 4px;
-		background: #201f1b;
+		background: rgb(255 255 243 / 76%);
+		backdrop-filter: blur(2px);
 	}
 
 	.broadcast-options {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 1px;
-		border-top: 1px solid #37352f;
-		background: #37352f;
+		border-top: 1px solid #D8D8CC;
+		background: #D8D8CC;
 	}
 
 	.broadcast-option {
@@ -753,8 +870,8 @@ const sections = [
 		justify-content: center;
 		gap: 9px;
 		border: 0;
-		background: #201f1b;
-		color: #aaa59b;
+		background: #FFFFF3;
+		color: #77776F;
 		font: inherit;
 		font-size: 10px;
 		font-weight: 700;
@@ -762,14 +879,14 @@ const sections = [
 	}
 
 	.broadcast-option[aria-pressed='true'] {
-		background: #30291c;
-		color: #fad38b;
+		background: #FFF0D1;
+		color: #000000;
 		box-shadow: inset 0 -2px #f2bd57;
 	}
 
 	.broadcast-option:hover,
 	.broadcast-option:focus-visible {
-		color: #f5f1e8;
+		color: #000000;
 	}
 
 	.broadcast-option:focus-visible,
@@ -786,13 +903,13 @@ const sections = [
 
 	.broadcast-empty {
 		padding: 24px 16px;
-		color: #aaa59b;
+		color: #77776F;
 		font-size: 10px;
 		text-align: center;
 	}
 
 	.stream-status {
-		color: #aaa59b;
+		color: #77776F;
 		font-size: 7px;
 		font-weight: 700;
 		letter-spacing: 0.1em;
@@ -804,15 +921,15 @@ const sections = [
 		max-height: min(90dvh, 680px);
 		overflow: auto;
 		padding: clamp(22px, 5vw, 34px);
-		border: 1px solid #514b40;
+		border: 1px solid #D8D8CC;
 		border-radius: 4px;
-		background: #201f1b;
-		color: #f5f1e8;
+		background: #FFFFF3;
+		color: #000000;
 		box-shadow: 0 24px 80px rgb(0 0 0 / 55%);
 	}
 
 	.listener-dialog::backdrop {
-		background: rgb(10 10 9 / 78%);
+		background: rgb(0 0 0 / 78%);
 		backdrop-filter: blur(3px);
 	}
 
@@ -839,10 +956,10 @@ const sections = [
 		right: -12px;
 		width: 34px;
 		height: 34px;
-		border: 1px solid #514b40;
+		border: 1px solid #D8D8CC;
 		border-radius: 50%;
-		background: #181714;
-		color: #f5f1e8;
+		background: #FFFFF3;
+		color: #000000;
 		font-size: 20px;
 		cursor: pointer;
 	}
@@ -850,7 +967,7 @@ const sections = [
 	.listener-field {
 		display: grid;
 		gap: 6px;
-		color: #d2cec4;
+		color: #77776F;
 		font-size: 10px;
 		font-weight: 700;
 	}
@@ -860,10 +977,10 @@ const sections = [
 		width: 100%;
 		min-height: 42px;
 		padding: 9px 10px;
-		border: 1px solid #514b40;
+		border: 1px solid #D8D8CC;
 		border-radius: 2px;
-		background: #181714;
-		color: #f5f1e8;
+		background: #FFFFF3;
+		color: #000000;
 		font: inherit;
 		font-size: 13px;
 	}
@@ -880,7 +997,7 @@ const sections = [
 		border: 1px solid #f2bd57;
 		border-radius: 2px;
 		background: #f2bd57;
-		color: #181714;
+		color: #000000;
 		font: inherit;
 		font-size: 10px;
 		font-weight: 800;
@@ -889,7 +1006,7 @@ const sections = [
 
 	.listener-confirmation p {
 		margin: 0 0 13px;
-		color: #aaa59b;
+		color: #77776F;
 		font-size: 12px;
 		line-height: 1.5;
 	}
@@ -900,12 +1017,12 @@ const sections = [
 		gap: 9px 12px;
 		margin: 0;
 		padding: 14px 0;
-		border-top: 1px solid #37352f;
-		border-bottom: 1px solid #37352f;
+		border-top: 1px solid #D8D8CC;
+		border-bottom: 1px solid #D8D8CC;
 	}
 
 	.listener-confirmation dt {
-		color: #aaa59b;
+		color: #77776F;
 		font-size: 9px;
 		font-weight: 700;
 		text-transform: uppercase;
@@ -941,7 +1058,7 @@ const sections = [
 		aspect-ratio: 16 / 7;
 		background:
 			radial-gradient(ellipse at 50% 110%, rgba(242, 189, 87, 0.14), transparent 53%),
-			#11110f;
+			#FFFFF3;
 	}
 
 	.video-frame iframe {
@@ -983,7 +1100,7 @@ const sections = [
 	.ad-space > span,
 	.card-index,
 	.card-status {
-		color: #aaa59b;
+		color: #77776F;
 		font-size: 8px;
 		font-weight: 700;
 		letter-spacing: 0.12em;
@@ -995,15 +1112,15 @@ const sections = [
 		align-items: center;
 		gap: 12px;
 		padding: 8px 13px;
-		border-top: 1px solid #37352f;
+		border-top: 1px solid #D8D8CC;
 	}
 
 	.listener-stats {
 		display: flex;
 		gap: 20px;
 		padding: 8px 13px 10px;
-		border-top: 1px solid #37352f;
-		color: #aaa59b;
+		border-top: 1px solid #D8D8CC;
+		color: #77776F;
 		font-size: 8px;
 		font-weight: 700;
 		letter-spacing: 0.1em;
@@ -1011,7 +1128,7 @@ const sections = [
 
 	.listener-stats strong {
 		margin-left: 5px;
-		color: #f5f1e8;
+		color: #000000;
 		font-size: 10px;
 		letter-spacing: 0;
 	}
@@ -1037,7 +1154,7 @@ const sections = [
 	}
 
 	.audio-copy span {
-		color: #aaa59b;
+		color: #77776F;
 		font-size: 9px;
 	}
 
@@ -1054,7 +1171,7 @@ const sections = [
 		place-items: center;
 		border-radius: 50%;
 		background: #f2bd57;
-		color: #181714;
+		color: #000000;
 		font-size: 9px;
 	}
 
@@ -1066,9 +1183,9 @@ const sections = [
 		gap: 12px;
 		margin-top: 10px;
 		padding: 10px 14px;
-		border: 1px dashed #514b40;
+		border: 1px dashed #D8D8CC;
 		border-radius: 3px;
-		background: #201f1b;
+		background: #FFFFF3;
 	}
 
 	.ad-space strong {
@@ -1110,7 +1227,6 @@ const sections = [
 		gap: 12px;
 	}
 
-	.program-grid,
 	.activity-grid {
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
@@ -1118,17 +1234,149 @@ const sections = [
 	.feature-card {
 		min-width: 0;
 		overflow: hidden;
-		border: 1px solid #37352f;
+		border: 1px solid #D8D8CC;
 		border-radius: 3px;
-		background: #201f1b;
+		background: #FFFFF3;
 	}
 
-	.program-card {
-		min-height: clamp(218px, 32vh, 290px);
+	.program-carousel {
+		width: 100%;
+	}
+
+	.program-slides {
+		position: relative;
+		height: clamp(280px, 53vh, 500px);
+		overflow: hidden;
+		border: 1px solid #D8D8CC;
+		border-radius: 3px;
+		background: #FFFFF3;
+	}
+
+	.program-slide {
+		position: absolute;
+		inset: 0;
+		isolation: isolate;
+		overflow: hidden;
+	}
+
+	.program-slide.from-next {
+		animation: program-slide-from-next 420ms ease both;
+	}
+
+	.program-slide.from-previous {
+		animation: program-slide-from-previous 420ms ease both;
+	}
+
+	.program-slide[hidden] {
+		display: none;
+	}
+
+	.program-slide::after {
+		position: absolute;
+		z-index: -1;
+		inset: 0;
+		background: linear-gradient(to bottom, transparent 30%, rgb(0 0 0 / 45%) 58%, #000000 100%);
+		content: '';
+	}
+
+	.program-slide img {
+		position: absolute;
+		z-index: -2;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		object-position: center 42%;
+	}
+
+	.program-slide-copy {
+		position: absolute;
+		inset: auto 0 0;
+		padding: clamp(20px, 4vw, 42px);
+	}
+
+	.program-slide-copy .card-index {
+		color: #f2bd57;
+		font-size: 9px;
+		font-weight: 700;
+		letter-spacing: 0.12em;
+	}
+
+	.program-slide-copy h3 {
+		max-width: 760px;
+		margin: 10px 0 7px;
+		font-size: clamp(30px, 5vw, 58px);
+		font-weight: 800;
+		letter-spacing: -0.05em;
+		line-height: 1;
+		color: #FFFFF3;
+	}
+
+	.program-slide-copy p {
+		margin: 0;
+		color: #77776F;
+		font-size: 12px;
+		line-height: 1.5;
+	}
+
+	.program-carousel-controls,
+	.program-arrows,
+	.program-pagination {
 		display: flex;
-		flex-direction: column;
+		align-items: center;
+	}
+
+	.program-carousel-controls {
 		justify-content: space-between;
-		padding: clamp(14px, 2vw, 22px);
+		gap: 16px;
+		margin-top: 10px;
+	}
+
+	.program-pagination {
+		gap: 7px;
+	}
+
+	.program-dot {
+		width: 20px;
+		height: 4px;
+		padding: 0;
+		border: 0;
+		border-radius: 0;
+		background: #D8D8CC;
+		cursor: pointer;
+		transition: width 180ms ease, background-color 180ms ease;
+	}
+
+	.program-dot[aria-pressed='true'] {
+		width: 32px;
+		background: #f2bd57;
+	}
+
+	.program-dot:focus-visible {
+		outline: 2px solid #f2bd57;
+		outline-offset: 4px;
+	}
+
+	.program-arrows {
+		gap: 12px;
+	}
+
+	.program-count {
+		min-width: 42px;
+		color: #77776F;
+		font-size: 9px;
+		font-variant-numeric: tabular-nums;
+		text-align: center;
+	}
+
+	@keyframes program-slide-from-next {
+		from { opacity: 0.65; transform: translateX(28px); }
+		to { opacity: 1; transform: translateX(0); }
+	}
+
+	@keyframes program-slide-from-previous {
+		from { opacity: 0.65; transform: translateX(-28px); }
+		to { opacity: 1; transform: translateX(0); }
 	}
 
 	.card-index {
@@ -1147,7 +1395,7 @@ const sections = [
 
 	.feature-card p {
 		margin: 0;
-		color: #aaa59b;
+		color: #77776F;
 		font-size: 10px;
 		line-height: 1.6;
 	}
@@ -1155,7 +1403,7 @@ const sections = [
 	.card-status {
 		display: block;
 		padding-top: 11px;
-		border-top: 1px solid #37352f;
+		border-top: 1px solid #D8D8CC;
 		font-size: 7px;
 	}
 
@@ -1171,7 +1419,7 @@ const sections = [
 		display: flex;
 		align-items: center;
 		gap: 9px;
-		color: #aaa59b;
+		color: #77776F;
 		font-size: 8px;
 		font-weight: 700;
 		letter-spacing: 0.09em;
@@ -1192,7 +1440,7 @@ const sections = [
 		background:
 			linear-gradient(130deg, transparent 46%, rgba(242, 189, 87, 0.16) 46% 48%, transparent 48%),
 			radial-gradient(ellipse at 70% 120%, rgba(242, 189, 87, 0.26), transparent 50%),
-			#12110f;
+			#FFFFF3;
 	}
 
 	:global(.channel-preview iframe) {
@@ -1205,7 +1453,7 @@ const sections = [
 
 	.youtube-placeholder {
 		max-width: 80%;
-		color: #aaa59b;
+		color: #77776F;
 		font-size: 9px;
 		line-height: 1.5;
 		text-align: center;
@@ -1219,10 +1467,10 @@ const sections = [
 
 	.carousel-arrow,
 	.video-picker-item {
-		border: 1px solid #514b40;
+		border: 1px solid #D8D8CC;
 		border-radius: 2px;
-		background: #181714;
-		color: #aaa59b;
+		background: #FFFFF3;
+		color: #77776F;
 		font: inherit;
 		cursor: pointer;
 	}
@@ -1253,20 +1501,20 @@ const sections = [
 	}
 
 	.video-picker-item span {
-		color: #aaa59b;
+		color: #77776F;
 		font-size: 7px;
 		letter-spacing: 0.1em;
 	}
 
 	.video-picker-item[aria-pressed='true'] {
 		border-color: #f2bd57;
-		color: #fad38b;
+		color: #000000;
 	}
 
 	.carousel-arrow:hover,
 	.video-picker-item:hover {
 		border-color: #f2bd57;
-		color: #f5f1e8;
+		color: #000000;
 	}
 
 	.carousel-arrow:focus-visible,
@@ -1280,13 +1528,13 @@ const sections = [
 		justify-content: space-between;
 		gap: 10px;
 		margin-top: 7px;
-		color: #aaa59b;
+		color: #77776F;
 		font-size: 8px;
 	}
 
 	.youtube-current strong {
 		overflow: hidden;
-		color: #f5f1e8;
+		color: #000000;
 		font-weight: 600;
 		text-overflow: ellipsis;
 		white-space: nowrap;
@@ -1317,7 +1565,7 @@ const sections = [
 		position: absolute;
 		right: 10px;
 		bottom: 9px;
-		color: #aaa59b;
+		color: #77776F;
 		font-size: 7px;
 		letter-spacing: 0.1em;
 	}
@@ -1339,9 +1587,9 @@ const sections = [
 		align-items: center;
 		justify-content: center;
 		padding: 7px 9px;
-		border: 1px solid #514b40;
+		border: 1px solid #D8D8CC;
 		border-radius: 2px;
-		color: #fad38b;
+		color: #000000;
 		font-size: 7px;
 		font-weight: 700;
 		letter-spacing: 0.09em;
@@ -1359,7 +1607,7 @@ const sections = [
 		overflow: auto;
 		scrollbar-width: none;
 		margin: 12px 0;
-		background: #161512;
+		background: #FFFFF3;
 	}
 
 	:global(.instagram-preview::-webkit-scrollbar) {
@@ -1385,7 +1633,7 @@ const sections = [
 		display: flex;
 		align-items: flex-end;
 		padding: 12px;
-		color: #f5f1e8;
+		color: #000000;
 		font-size: 10px;
 		font-weight: 800;
 		letter-spacing: 0.1em;
@@ -1393,15 +1641,15 @@ const sections = [
 	}
 
 	.art-listen {
-		background: radial-gradient(ellipse at 70% 100%, rgba(242, 189, 87, 0.40), transparent 50%), #26231d;
+		background: radial-gradient(ellipse at 70% 100%, rgba(242, 189, 87, 0.40), transparent 50%), #FFF5DF;
 	}
 
 	.art-meet {
-		background: linear-gradient(135deg, #322820, #171613 64%);
+		background: linear-gradient(135deg, #F2BD57, #FFFFF3 64%);
 	}
 
 	.art-create {
-		background: radial-gradient(circle at 30% 30%, rgba(242, 189, 87, 0.22), transparent 50%), #1d1b17;
+		background: radial-gradient(circle at 30% 30%, rgba(242, 189, 87, 0.22), transparent 50%), #FFF8E8;
 	}
 
 	.activity-info {
@@ -1442,7 +1690,7 @@ const sections = [
 		padding: 18px;
 		background:
 			radial-gradient(ellipse at 20% 100%, rgba(242, 189, 87, 0.28), transparent 50%),
-			linear-gradient(135deg, #2c2821, #141310);
+			linear-gradient(135deg, #FFF5DF, #FFFFF3);
 	}
 
 	.story-stamp {
@@ -1453,7 +1701,7 @@ const sections = [
 	}
 
 	.story-date {
-		color: #aaa59b;
+		color: #77776F;
 		font-size: 8px;
 		font-weight: 700;
 		letter-spacing: 0.12em;
@@ -1522,7 +1770,7 @@ const sections = [
 		align-items: flex-start;
 		gap: 11px;
 		padding: 14px 0;
-		border-top: 1px solid #37352f;
+		border-top: 1px solid #D8D8CC;
 	}
 
 	.calendar-event .live-dot {
@@ -1539,7 +1787,7 @@ const sections = [
 	}
 
 	.calendar-event div span {
-		color: #aaa59b;
+		color: #77776F;
 		font-size: 9px;
 	}
 
@@ -1552,9 +1800,9 @@ const sections = [
 		grid-template-columns: 0.8fr 1.2fr;
 		gap: clamp(18px, 5vw, 58px);
 		padding: clamp(18px, 3vw, 34px);
-		border: 1px solid #37352f;
+		border: 1px solid #D8D8CC;
 		border-radius: 3px;
-		background: #201f1b;
+		background: #FFFFF3;
 	}
 
 	.contact-intro {
@@ -1574,7 +1822,7 @@ const sections = [
 	.contact-intro p {
 		max-width: 200px;
 		margin: 17px 0 24px;
-		color: #aaa59b;
+		color: #77776F;
 		font-size: 13px;
 		line-height: 1.5;
 	}
@@ -1596,7 +1844,7 @@ const sections = [
 		flex-direction: column;
 		justify-content: center;
 		gap: 6px;
-		border-bottom: 1px solid #37352f;
+		border-bottom: 1px solid #D8D8CC;
 	}
 
 	.contact-item > span {
@@ -1611,7 +1859,7 @@ const sections = [
 	}
 
 	.contact-item small {
-		color: #aaa59b;
+		color: #77776F;
 		font-size: 9px;
 	}
 
@@ -1628,7 +1876,7 @@ const sections = [
 	.progress a {
 		width: 18px;
 		height: 3px;
-		background: #514b40;
+		background: #D8D8CC;
 	}
 
 	.progress a[aria-current='step'] {
@@ -1636,9 +1884,19 @@ const sections = [
 	}
 
 	@media (max-width: 650px) {
+		.listen-screen::before {
+			top: 56px;
+		}
+
 		.screen {
-			padding: 12px 16px;
+			padding: 68px 16px 60px;
 			gap: 8px;
+		}
+
+		.topbar {
+			height: 56px;
+			min-height: 56px;
+			padding: 0 16px;
 		}
 
 		.topbar,
@@ -1718,51 +1976,45 @@ const sections = [
 			font-size: 6px;
 		}
 
-		.program-grid,
 		.activity-grid {
 			grid-template-columns: 1fr;
 			gap: 7px;
 		}
 
-		.program-card {
-			min-height: 0;
-			display: grid;
-			grid-template-columns: 36px 1fr;
-			grid-template-rows: auto 1fr auto;
-			column-gap: 10px;
-			padding: 9px 11px;
+		.program-slides {
+			height: clamp(290px, 47vh, 440px);
 		}
 
-		.program-card .card-index {
-			grid-column: 1 / -1;
-			font-size: 7px;
+		.program-slide-copy {
+			padding: 20px;
 		}
 
-		.program-card .card-symbol {
-			grid-row: 2 / 4;
-			align-self: center;
-			font-size: 23px;
+		.program-slide-copy h3 {
+			font-size: clamp(29px, 9vw, 42px);
 		}
 
-		.program-card > div {
-			grid-column: 2;
+		.program-slide-copy p {
+			font-size: 10px;
 		}
 
-		.program-card h3 {
-			margin: 2px 0 3px;
-			font-size: 15px;
+		.program-carousel-controls {
+			gap: 8px;
 		}
 
-		.program-card p {
-			font-size: 8px;
-			line-height: 1.35;
+		.program-pagination {
+			gap: 5px;
 		}
 
-		.program-card .card-status {
-			grid-column: 2;
-			padding-top: 5px;
-			margin-top: 4px;
-			font-size: 6px;
+		.program-dot {
+			width: 13px;
+		}
+
+		.program-dot[aria-pressed='true'] {
+			width: 22px;
+		}
+
+		.program-arrows {
+			gap: 6px;
 		}
 
 		.social-grid {
@@ -2007,8 +2259,8 @@ const sections = [
 
 	@media (max-height: 650px) {
 		.screen {
-			padding-top: 9px;
-			padding-bottom: 9px;
+			padding-top: 73px;
+			padding-bottom: 65px;
 			gap: 5px;
 		}
 
@@ -2030,6 +2282,11 @@ const sections = [
 	}
 
 	@media (max-height: 650px) and (max-width: 650px) {
+		.screen {
+			padding-top: 65px;
+			padding-bottom: 57px;
+		}
+
 		.program-grid .program-card {
 			min-height: 0;
 		}
@@ -2042,6 +2299,11 @@ const sections = [
 	@media (prefers-reduced-motion: reduce) {
 		:global(html) {
 			scroll-behavior: auto;
+		}
+
+		.program-slide.from-next,
+		.program-slide.from-previous {
+			animation: none;
 		}
 	}
 </style>

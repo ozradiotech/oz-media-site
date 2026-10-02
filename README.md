@@ -25,6 +25,11 @@ There's nothing special about `src/components/`, but that's where we like to put
 
 Any static assets, like images, can be placed in the `public/` directory.
 
+Color pallete:
+1. #f2bd57 (Yellow)
+2. #000000 (Black)
+3. #FFFFF3 (White)
+
 ## 🧞 Commands
 
 All commands are run from the root of the project, from a terminal:
