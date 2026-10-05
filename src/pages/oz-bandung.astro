@@ -49,11 +49,10 @@ const sections = [
 					<div class="broadcast" aria-label="OZ Bandung broadcast">
 						<div class="broadcast-heading">
 							<div class="broadcast-label"><span class="live-dot idle-dot"></span> LIVE FROM THE STUDIO</div>
-							<span class="on-air">CHOOSE A BROADCAST</span>
+							<span class="on-air">ON AIR</span>
 						</div>
-						<div class="broadcast-options" role="group" aria-label="Choose audio or video">
-							<button class="broadcast-option" type="button" data-broadcast-choice="audio" aria-pressed="false">♫ <span>Listen to audio</span></button>
-							<button class="broadcast-option" type="button" data-broadcast-choice="video" aria-pressed="false">▶ <span>Watch the studio</span></button>
+						<div class="broadcast-options">
+							<button class="broadcast-option" type="button" data-tune-in>♫ <span>Tune in</span><span aria-hidden="true">↗</span></button>
 						</div>
 						<div class="broadcast-panel" data-broadcast-panel="audio" hidden>
 							<div class="audio-bar">
@@ -72,7 +71,6 @@ const sections = [
 							</div>
 							<div class="listener-stats" aria-live="polite" aria-label="Live listener statistics">
 								<span>LISTENERS <strong data-listener-count>—</strong></span>
-								<span>PEAK LISTENERS <strong data-listener-peak>—</strong></span>
 							</div>
 						</div>
 						<div class="broadcast-panel" data-broadcast-panel="video" hidden>
@@ -98,9 +96,13 @@ const sections = [
 					<dialog class="listener-dialog" data-listener-dialog aria-labelledby="listener-dialog-title">
 						<form class="listener-form" data-listener-form>
 							<button class="dialog-close" type="button" data-dialog-close aria-label="Close">×</button>
-							<p class="eyebrow" data-dialog-eyebrow>LISTENER DETAILS</p>
-							<h2 id="listener-dialog-title" data-dialog-title>Before you tune in</h2>
-							<div data-listener-fields>
+							<p class="eyebrow" data-dialog-eyebrow>OZ BANDUNG · LIVE</p>
+							<h2 id="listener-dialog-title" data-dialog-title>Choose how to tune in</h2>
+							<div class="broadcast-selection" data-broadcast-selection role="group" aria-label="Choose a broadcast">
+								<button class="broadcast-option" type="button" data-select-broadcast="audio">♫ <span>Listen to audio stream</span></button>
+								<button class="broadcast-option" type="button" data-select-broadcast="video">▶ <span>Watch the livestream</span></button>
+							</div>
+							<div data-listener-fields hidden>
 								<label class="listener-field">Name<input name="name" autocomplete="name" required maxlength="80" /></label>
 								<label class="listener-field">Age<input name="age" type="number" inputmode="numeric" min="1" max="120" step="1" required /></label>
 								<label class="listener-field">Gender<select name="gender" required>
@@ -110,7 +112,7 @@ const sections = [
 								<label class="listener-field">Location<input name="location" autocomplete="address-level2" required maxlength="100" /></label>
 							</div>
 							<div class="listener-confirmation" data-listener-confirmation hidden aria-live="polite"></div>
-							<button class="listener-submit" type="submit" data-listener-submit>Continue</button>
+							<button class="listener-submit" type="submit" data-listener-submit hidden>Continue</button>
 						</form>
 					</dialog>
 
@@ -138,11 +140,11 @@ const sections = [
 								<img src="https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&w=1800&q=85" alt="" fetchpriority="high" />
 								<div class="program-slide-copy"><span class="card-index">01 / ON AIR</span><h3>OZ Riental</h3><p>Program details coming soon.</p></div>
 							</article>
-							<article class="program-slide" data-program-slide aria-roledescription="slide" aria-label="2 of 6" hidden>
+							<article class="program-slide is-active" data-program-slide aria-roledescription="slide" aria-label="2 of 6">
 								<img src="https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=1800&q=85" alt="" loading="lazy" />
 								<div class="program-slide-copy"><span class="card-index">02 / ON AIR</span><h3>OZ We Go</h3><p>Program details coming soon.</p></div>
 							</article>
-							<article class="program-slide" data-program-slide aria-roledescription="slide" aria-label="3 of 6" hidden>
+							<article class="program-slide is-active" data-program-slide aria-roledescription="slide" aria-label="3 of 6">
 								<img src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=1800&q=85" alt="" loading="lazy" />
 								<div class="program-slide-copy"><span class="card-index">03 / ON AIR</span><h3>Morning Rush</h3><p>Program details coming soon.</p></div>
 							</article>
@@ -160,15 +162,15 @@ const sections = [
 							</article>
 						</div>
 						<div class="program-carousel-controls">
-							<div class="program-pagination" role="group" aria-label="Choose a program">
-								{['OZ Riental', 'OZ We Go', 'Morning Rush', 'Main Aman', 'Thursday Nite Club', 'Miming Bebeg'].map((program, index) => (
-									<button class="program-dot" type="button" data-program-index={index} aria-label={`Show ${program}`} aria-pressed={index === 0 ? 'true' : 'false'}></button>
+							<div class="program-pagination" role="group" aria-label="Choose a group of programs">
+								{[0, 3].map((index) => (
+									<button class="program-dot" type="button" data-program-index={index} aria-label={`Show programs ${index + 1} to ${Math.min(index + 3, 6)}`} aria-pressed={index === 0 ? 'true' : 'false'}></button>
 								))}
 							</div>
 							<div class="program-arrows">
-								<button class="carousel-arrow" type="button" data-program-previous aria-label="Previous program">←</button>
-								<span class="program-count" data-program-count aria-live="polite">01 / 06</span>
-								<button class="carousel-arrow" type="button" data-program-next aria-label="Next program">→</button>
+								<button class="carousel-arrow" type="button" data-program-previous aria-label="Previous programs">←</button>
+								<span class="program-count" data-program-count aria-live="polite">01-03 / 06</span>
+								<button class="carousel-arrow" type="button" data-program-next aria-label="Next programs">→</button>
 							</div>
 						</div>
 					</div>
@@ -428,32 +430,38 @@ const sections = [
 	const programCount = programCarousel?.querySelector<HTMLElement>('[data-program-count]');
 
 	if (programCarousel && programSlides?.length && programButtons?.length && programCount) {
-		let currentProgramIndex = 0;
+		const programsPerPage = 3;
+		const pageCount = Math.ceil(programSlides.length / programsPerPage);
+		let currentPageIndex = 0;
 
-		const showProgram = (index: number) => {
-			const nextProgramIndex = (index + programSlides.length) % programSlides.length;
-			if (nextProgramIndex === currentProgramIndex) return;
-			const direction = nextProgramIndex < currentProgramIndex ? -1 : 1;
-			currentProgramIndex = nextProgramIndex;
+		const showProgramPage = (index: number) => {
+			const nextPageIndex = (index + pageCount) % pageCount;
+			if (nextPageIndex === currentPageIndex) return;
+			const direction = nextPageIndex < currentPageIndex ? -1 : 1;
+			currentPageIndex = nextPageIndex;
+			const firstProgramIndex = currentPageIndex * programsPerPage;
+			const lastProgramIndex = Math.min(firstProgramIndex + programsPerPage, programSlides.length);
 			programSlides.forEach((slide, slideIndex) => {
-				const isActive = slideIndex === currentProgramIndex;
+				const isActive = slideIndex >= firstProgramIndex && slideIndex < lastProgramIndex;
 				slide.hidden = !isActive;
 				slide.classList.toggle('is-active', isActive);
 				slide.classList.toggle('from-next', isActive && direction > 0);
 				slide.classList.toggle('from-previous', isActive && direction < 0);
 			});
 			programButtons.forEach((button, buttonIndex) => {
-				button.setAttribute('aria-pressed', String(buttonIndex === currentProgramIndex));
+				button.setAttribute('aria-pressed', String(buttonIndex === currentPageIndex));
 			});
-			programCount.textContent = `${String(currentProgramIndex + 1).padStart(2, '0')} / ${String(programSlides.length).padStart(2, '0')}`;
+			programCount.textContent = `${String(firstProgramIndex + 1).padStart(2, '0')}-${String(lastProgramIndex).padStart(2, '0')} / ${String(programSlides.length).padStart(2, '0')}`;
 		};
 
-		programCarousel.querySelector('[data-program-previous]')?.addEventListener('click', () => showProgram(currentProgramIndex - 1));
-		programCarousel.querySelector('[data-program-next]')?.addEventListener('click', () => showProgram(currentProgramIndex + 1));
-		programButtons.forEach((button, index) => button.addEventListener('click', () => showProgram(index)));
+		programCarousel.querySelector('[data-program-previous]')?.addEventListener('click', () => showProgramPage(currentPageIndex - 1));
+		programCarousel.querySelector('[data-program-next]')?.addEventListener('click', () => showProgramPage(currentPageIndex + 1));
+		programButtons.forEach((button, index) => button.addEventListener('click', () => showProgramPage(index)));
 	}
 
-	const broadcastChoices = document.querySelectorAll<HTMLButtonElement>('[data-broadcast-choice]');
+	const tuneInButton = document.querySelector<HTMLButtonElement>('[data-tune-in]');
+	const broadcastSelection = document.querySelector<HTMLElement>('[data-broadcast-selection]');
+	const broadcastModeButtons = document.querySelectorAll<HTMLButtonElement>('[data-select-broadcast]');
 	const broadcastPanels = document.querySelectorAll<HTMLElement>('[data-broadcast-panel]');
 	const broadcastEmpty = document.querySelector<HTMLElement>('[data-broadcast-empty]');
 	const listenerDialog = document.querySelector<HTMLDialogElement>('[data-listener-dialog]');
@@ -467,7 +475,6 @@ const sections = [
 	const trackTitle = document.querySelector<HTMLElement>('[data-track-title]');
 	const trackArtist = document.querySelector<HTMLElement>('[data-track-artist]');
 	const listenerCount = document.querySelector<HTMLElement>('[data-listener-count]');
-	const listenerPeak = document.querySelector<HTMLElement>('[data-listener-peak]');
 	const listenerSessionKey = 'oz-listener-details-saved';
 	let listenerDetailsSaved = false;
 	try {
@@ -484,7 +491,7 @@ const sections = [
 	};
 
 	const updateNowPlaying = async () => {
-		if (!trackTitle || !trackArtist || !listenerCount || !listenerPeak) return;
+		if (!trackTitle || !trackArtist || !listenerCount) return;
 
 		try {
 			const response = await fetch('/api/now-playing', { cache: 'no-store' });
@@ -493,11 +500,9 @@ const sections = [
 			const data = (await response.json()) as {
 				title?: unknown;
 				listeners?: unknown;
-				peakListeners?: unknown;
 			};
 			const metadata = typeof data.title === 'string' ? data.title.trim() : '';
 			listenerCount.textContent = typeof data.listeners === 'number' ? data.listeners.toLocaleString() : '—';
-			listenerPeak.textContent = typeof data.peakListeners === 'number' ? data.peakListeners.toLocaleString() : '—';
 			const separatorIndex = metadata.lastIndexOf(' - ');
 			if (separatorIndex > 0 && separatorIndex < metadata.length - 3) {
 				trackTitle.textContent = metadata.slice(0, separatorIndex).trim();
@@ -510,7 +515,6 @@ const sections = [
 			trackTitle.textContent = 'Track title unavailable';
 			trackArtist.textContent = '';
 			listenerCount.textContent = '—';
-			listenerPeak.textContent = '—';
 		}
 	};
 
@@ -555,26 +559,39 @@ const sections = [
 		}
 	};
 
-	broadcastChoices.forEach((choice) => {
-		choice.addEventListener('click', () => {
-			if (!listenerDialog || !listenerForm || !listenerFields || !listenerConfirmation || !listenerSubmit || !dialogTitle) return;
-			stopBroadcast();
-			selectedBroadcast = choice.dataset.broadcastChoice === 'video' ? 'video' : 'audio';
-			broadcastChoices.forEach((button) => {
-				button.setAttribute('aria-pressed', String(button === choice));
-			});
+	tuneInButton?.addEventListener('click', () => {
+		if (!listenerDialog || !listenerForm || !listenerFields || !listenerConfirmation || !listenerSubmit || !dialogTitle || !broadcastSelection) return;
+		stopBroadcast();
+		selectedBroadcast = null;
+		listenerForm.reset();
+		listenerFields.hidden = true;
+		listenerConfirmation.hidden = true;
+		listenerConfirmation.replaceChildren();
+		listenerSubmit.hidden = true;
+		listenerSubmit.disabled = false;
+		broadcastSelection.hidden = false;
+		dialogTitle.textContent = 'Choose how to tune in';
+		listenerDialog.showModal();
+		broadcastModeButtons[0]?.focus();
+	});
+
+	broadcastModeButtons.forEach((button) => {
+		button.addEventListener('click', () => {
+			if (!listenerDialog || !listenerFields || !listenerConfirmation || !listenerSubmit || !dialogTitle || !broadcastSelection) return;
+			selectedBroadcast = button.dataset.selectBroadcast === 'video' ? 'video' : 'audio';
+			broadcastSelection.hidden = true;
 			if (listenerDetailsSaved) {
+				listenerDialog.close();
 				startBroadcast();
 				return;
 			}
-			listenerForm.reset();
+
 			listenerFields.hidden = false;
 			listenerFields.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select').forEach((field) => { field.disabled = false; });
 			listenerConfirmation.hidden = true;
-			listenerConfirmation.replaceChildren();
+			listenerSubmit.hidden = false;
 			listenerSubmit.textContent = 'Continue';
 			dialogTitle.textContent = 'Before you tune in';
-			listenerDialog.showModal();
 			listenerFields.querySelector<HTMLInputElement>('input')?.focus();
 		});
 	});
@@ -857,10 +874,8 @@ const sections = [
 
 	.broadcast-options {
 		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 1px;
+		grid-template-columns: minmax(0, 1fr);
 		border-top: 1px solid #D8D8CC;
-		background: #D8D8CC;
 	}
 
 	.broadcast-option {
@@ -876,6 +891,7 @@ const sections = [
 		font-size: 10px;
 		font-weight: 700;
 		cursor: pointer;
+		transition: color 180ms ease, background-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 	}
 
 	.broadcast-option[aria-pressed='true'] {
@@ -889,6 +905,34 @@ const sections = [
 		color: #000000;
 	}
 
+	.broadcast-options .broadcast-option {
+		justify-content: space-between;
+		padding: 0 18px;
+	}
+
+	.broadcast-options .broadcast-option:hover {
+		background: #FFF0D1;
+	}
+
+	.broadcast-selection {
+		display: grid;
+		gap: 8px;
+	}
+
+	.broadcast-selection .broadcast-option {
+		justify-content: space-between;
+		padding: 0 14px;
+		border: 1px solid #D8D8CC;
+		border-radius: 2px;
+		text-align: left;
+	}
+
+	.broadcast-selection .broadcast-option:hover {
+		transform: translateY(-1px);
+		border-color: #f2bd57;
+		background: #FFF0D1;
+	}
+
 	.broadcast-option:focus-visible,
 	.listener-submit:focus-visible,
 	.dialog-close:focus-visible {
@@ -899,6 +943,10 @@ const sections = [
 	.broadcast-panel[hidden],
 	.broadcast-empty[hidden] {
 		display: none;
+	}
+
+	.broadcast-panel:not([hidden]) {
+		animation: broadcast-reveal 300ms ease both;
 	}
 
 	.broadcast-empty {
@@ -928,9 +976,14 @@ const sections = [
 		box-shadow: 0 24px 80px rgb(0 0 0 / 55%);
 	}
 
+	.listener-dialog[open] {
+		animation: dialog-reveal 220ms ease-out both;
+	}
+
 	.listener-dialog::backdrop {
 		background: rgb(0 0 0 / 78%);
 		backdrop-filter: blur(3px);
+		animation: backdrop-reveal 220ms ease-out both;
 	}
 
 	.listener-form {
@@ -962,6 +1015,12 @@ const sections = [
 		color: #000000;
 		font-size: 20px;
 		cursor: pointer;
+		transition: background-color 180ms ease, transform 180ms ease;
+	}
+
+	.dialog-close:hover {
+		transform: rotate(90deg);
+		background: #FFF0D1;
 	}
 
 	.listener-field {
@@ -1244,19 +1303,20 @@ const sections = [
 	}
 
 	.program-slides {
+		height: clamp(250px, 38vh, 360px);
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 12px;
+	}
+
+	.program-slide {
 		position: relative;
-		height: clamp(280px, 53vh, 500px);
+		isolation: isolate;
+		min-width: 0;
 		overflow: hidden;
 		border: 1px solid #D8D8CC;
 		border-radius: 3px;
 		background: #FFFFF3;
-	}
-
-	.program-slide {
-		position: absolute;
-		inset: 0;
-		isolation: isolate;
-		overflow: hidden;
 	}
 
 	.program-slide.from-next {
@@ -1292,7 +1352,7 @@ const sections = [
 	.program-slide-copy {
 		position: absolute;
 		inset: auto 0 0;
-		padding: clamp(20px, 4vw, 42px);
+		padding: clamp(12px, 2vw, 24px);
 	}
 
 	.program-slide-copy .card-index {
@@ -1303,12 +1363,11 @@ const sections = [
 	}
 
 	.program-slide-copy h3 {
-		max-width: 760px;
-		margin: 10px 0 7px;
-		font-size: clamp(30px, 5vw, 58px);
+		margin: 8px 0 6px;
+		font-size: clamp(18px, 2.5vw, 32px);
 		font-weight: 800;
 		letter-spacing: -0.05em;
-		line-height: 1;
+		line-height: 1.05;
 		color: #FFFFF3;
 	}
 
@@ -1362,7 +1421,7 @@ const sections = [
 	}
 
 	.program-count {
-		min-width: 42px;
+		min-width: 68px;
 		color: #77776F;
 		font-size: 9px;
 		font-variant-numeric: tabular-nums;
@@ -1982,19 +2041,25 @@ const sections = [
 		}
 
 		.program-slides {
-			height: clamp(290px, 47vh, 440px);
+			height: clamp(230px, 36vh, 310px);
+			gap: 7px;
 		}
 
 		.program-slide-copy {
-			padding: 20px;
+			padding: 10px;
 		}
 
 		.program-slide-copy h3 {
-			font-size: clamp(29px, 9vw, 42px);
+			margin: 6px 0 4px;
+			font-size: clamp(13px, 4vw, 20px);
 		}
 
 		.program-slide-copy p {
-			font-size: 10px;
+			font-size: 8px;
+		}
+
+		.program-slide-copy .card-index {
+			font-size: 6px;
 		}
 
 		.program-carousel-controls {
@@ -2305,5 +2370,43 @@ const sections = [
 		.program-slide.from-previous {
 			animation: none;
 		}
+
+		.broadcast-panel:not([hidden]),
+		.listener-dialog[open],
+		.listener-dialog::backdrop {
+			animation: none;
+		}
+
+		.broadcast-option,
+		.dialog-close {
+			transition: none;
+		}
+	}
+
+	@keyframes broadcast-reveal {
+		from {
+			opacity: 0;
+			transform: translateY(8px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	@keyframes dialog-reveal {
+		from {
+			opacity: 0;
+			transform: translateY(12px) scale(0.98);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0) scale(1);
+		}
+	}
+
+	@keyframes backdrop-reveal {
+		from { opacity: 0; }
+		to { opacity: 1; }
 	}
 </style>
