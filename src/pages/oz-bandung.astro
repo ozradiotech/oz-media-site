@@ -37,6 +37,13 @@ const sections = [
 			<header class="topbar">
 				<a class="wordmark" href="/" aria-label="OZ Radio home">O<span>Z</span></a>
 				<span class="location-tag"><span class="live-dot"></span> BANDUNG, WEST JAVA</span>
+				<nav class="topbar-nav" aria-label="Page sections" data-topbar-nav>
+					{sections.map((section) => (
+						<a class="topbar-nav-link" href={`#${section.id}`} data-topbar-section-id={section.id}>
+							{section.label}
+						</a>
+					))}
+				</nav>
 			</header>
 
 			<section class="screen listen-screen" id="listen" aria-labelledby="listen-title">
@@ -360,6 +367,7 @@ const sections = [
 	const sectionNav = document.querySelector<HTMLElement>('[data-section-nav]');
 	if (sectionNav) {
 		const sectionLinks = Array.from(sectionNav.querySelectorAll<HTMLAnchorElement>('[data-section-id]'));
+		const topbarSectionLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-topbar-section-id]'));
 		const previousSectionLink = sectionNav.querySelector<HTMLAnchorElement>('[data-section-previous]');
 		const nextSectionLink = sectionNav.querySelector<HTMLAnchorElement>('[data-section-next]');
 		const sectionProgress = sectionNav.querySelector<HTMLElement>('[data-section-progress]');
@@ -381,6 +389,10 @@ const sections = [
 			sectionProgress?.setAttribute('aria-label', `Section ${currentIndex + 1} of ${sectionLinks.length}`);
 			sectionLinks.forEach((link, linkIndex) => {
 				if (linkIndex === currentIndex) link.setAttribute('aria-current', 'step');
+				else link.removeAttribute('aria-current');
+			});
+			topbarSectionLinks.forEach((link) => {
+				if (link.dataset.topbarSectionId === sectionId) link.setAttribute('aria-current', 'location');
 				else link.removeAttribute('aria-current');
 			});
 		};
@@ -820,11 +832,49 @@ const sections = [
 		background: #FFFFF3;
 	}
 
+	.topbar-nav {
+		min-width: 0;
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		margin-left: auto;
+	}
+
+	.topbar-nav-link {
+		min-height: 32px;
+		display: inline-flex;
+		align-items: center;
+		padding: 0 9px;
+		border: 1px solid transparent;
+		border-radius: 3px;
+		color: #77776F;
+		font-size: 8px;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		text-decoration: none;
+		white-space: nowrap;
+		transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease, transform 180ms ease;
+	}
+
+	.topbar-nav-link:hover,
+	.topbar-nav-link:focus-visible {
+		border-color: #D8D8CC;
+		color: #000000;
+		transform: translateY(-1px);
+	}
+
+	.topbar-nav-link[aria-current='location'] {
+		border-color: #f2bd57;
+		background-color: rgb(242 189 87 / 10%);
+		color: #000000;
+	}
+
 	.wordmark {
 		font-size: 25px;
 		font-weight: 900;
 		letter-spacing: -0.09em;
 		text-decoration: none;
+		flex: 0 0 auto;
 	}
 
 	.wordmark span,
@@ -2260,6 +2310,7 @@ const sections = [
 			height: 56px;
 			min-height: 56px;
 			padding: 0 16px;
+			gap: 8px;
 		}
 
 		.topbar,
@@ -2271,6 +2322,24 @@ const sections = [
 
 		.location-tag {
 			font-size: 8px;
+			display: none;
+		}
+
+		.topbar-nav {
+			flex: 1;
+			gap: 2px;
+			overflow-x: auto;
+			scrollbar-width: none;
+		}
+
+		.topbar-nav::-webkit-scrollbar {
+			display: none;
+		}
+
+		.topbar-nav-link {
+			min-height: 32px;
+			padding: 0 5px;
+			font-size: 7px;
 		}
 
 		.screen-content {
@@ -2687,8 +2756,14 @@ const sections = [
 		}
 
 		.broadcast-option,
-		.dialog-close {
+		.dialog-close,
+		.topbar-nav-link {
 			transition: none;
+		}
+
+		.topbar-nav-link:hover,
+		.topbar-nav-link:focus-visible {
+			transform: none;
 		}
 
 		.program-slide[data-article-card] {
