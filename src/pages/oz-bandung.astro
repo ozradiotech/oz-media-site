@@ -340,15 +340,44 @@ const sections = [
 						<div class="contact-intro"><span class="contact-mark">O<span>Z</span></span><p>Your friendly station.</p><span class="card-status">CONTACT DETAILS TO BE ADDED</span></div>
 						<div class="contact-details">
 							<div class="contact-item"><span>EMAIL</span><strong>TBA</strong><small>Business &amp; general enquiries</small></div>
-							<div class="contact-item"><span>PHONE / WHATSAPP</span><strong>(022) 2013233</strong><small>Reach the OZ team</small></div>
+							<div class="contact-item"><span>WHATSAPP</span><strong>+62 812 3456 7890</strong><small>Reach the OZ team</small></div>
 							<div class="contact-item"><span>STUDIO</span><strong>Jl. Setrasari II No.14, Sukarasa, Kec. Sukasari, Kota Bandung, Jawa Barat 40152</strong><small>Full address coming soon</small></div>
 							<div class="contact-item"><span>PARTNERSHIPS</span><strong>Let’s work together</strong><small>Contact information coming soon</small></div>
 						</div>
 					</div>
 				</div>
-				<footer class="contact-footer"><br /><span>FOOTER</span><br /></footer>
 			</section>
-			<SectionNav sections={sections} current="listen" />
+			<footer class="site-footer" aria-label="Site footer">
+				<div class="site-footer-main">
+					<div class="site-footer-brand">
+						<a class="site-footer-wordmark" href="/" aria-label="OZ Radio home">O<span>Z</span></a>
+						<p>YOUR FRIENDLY STATION</p>
+					</div>
+					<div class="site-footer-column">
+						<h2>EXPLORE</h2>
+						<a href="/about" target="_blank" rel="noopener noreferrer">ABOUT</a> <br />
+						<a href="/programs" target="_blank" rel="noopener noreferrer">PROGRAMS</a> <br />
+						<a href="/news" target="_blank" rel="noopener noreferrer">NEWS</a> <br />
+					</div>
+					<div class="site-footer-column">
+						<h2>FOLLOW</h2>
+						<a href="https://www.instagram.com/ozradiobandung/" target="_blank" rel="noopener noreferrer">INSTAGRAM</a> <br />
+						<a href="https://www.tiktok.com/@ozradiobandung" target="_blank" rel="noopener noreferrer">TIKTOK</a> <br />
+						<a href="https://www.threads.net/@ozradiobandung" target="_blank" rel="noopener noreferrer">THREADS</a> <br />
+					</div>
+					<div class="site-footer-column">
+						<h2>GET IN TOUCH</h2>
+						<a href="mailto:info@ozradiobandung.com" target="_blank" rel="noopener noreferrer">EMAIL</a> <br />
+						<a href="https://wa.me/6281234567890" target="_blank" rel="noopener noreferrer">WHATSAPP</a> <br />
+					</div>
+				</div>
+				<div class="site-footer-bottom">
+					<span>© 2026 OZ RADIO BANDUNG</span>
+					<span>ADD COPYRIGHT OR LEGAL DETAILS HERE</span>
+					<a href="#listen">BACK TO TOP ↑</a>
+				</div>
+			</footer>
+			<!-- <SectionNav sections={sections} current="listen" /> -->
 		</main>
 		<dialog class="article-dialog" data-article-dialog aria-labelledby="article-dialog-title">
 			<button class="dialog-close article-dialog-close" type="button" data-article-close aria-label="Close article">×</button>
@@ -810,8 +839,7 @@ const sections = [
 
 	.topbar,
 	.section-topline,
-	.section-footer,
-	.contact-footer {
+	.section-footer {
 		min-height: 28px;
 		display: flex;
 		align-items: center;
@@ -887,8 +915,7 @@ const sections = [
 	.back-link,
 	.location-tag,
 	.section-label,
-	.section-footer,
-	.contact-footer {
+	.section-footer {
 		color: #77776F;
 		font-size: 9px;
 		font-weight: 700;
@@ -897,8 +924,7 @@ const sections = [
 	}
 
 	.back-link:hover,
-	.section-footer a:hover,
-	.contact-footer a:hover {
+	.section-footer a:hover {
 		color: #000000;
 	}
 
@@ -2276,8 +2302,86 @@ const sections = [
 		font-size: 9px;
 	}
 
-	.section-footer a,
-	.contact-footer a {
+	.site-footer {
+		padding: clamp(32px, 6vw, 72px) clamp(20px, 5vw, 64px) 18px;
+		background: #000000;
+		color: #FFFFF3;
+	}
+
+	.site-footer-main,
+	.site-footer-bottom {
+		width: min(1152px, 100%);
+		margin: 0 auto;
+	}
+
+	.site-footer-main {
+		display: grid;
+		grid-template-columns: 1.5fr repeat(3, 1fr);
+		gap: clamp(20px, 4vw, 52px);
+		padding-bottom: clamp(28px, 5vw, 56px);
+	}
+
+	.site-footer-brand {
+		max-width: 260px;
+	}
+
+	.site-footer-wordmark {
+		display: inline-block;
+		color: #FFFFF3;
+		font-size: 38px;
+		font-weight: 900;
+		letter-spacing: -0.1em;
+		line-height: 1;
+		text-decoration: none;
+	}
+
+	.site-footer-wordmark span {
+		color: #f2bd57;
+	}
+
+	.site-footer-brand p,
+	.site-footer-column > a {
+		color: #B6B6AA;
+		font-size: 10px;
+		line-height: 1.7;
+	}
+
+	.site-footer-brand p {
+		margin: 14px 0 0;
+	}
+
+	.site-footer-column h2 {
+		margin: 3px 0 14px;
+		color: #f2bd57;
+		font-size: 9px;
+		font-weight: 700;
+		letter-spacing: 0.14em;
+	}
+
+	.site-footer-bottom {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 16px;
+		padding-top: 15px;
+		border-top: 1px solid rgb(255 255 243 / 18%);
+		color: #B6B6AA;
+		font-size: 8px;
+		font-weight: 700;
+		letter-spacing: 0.1em;
+	}
+
+	.site-footer-bottom a {
+		color: #FFFFF3;
+		text-decoration: none;
+	}
+
+	.site-footer-bottom a:hover,
+	.site-footer-bottom a:focus-visible {
+		color: #f2bd57;
+	}
+
+	.section-footer a {
 		text-decoration: none;
 	}
 
@@ -2315,8 +2419,7 @@ const sections = [
 
 		.topbar,
 		.section-topline,
-		.section-footer,
-		.contact-footer {
+		.section-footer {
 			min-height: 24px;
 		}
 
@@ -2659,9 +2762,28 @@ const sections = [
 			font-size: 7px;
 		}
 
-		.section-footer,
-		.contact-footer {
+		.section-footer {
 			gap: 8px;
+			font-size: 7px;
+		}
+
+		.site-footer {
+			padding: 28px 16px 14px;
+		}
+
+		.site-footer-main {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: 24px 16px;
+		}
+
+		.site-footer-brand {
+			grid-column: 1 / -1;
+		}
+
+		.site-footer-bottom {
+			align-items: flex-start;
+			flex-direction: column;
+			gap: 10px;
 			font-size: 7px;
 		}
 
