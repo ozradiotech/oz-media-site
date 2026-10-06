@@ -10,6 +10,8 @@ const youtubeVideos = [
 	{ id: 'ZStRwkoiTQY', title: 'Live set' },
 ];
 const instagramUrl = 'https://www.instagram.com/ozradiobandung';
+const tiktokUrl = 'https://www.tiktok.com/@ozradio';
+const threadsUrl = 'https://www.threads.net/@ozradiobandung';
 
 const sections = [
 	{ id: 'listen', label: 'ON AIR' },
@@ -227,7 +229,7 @@ const sections = [
 							</div>
 						</article>
 						<article class="feature-card social-card instagram-card">
-							<div class="social-topline"><span class="social-mark instagram-mark">◎</span><span>OZ RADIO BANDUNG · INSTAGRAM</span></div>
+							<div class="social-topline"><span class="social-mark instagram-mark">◎</span><span>OZ RADIO BANDUNG · SOCIALS</span></div>
 							<div class="instagram-preview">
 								<blockquote
 									class="instagram-media"
@@ -240,9 +242,26 @@ const sections = [
 							<script async src="https://www.instagram.com/embed.js" is:inline></script>
 							<div class="social-card-bottom">
 								<div><h3>Stay in the loop.</h3><p>Behind the scenes and everything.</p></div>
-								<a class="outline-link" href={instagramUrl || undefined} aria-disabled={!instagramUrl}>
-									{instagramUrl ? 'VISIT INSTAGRAM ↗' : 'PROFILE LINK COMING SOON'}
-								</a>
+								<div class="social-profile-links" aria-label="Social media profiles">
+									<a class="social-profile-link" href={instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Instagram profile" title="Instagram">
+										<svg viewBox="0 0 24 24" aria-hidden="true">
+											<rect x="3.5" y="3.5" width="17" height="17" rx="5" />
+											<circle cx="12" cy="12" r="4" />
+											<circle class="icon-fill" cx="17.5" cy="6.8" r="1" />
+										</svg>
+									</a>
+									<a class="social-profile-link" href={tiktokUrl} target="_blank" rel="noopener noreferrer" aria-label="TikTok profile" title="TikTok">
+										<svg viewBox="0 0 24 24" aria-hidden="true">
+											<path class="tiktok-mark" d="M14 3v11.1a4.1 4.1 0 1 1-3-3.95V6.98a7.1 7.1 0 1 0 6 7.02V9.2a8.2 8.2 0 0 0 4 1.05v-3a5.2 5.2 0 0 1-4-4.25H14Z" />
+										</svg>
+									</a>
+									<a class="social-profile-link" href={threadsUrl} target="_blank" rel="noopener noreferrer" aria-label="Threads profile" title="Threads">
+										<svg viewBox="0 0 24 24" aria-hidden="true">
+											<path d="M18.7 10.3c-.4-4.1-2.7-6.2-6.8-6.2-4.5 0-7.1 2.8-7.1 7.8 0 5.1 2.7 8 7.2 8 3.6 0 5.9-1.8 5.9-4.7 0-2.4-1.7-3.9-4.5-3.9-2.1 0-3.5 1-3.5 2.5 0 1.2.9 2 2.2 2 1.7 0 2.7-1 2.9-2.9-1-.8-2.2-1.2-3.7-1.2-3.1 0-4.9 1.5-4.9 4.1" />
+											<path d="M12.3 7.5c3.7 0 5.8 2.4 5.8 6.2" />
+										</svg>
+									</a>
+								</div>
 							</div>
 						</article>
 					</div>
@@ -1833,6 +1852,53 @@ const sections = [
 
 	.social-card-bottom h3 {
 		font-size: clamp(16px, 2vw, 20px);
+	}
+
+	.social-profile-links {
+		display: flex;
+		flex-shrink: 0;
+		align-items: center;
+		gap: 6px;
+	}
+
+	.social-profile-link {
+		display: inline-flex;
+		width: 34px;
+		height: 34px;
+		align-items: center;
+		justify-content: center;
+		border: 1px solid #D8D8CC;
+		border-radius: 2px;
+		color: #000000;
+	}
+
+	.social-profile-link:hover {
+		border-color: #000000;
+	}
+
+	.social-profile-link:focus-visible {
+		outline: 2px solid #f2bd57;
+		outline-offset: 2px;
+	}
+
+	.social-profile-link svg {
+		width: 18px;
+		height: 18px;
+		fill: none;
+		stroke: currentColor;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+		stroke-width: 1.8;
+	}
+
+	.social-profile-link .icon-fill {
+		fill: currentColor;
+		stroke: none;
+	}
+
+	.social-profile-link .tiktok-mark {
+		fill: currentColor;
+		stroke: none;
 	}
 
 	.outline-link {
