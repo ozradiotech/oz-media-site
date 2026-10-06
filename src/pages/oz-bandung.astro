@@ -381,7 +381,7 @@ const sections = [
 		</main>
 		<dialog class="article-dialog" data-article-dialog aria-labelledby="article-dialog-title">
 			<button class="dialog-close article-dialog-close" type="button" data-article-close aria-label="Close article">×</button>
-			<img class="article-dialog-image" data-article-image alt="" />
+			<img class="article-dialog-image" data-article-image alt="Article image" />
 			<div class="article-dialog-copy">
 				<p class="eyebrow" data-article-category></p>
 				<h2 id="article-dialog-title" data-article-title></h2>
@@ -498,7 +498,12 @@ const sections = [
 	if (programCarousel && programSlides?.length && programButtons?.length && programCount) {
 		const programsPerPage = 3;
 		const pageCount = Math.ceil(programSlides.length / programsPerPage);
+		const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+		const autoplayDelay = 6000;
 		let currentPageIndex = 0;
+		let autoplayTimer: number | undefined;
+		let isHovered = false;
+		let isFocused = false;
 
 		const showProgramPage = (index: number) => {
 			const nextPageIndex = (index + pageCount) % pageCount;
@@ -520,9 +525,51 @@ const sections = [
 			programCount.textContent = `${String(firstProgramIndex + 1).padStart(2, '0')}-${String(lastProgramIndex).padStart(2, '0')} / ${String(programSlides.length).padStart(2, '0')}`;
 		};
 
-		programCarousel.querySelector('[data-program-previous]')?.addEventListener('click', () => showProgramPage(currentPageIndex - 1));
-		programCarousel.querySelector('[data-program-next]')?.addEventListener('click', () => showProgramPage(currentPageIndex + 1));
-		programButtons.forEach((button, index) => button.addEventListener('click', () => showProgramPage(index)));
+		const stopAutoplay = () => {
+			if (autoplayTimer !== undefined) window.clearTimeout(autoplayTimer);
+			autoplayTimer = undefined;
+		};
+		const startAutoplay = () => {
+			stopAutoplay();
+			if (pageCount < 2 || reducedMotion.matches || document.hidden || isHovered || isFocused) return;
+			autoplayTimer = window.setTimeout(() => {
+				showProgramPage(currentPageIndex + 1);
+				startAutoplay();
+			}, autoplayDelay);
+		};
+
+		programCarousel.querySelector('[data-program-previous]')?.addEventListener('click', () => {
+			showProgramPage(currentPageIndex - 1);
+			startAutoplay();
+		});
+		programCarousel.querySelector('[data-program-next]')?.addEventListener('click', () => {
+			showProgramPage(currentPageIndex + 1);
+			startAutoplay();
+		});
+		programButtons.forEach((button, index) => button.addEventListener('click', () => {
+			showProgramPage(index);
+			startAutoplay();
+		}));
+		programCarousel.addEventListener('pointerenter', () => {
+			isHovered = true;
+			stopAutoplay();
+		});
+		programCarousel.addEventListener('pointerleave', () => {
+			isHovered = false;
+			startAutoplay();
+		});
+		programCarousel.addEventListener('focusin', () => {
+			isFocused = true;
+			stopAutoplay();
+		});
+		programCarousel.addEventListener('focusout', (event) => {
+			if (event.relatedTarget instanceof Node && programCarousel.contains(event.relatedTarget)) return;
+			isFocused = false;
+			startAutoplay();
+		});
+		document.addEventListener('visibilitychange', startAutoplay);
+		reducedMotion.addEventListener('change', startAutoplay);
+		startAutoplay();
 	}
 
 	if (window.matchMedia('(hover: hover) and (pointer: fine)').matches && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -1719,13 +1766,13 @@ const sections = [
 	}
 
 	@keyframes program-slide-from-next {
-		from { opacity: 0.65; transform: translateX(28px); }
-		to { opacity: 1; transform: translateX(0); }
+		from { opacity: 0.65; translate: 28px 0; }
+		to { opacity: 1; translate: 0 0; }
 	}
 
 	@keyframes program-slide-from-previous {
-		from { opacity: 0.65; transform: translateX(-28px); }
-		to { opacity: 1; transform: translateX(0); }
+		from { opacity: 0.65; translate: -28px 0; }
+		to { opacity: 1; translate: 0 0; }
 	}
 
 	.card-index {
