@@ -490,6 +490,7 @@ const sections = [
 		showVideo(0);
 	}
 
+	const articleDialog = document.querySelector<HTMLDialogElement>('[data-article-dialog]');
 	const programCarousel = document.querySelector<HTMLElement>('[data-program-carousel]');
 	const programSlides = programCarousel?.querySelectorAll<HTMLElement>('[data-program-slide]');
 	const programButtons = programCarousel?.querySelectorAll<HTMLButtonElement>('[data-program-index]');
@@ -531,7 +532,7 @@ const sections = [
 		};
 		const startAutoplay = () => {
 			stopAutoplay();
-			if (pageCount < 2 || reducedMotion.matches || document.hidden || isHovered || isFocused) return;
+			if (pageCount < 2 || reducedMotion.matches || document.hidden || isHovered || isFocused || articleDialog?.open) return;
 			autoplayTimer = window.setTimeout(() => {
 				showProgramPage(currentPageIndex + 1);
 				startAutoplay();
@@ -569,6 +570,7 @@ const sections = [
 		});
 		document.addEventListener('visibilitychange', startAutoplay);
 		reducedMotion.addEventListener('change', startAutoplay);
+		articleDialog?.addEventListener('close', startAutoplay);
 		startAutoplay();
 	}
 
@@ -591,12 +593,12 @@ const sections = [
 		});
 	}
 
-	const articleDialog = document.querySelector<HTMLDialogElement>('[data-article-dialog]');
 	const articleImage = articleDialog?.querySelector<HTMLImageElement>('[data-article-image]');
 	const articleCategory = articleDialog?.querySelector<HTMLElement>('[data-article-category]');
 	const articleTitle = articleDialog?.querySelector<HTMLElement>('[data-article-title]');
 	const articleDescription = articleDialog?.querySelector<HTMLElement>('[data-article-description]');
 	const articleStatus = articleDialog?.querySelector<HTMLElement>('[data-article-status]');
+	let articleScrollPosition: { left: number; top: number } | undefined;
 
 	const openArticle = (card: HTMLElement) => {
 		if (!articleDialog || !articleImage || !articleCategory || !articleTitle || !articleDescription || !articleStatus) return;
@@ -612,6 +614,7 @@ const sections = [
 		const status = card.querySelector<HTMLElement>('.card-status');
 		articleStatus.textContent = status?.textContent?.trim() ?? '';
 		articleStatus.hidden = !articleStatus.textContent;
+		articleScrollPosition = { left: window.scrollX, top: window.scrollY };
 		articleDialog.showModal();
 	};
 
@@ -627,6 +630,17 @@ const sections = [
 	articleDialog?.querySelector('[data-article-close]')?.addEventListener('click', () => articleDialog.close());
 	articleDialog?.addEventListener('click', (event) => {
 		if (event.target === articleDialog) articleDialog.close();
+	});
+	articleDialog?.addEventListener('close', () => {
+		const scrollPosition = articleScrollPosition;
+		if (!scrollPosition) return;
+		articleScrollPosition = undefined;
+		window.requestAnimationFrame(() => {
+			const previousScrollBehavior = document.documentElement.style.scrollBehavior;
+			document.documentElement.style.scrollBehavior = 'auto';
+			window.scrollTo(scrollPosition.left, scrollPosition.top);
+			document.documentElement.style.scrollBehavior = previousScrollBehavior;
+		});
 	});
 
 	const tuneInButton = document.querySelector<HTMLButtonElement>('[data-tune-in]');
