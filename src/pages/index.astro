@@ -1,7 +1,7 @@
 ---
 const locations = [
-	{ name: 'Bandung', href: '/oz-bandung/', number: '01', detail: 'WEST JAVA' },
-	{ name: 'Bali', href: '/oz-bali/', number: '02', detail: 'THE ISLAND' },
+	{ name: 'Bandung', href: '/oz-bandung/', logo: '/images/logo-oz-bandung.png' },
+	{ name: 'Bali', href: '/oz-bali/', logo: '/images/logo-oz-bali.png' },
 ];
 ---
 
@@ -26,23 +26,16 @@ const locations = [
 			</header>
 
 			<section class="chooser" aria-labelledby="page-title">
-				<h1 id="page-title">OZ <span>Media</span></h1>
+				<h1 id="page-title"><img src="/images/logo-oz-media.png" alt="OZ Media" /></h1>
 				<p class="intro">Lorem ipsum dolor sit amet consectetur adipisicing elit. Optio, cum ullam? Quam at delectus maiores neque veritatis error quibusdam. Reprehenderit reiciendis aperiam odio eveniet iste, vel a quas nemo similique?</p>
 				
-				<!-- button cards -->
 				<nav class="locations" aria-label="Choose a location">
 					{locations.map((location) => (
-						<a class="location-card" href={location.href}>
-							<span class="card-top">
-								<span>{location.number} / LOCATION</span>
-								<span class="arrow" aria-hidden="true">↗</span>
-							</span>
-							<span class="location-name">OZ Radio<br />{location.name}</span>
-							<span class="card-bottom">
-								<span>{location.detail}</span>
-								<span class="tune-in">TUNE IN <span aria-hidden="true">→</span></span>
-							</span>
-						</a>
+						<div class="location-item">
+							<a class="location-link" href={location.href} aria-label={`OZ Radio ${location.name}`}>
+								<img class="location-logo" src={location.logo} alt="" />
+							</a>
+						</div>
 					))}
 				</nav>
 			</section>
@@ -140,8 +133,7 @@ const locations = [
 		flex: 0 0 auto;
 	}
 
-	.wordmark span,
-	h1 span {
+	.wordmark span {
 		color: #f2bd57;
 	}
 
@@ -178,14 +170,13 @@ const locations = [
 
 	h1 {
 		margin: 0;
-		font-size: clamp(58px, 9vw, 112px);
-		font-weight: 800;
-		letter-spacing: -0.085em;
-		line-height: 0.91;
 	}
 
-	h1 span {
-		color: #f2bd57;
+	h1 img {
+		display: block;
+		width: min(100%, 520px);
+		height: auto;
+		margin: 0 auto;
 	}
 
 	.intro {
@@ -198,69 +189,52 @@ const locations = [
 	.locations {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 14px;
-		text-align: left;
-	}
-
-	.location-card {
-		min-height: 206px;
-		display: flex;
-		flex-direction: column;
-		justify-content: space-between;
-		padding: 20px 22px 18px;
-		border: 1px solid #D8D8CC;
-		border-radius: 3px;
-		background: #FFFFF3;
-		text-decoration: none;
-		transition: background 180ms ease, color 180ms ease, border-color 180ms ease, transform 180ms ease;
-	}
-
-	.location-card:hover,
-	.location-card:focus-visible {
-		transform: translateY(-4px);
-		border-color: #000000;
-		background: #000000;
-		color: #FFFFF3;
-		outline: none;
-	}
-
-	.card-top,
-	.card-bottom {
-		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		gap: 10px;
-		font-size: 9px;
-		font-weight: 700;
-		letter-spacing: 0.12em;
+		gap: 0;
 	}
 
-	.card-top {
-		color: #7F7F75;
+	.location-item {
+		position: relative;
+		min-width: 0;
+		padding: 20px;
 	}
 
-	.arrow {
-		color: #f2bd57;
-		font-size: 20px;
-		line-height: 1;
+	.location-item:first-child::after {
+		position: absolute;
+		top: 50%;
+		right: 0;
+		width: 1px;
+		height: 120px;
+		background: #D8D8CC;
+		content: '';
+		transform: translateY(-50%);
 	}
 
-	.location-name {
-		font-size: clamp(40px, 5vw, 38px);
-		font-weight: 800;
-		letter-spacing: -0.075em;
+	.location-link {
+		display: flex;
+		min-height: 150px;
+		align-items: center;
+		justify-content: center;
+		text-decoration: none;
 	}
 
-	.card-bottom {
-		color: #7F7F75;
+	.location-link:focus-visible {
+		border-radius: 3px;
+		outline: 2px solid #f2bd57;
+		outline-offset: 4px;
 	}
 
-	.tune-in {
-		color: #f2bd57;
+	.location-logo {
+		display: block;
+		width: min(100%, 340px);
+		height: 150px;
+		object-fit: contain;
+		transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
 	}
 
-	.tune-in span {
-		margin-left: 6px;
+	.location-link:hover .location-logo,
+	.location-link:focus-visible .location-logo {
+		transform: scale(1.2) rotate(-1deg);
 	}
 
 	.footer {
@@ -306,12 +280,22 @@ const locations = [
 			grid-template-columns: 1fr;
 		}
 
-		.location-card {
-			min-height: 170px;
+		.location-item:first-child::after {
+			top: auto;
+			right: 25%;
+			bottom: 0;
+			width: 50%;
+			height: 1px;
 		}
 
 		.footer span:nth-child(2) {
 			display: none;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.location-logo {
+			transition: none;
 		}
 	}
 </style>

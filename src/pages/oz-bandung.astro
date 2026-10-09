@@ -9,6 +9,14 @@ const youtubeVideos = [
 	{ id: 'dn73m2_u71E', title: 'Studio session' },
 	{ id: 'ZStRwkoiTQY', title: 'Live set' },
 ];
+const announcers = [
+	{ name: 'Announcer 01', image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=700&q=85' },
+	{ name: 'Announcer 02', image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=700&q=85' },
+	{ name: 'Announcer 03', image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=700&q=85' },
+	{ name: 'Announcer 04', image: 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=700&q=85' },
+	{ name: 'Announcer 05', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=700&q=85' },
+	{ name: 'Announcer 06', image: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=700&q=85' },
+];
 const instagramUrl = 'https://www.instagram.com/ozradiobandung';
 const tiktokUrl = 'https://www.tiktok.com/@ozradio';
 const threadsUrl = 'https://www.threads.net/@ozradiobandung';
@@ -16,6 +24,7 @@ const threadsUrl = 'https://www.threads.net/@ozradiobandung';
 const sections = [
 	{ id: 'listen', label: 'ON AIR' },
 	{ id: 'programs', label: 'PROGRAMS' },
+	{ id: 'announcer', label: 'ANNOUNCER' },
 	{ id: 'online', label: 'ONLINE' },
 	{ id: 'activities', label: 'ON GROUND' },
 	{ id: 'news', label: 'OZ-NEWS' },
@@ -35,7 +44,7 @@ const sections = [
 	<body>
 		<main class="bandung-page">
 			<header class="topbar">
-				<a class="wordmark" href="/" aria-label="OZ Radio home">O<span>Z</span></a>
+				<a class="wordmark" href="/" aria-label="OZ Radio home"><img src="/images/logo-oz-media.png" alt="OZ Media" /></a>
 				<nav class="topbar-nav" aria-label="Page sections" data-topbar-nav>
 					{sections.map((section) => (
 						<a class="topbar-nav-link" href={`#${section.id}`} data-topbar-section-id={section.id}>
@@ -49,7 +58,7 @@ const sections = [
 				<div class="screen-content listen-content">
 					<div class="screen-heading listen-heading">
 						<div>
-							<h1 id="listen-title">OZ Radio <span>Bandung</span></h1>
+							<h1 id="listen-title"><img src="/images/logo-oz-bandung.png" alt="OZ Radio Bandung" /></h1>
 						</div>
 					</div>
 
@@ -202,11 +211,47 @@ const sections = [
 				</div>
 			</section>
 
+			<section class="screen" id="announcer" aria-labelledby="announcer-title">
+				<div class="screen-content">
+					<div class="section-heading">
+						<div>
+							<p class="eyebrow">03 / THE VOICES OF OZ</p>
+							<h2 id="announcer-title">Announcer</h2>
+						</div>
+					</div>
+					<div class="announcer-marquee" data-announcer-marquee role="region" aria-roledescription="carousel" aria-label="OZ Radio Bandung announcers">
+						<div class="announcer-track">
+							{[false, true].map((isDuplicate) => (
+								<div class="announcer-group" aria-hidden={isDuplicate ? 'true' : undefined}>
+									{announcers.map((announcer, index) => (
+										<article
+											class="announcer-card"
+											data-article-card
+											aria-haspopup="dialog"
+											aria-label={`Read announcer profile: ${announcer.name}`}
+											role="button"
+											tabindex={isDuplicate ? -1 : 0}
+										>
+											<img src={announcer.image} alt="" loading="lazy" />
+											<div class="announcer-card-copy">
+												<span class="card-index">ANNOUNCER / {String(index + 1).padStart(2, '0')}</span>
+												<h3>{announcer.name}</h3>
+												<p>OZ Radio Bandung announcer profile coming soon.</p>
+											</div>
+										</article>
+									))}
+								</div>
+							))}
+						</div>
+					</div>
+				</div>
+			</section>
+
 			<section class="screen" id="online" aria-labelledby="online-title">
 				<div class="screen-content">
 					<div class="section-heading">
 						<div>
-							<p class="eyebrow">03 / ONLINE</p>
+							<p class="eyebrow">04 / ONLINE</p>
 							<h2 id="online-title">Online <span>digital</span></h2>
 						</div>
 					</div>
@@ -295,7 +340,7 @@ const sections = [
 				<div class="screen-content">
 					<div class="section-heading">
 						<div>
-							<p class="eyebrow">04 / ON GROUND ACTIVITY</p>
+							<p class="eyebrow">05 / ON GROUND ACTIVITY</p>
 							<h2 id="activities-title">On ground <span>activity.</span></h2>
 						</div>
 					</div>
@@ -320,7 +365,7 @@ const sections = [
 				<div class="screen-content">
 					<div class="section-heading">
 						<div>
-							<p class="eyebrow">05 / OZ NEWS TODAY</p>
+							<p class="eyebrow">06 / OZ NEWS TODAY</p>
 							<h2 id="news-title">OZ <span>News.</span></h2>
 						</div>
 					</div>
@@ -348,12 +393,12 @@ const sections = [
 				<div class="screen-content">
 					<div class="section-heading">
 						<div>
-							<p class="eyebrow">06 / LET'S TALK BUSINESS</p>
+							<p class="eyebrow">07 / LET'S TALK BUSINESS</p>
 							<h2 id="contact-title">Contact <span>Information.</span></h2>
 						</div>
 					</div>
 					<div class="contact-layout">
-						<div class="contact-intro"><span class="contact-mark">O<span>Z</span></span><p>Your friendly station.</p><span class="card-status">CONTACT DETAILS TO BE ADDED</span></div>
+						<div class="contact-intro"><img class="contact-mark" src="/images/logo-oz-bandung.png" alt="OZ Radio Bandung" /><p>Your friendly station.</p><span class="card-status">CONTACT DETAILS TO BE ADDED</span></div>
 						<div class="contact-details">
 							<div class="contact-item"><span>EMAIL</span><strong>TBA</strong><small>Business &amp; general enquiries</small></div>
 							<div class="contact-item"><span>WHATSAPP</span><strong>+62 812 3456 7890</strong><small>Reach the OZ team</small></div>
@@ -366,7 +411,7 @@ const sections = [
 			<footer class="site-footer" aria-label="Site footer">
 				<div class="site-footer-main">
 					<div class="site-footer-brand">
-						<a class="site-footer-wordmark" href="/" aria-label="OZ Radio home">O<span>Z</span></a>
+						<a class="site-footer-wordmark" href="/" aria-label="OZ Radio home"><img src="/images/logo-oz-media.png" alt="OZ Media" /></a>
 						<p>YOUR FRIENDLY STATION</p>
 					</div>
 					<div class="site-footer-column">
@@ -507,6 +552,19 @@ const sections = [
 	}
 
 	const articleDialog = document.querySelector<HTMLDialogElement>('[data-article-dialog]');
+	const announcerMarquee = document.querySelector<HTMLElement>('[data-announcer-marquee]');
+	if (announcerMarquee) {
+		announcerMarquee.classList.toggle('is-paused', document.hidden);
+		announcerMarquee.addEventListener('focusin', () => announcerMarquee.classList.add('is-paused'));
+		announcerMarquee.addEventListener('focusout', (event) => {
+			if (event.relatedTarget instanceof Node && announcerMarquee.contains(event.relatedTarget)) return;
+			announcerMarquee.classList.toggle('is-paused', document.hidden);
+		});
+		document.addEventListener('visibilitychange', () => {
+			announcerMarquee.classList.toggle('is-paused', document.hidden);
+		});
+	}
+
 	const programCarousel = document.querySelector<HTMLElement>('[data-program-carousel]');
 	const programSlides = programCarousel?.querySelectorAll<HTMLElement>('[data-program-slide]');
 	const programButtons = programCarousel?.querySelectorAll<HTMLButtonElement>('[data-program-index]');
@@ -981,17 +1039,19 @@ const sections = [
 	}
 
 	.wordmark {
-		font-size: 25px;
-		font-weight: 900;
-		letter-spacing: -0.09em;
-		text-decoration: none;
+		display: inline-flex;
+		align-items: center;
 		flex: 0 0 auto;
 	}
 
-	.wordmark span,
-	h1 span,
+	.wordmark img {
+		display: block;
+		width: 88px;
+		height: auto;
+	}
+
 	.section-heading h2 span,
-	.contact-mark > span {
+	h1 span {
 		color: #f2bd57;
 	}
 
@@ -1056,6 +1116,12 @@ const sections = [
 
 	.listen-heading h1 span {
 		color: #f2bd57;
+	}
+
+	.listen-heading h1 img {
+		display: block;
+		width: min(100%, 320px);
+		height: auto;
 	}
 
 	.screen-heading {
@@ -1786,6 +1852,133 @@ const sections = [
 		width: 100%;
 	}
 
+	.announcer-marquee {
+		width: 100%;
+		overflow-x: auto;
+		overflow-y: hidden;
+		scrollbar-width: none;
+	}
+
+	.announcer-marquee::-webkit-scrollbar {
+		display: none;
+	}
+
+	.announcer-track {
+		width: max-content;
+		display: flex;
+		animation: announcer-scroll 38s linear infinite;
+	}
+
+	.announcer-marquee:hover .announcer-track,
+	.announcer-marquee.is-paused .announcer-track {
+		animation-play-state: paused;
+	}
+
+	.announcer-group {
+		width: max-content;
+		flex: 0 0 auto;
+		display: flex;
+		gap: 12px;
+		padding-right: 12px;
+	}
+
+	.announcer-card {
+		position: relative;
+		isolation: isolate;
+		width: clamp(200px, 22vw, 250px);
+		aspect-ratio: 4 / 5;
+		flex: 0 0 auto;
+		overflow: hidden;
+		border: 1px solid #D8D8CC;
+		border-radius: 3px;
+		background: #20201D;
+	}
+
+	.announcer-card[data-article-card] {
+		cursor: pointer;
+		transition: transform 180ms ease, border-color 180ms ease;
+	}
+
+	.announcer-card[data-article-card]:hover {
+		transform: translateY(-4px);
+		border-color: #f2bd57;
+	}
+
+	.announcer-card[data-article-card]:focus-visible {
+		outline: 2px solid #f2bd57;
+		outline-offset: 3px;
+	}
+
+	.announcer-card::after {
+		position: absolute;
+		z-index: -1;
+		inset: 0;
+		background: linear-gradient(to bottom, transparent 30%, rgb(0 0 0 / 18%) 52%, rgb(0 0 0 / 88%) 100%);
+		content: '';
+	}
+
+	.announcer-card img {
+		position: absolute;
+		z-index: -2;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		object-position: center 35%;
+		transition: transform 320ms ease;
+	}
+
+	.announcer-card[data-article-card]:hover img,
+	.announcer-card[data-article-card]:focus-visible img {
+		transform: scale(1.04);
+	}
+
+	.announcer-card-copy {
+		position: absolute;
+		inset: auto 0 0;
+		padding: 16px;
+		color: #FFFFF3;
+	}
+
+	.announcer-card-copy .card-index {
+		color: #f2bd57;
+		font-size: 8px;
+		font-weight: 700;
+		letter-spacing: 0.12em;
+	}
+
+	.announcer-card-copy h3,
+	.announcer-card-copy p {
+		opacity: 0;
+		transform: translateY(8px);
+		transition: opacity 180ms ease, transform 180ms ease;
+	}
+
+	.announcer-card[data-article-card]:hover h3,
+	.announcer-card[data-article-card]:hover p,
+	.announcer-card[data-article-card]:focus-visible h3,
+	.announcer-card[data-article-card]:focus-visible p {
+		opacity: 1;
+		transform: translateY(0);
+	}
+
+	.announcer-card-copy h3 {
+		margin: 8px 0 5px;
+		font-size: clamp(17px, 2.1vw, 24px);
+		letter-spacing: -0.05em;
+	}
+
+	.announcer-card-copy p {
+		margin: 0;
+		color: rgb(255 255 243 / 75%);
+		font-size: 10px;
+		line-height: 1.5;
+	}
+
+	@keyframes announcer-scroll {
+		to { transform: translateX(-50%); }
+	}
+
 	.program-slides {
 		height: clamp(250px, 38vh, 360px);
 		display: grid;
@@ -2476,10 +2669,9 @@ const sections = [
 	}
 
 	.contact-mark {
-		font-size: clamp(46px, 8vw, 80px);
-		font-weight: 900;
-		letter-spacing: -0.1em;
-		line-height: 0.9;
+		display: block;
+		width: min(100%, 210px);
+		height: auto;
 	}
 
 	.contact-intro p {
@@ -2551,16 +2743,16 @@ const sections = [
 
 	.site-footer-wordmark {
 		display: inline-block;
-		color: #FFFFF3;
-		font-size: 38px;
-		font-weight: 900;
-		letter-spacing: -0.1em;
-		line-height: 1;
 		text-decoration: none;
 	}
 
-	.site-footer-wordmark span {
-		color: #f2bd57;
+	.site-footer-wordmark img {
+		display: block;
+		width: 150px;
+		height: auto;
+		padding: 5px;
+		border-radius: 2px;
+		background: #FFFFF3;
 	}
 
 	.site-footer-brand p,
@@ -2684,6 +2876,10 @@ const sections = [
 
 		.listen-heading {
 			gap: 5px;
+		}
+
+		.listen-heading h1 img {
+			width: min(100%, 260px);
 		}
 
 		.broadcast-layout {
@@ -2945,7 +3141,7 @@ const sections = [
 		}
 
 		.contact-mark {
-			font-size: 38px;
+			width: min(100%, 150px);
 		}
 
 		.contact-intro {
@@ -3088,6 +3284,23 @@ const sections = [
 	@media (prefers-reduced-motion: reduce) {
 		:global(html) {
 			scroll-behavior: auto;
+		}
+
+		.announcer-track {
+			animation: none;
+		}
+
+		.announcer-card,
+		.announcer-card img,
+		.announcer-card-copy h3,
+		.announcer-card-copy p {
+			transition: none;
+		}
+
+		.announcer-card-copy h3,
+		.announcer-card-copy p {
+			opacity: 1;
+			transform: none;
 		}
 
 		.program-slide.from-next,
