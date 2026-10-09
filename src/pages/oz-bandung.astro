@@ -36,7 +36,6 @@ const sections = [
 		<main class="bandung-page">
 			<header class="topbar">
 				<a class="wordmark" href="/" aria-label="OZ Radio home">O<span>Z</span></a>
-				<span class="location-tag"><span class="live-dot"></span> BANDUNG, WEST JAVA</span>
 				<nav class="topbar-nav" aria-label="Page sections" data-topbar-nav>
 					{sections.map((section) => (
 						<a class="topbar-nav-link" href={`#${section.id}`} data-topbar-section-id={section.id}>
@@ -50,7 +49,6 @@ const sections = [
 				<div class="screen-content listen-content">
 					<div class="screen-heading listen-heading">
 						<div>
-							<p class="eyebrow">PLACEHOLDER · 01</p>
 							<h1 id="listen-title">OZ Radio <span>Bandung</span></h1>
 						</div>
 					</div>
@@ -59,7 +57,6 @@ const sections = [
 						<section class="live-chat" aria-labelledby="live-chat-title">
 							<div class="live-chat-heading">
 								<h2 id="live-chat-title">LIVE CHAT</h2>
-								<span>COMING SOON</span>
 							</div>
 							<div class="live-chat-body">
 								<p>Chat will be available during the live broadcast.</p>
@@ -1035,26 +1032,12 @@ const sections = [
 	.listen-content {
 		position: relative;
 		isolation: isolate;
-		max-width: 880px;
+		max-width: 1050px;
 		min-height: clamp(360px, 68vh, 560px);
 		display: flex;
 		flex-direction: column;
 		justify-content: flex-end;
 		padding: clamp(14px, 3vw, 28px);
-	}
-
-	.listen-screen::before {
-		position: absolute;
-		z-index: -1;
-		top: 64px;
-		right: calc((100% - 100vw) / 2);
-		bottom: 0;
-		left: calc((100% - 100vw) / 2);
-		pointer-events: none;
-		background:
-			linear-gradient(to bottom, rgb(255 255 243 / 4%) 4%, rgb(255 255 243 / 58%) 24%, rgb(255 255 243 / 94%) 55%, #FFFFF3 100%),
-			url('https://images.unsplash.com/photo-1618609377864-68609b857e90?q=80&w=1228&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D') center 38% / cover no-repeat;
-		content: '';
 	}
 
 	.listen-content .broadcast-label,
@@ -1100,21 +1083,6 @@ const sections = [
 	}
 
 	.broadcast {
-		overflow: hidden;
-		border: 1px solid #D8D8CC;
-		border-radius: 4px;
-		background: rgb(255 255 243 / 76%);
-		backdrop-filter: blur(2px);
-	}
-
-	.broadcast-layout {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		align-items: stretch;
-		gap: 12px;
-	}
-
-	.live-chat {
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
@@ -1125,13 +1093,35 @@ const sections = [
 		backdrop-filter: blur(2px);
 	}
 
+	.broadcast-layout {
+		width: 100%;
+		max-width: 1050px;
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		align-items: stretch;
+		grid-auto-rows: clamp(300px, 42vh, 440px);
+		gap: 12px;
+	}
+
+	.live-chat {
+		min-width: 0;
+		min-height: 0;
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+		border: 1px solid #D8D8CC;
+		border-radius: 4px;
+		background: rgb(255 255 243 / 76%);
+		backdrop-filter: blur(2px);
+	}
+
 	.live-chat-heading {
-		min-height: 36px;
+		min-height: 48px;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		gap: 12px;
-		padding: 0 13px;
+		padding: 0 18px;
 		border-bottom: 1px solid #D8D8CC;
 	}
 
@@ -1139,7 +1129,7 @@ const sections = [
 	.live-chat-heading span {
 		margin: 0;
 		color: #77776F;
-		font-size: 8px;
+		font-size: 10px;
 		font-weight: 700;
 		letter-spacing: 0.12em;
 	}
@@ -1149,29 +1139,29 @@ const sections = [
 		display: flex;
 		flex-direction: column;
 		justify-content: space-between;
-		gap: 18px;
-		padding: 16px;
+		gap: 24px;
+		padding: clamp(20px, 3vw, 32px);
 	}
 
 	.live-chat-body p {
 		margin: auto 0;
 		color: #77776F;
-		font-size: 10px;
+		font-size: 13px;
 		line-height: 1.6;
 		text-align: center;
 	}
 
 	.live-chat-compose {
-		min-height: 34px;
+		min-height: 46px;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 10px;
-		padding: 0 11px;
+		gap: 12px;
+		padding: 0 14px;
 		border: 1px solid #D8D8CC;
 		border-radius: 2px;
 		color: #77776F;
-		font-size: 9px;
+		font-size: 11px;
 	}
 
 	.broadcast-options {
@@ -1181,7 +1171,7 @@ const sections = [
 	}
 
 	.broadcast-option {
-		min-height: 54px;
+		min-height: 64px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -1190,7 +1180,7 @@ const sections = [
 		background: #FFFFF3;
 		color: #77776F;
 		font: inherit;
-		font-size: 10px;
+		font-size: 12px;
 		font-weight: 700;
 		cursor: pointer;
 		transition: color 180ms ease, background-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
@@ -1249,6 +1239,18 @@ const sections = [
 
 	.broadcast-panel:not([hidden]) {
 		animation: broadcast-reveal 300ms ease both;
+	}
+
+	.broadcast-panel[data-broadcast-panel='audio']:not([hidden]) {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+	}
+
+	.broadcast-panel[data-broadcast-panel='video']:not([hidden]) {
+		flex: 1;
+		min-height: 0;
 	}
 
 	.broadcast-empty {
@@ -1472,12 +1474,12 @@ const sections = [
 	}
 
 	.broadcast-heading {
-		min-height: 36px;
+		min-height: 48px;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		gap: 12px;
-		padding: 0 13px;
+		padding: 0 18px;
 	}
 
 	.broadcast-label,
@@ -1491,7 +1493,8 @@ const sections = [
 
 	.video-frame {
 		width: 100%;
-		aspect-ratio: 16 / 7;
+		height: 100%;
+		aspect-ratio: 16 / 9;
 		background:
 			radial-gradient(ellipse at 50% 110%, rgba(242, 189, 87, 0.14), transparent 53%),
 			#FFFFF3;
@@ -2545,10 +2548,6 @@ const sections = [
 	}
 
 	@media (max-width: 650px) {
-		.listen-screen::before {
-			top: 56px;
-		}
-
 		.screen {
 			padding: 68px 16px 60px;
 			gap: 8px;
@@ -2612,6 +2611,7 @@ const sections = [
 
 		.broadcast-layout {
 			grid-template-columns: minmax(0, 1fr);
+			grid-auto-rows: clamp(180px, 27vh, 250px);
 		}
 
 		h1 {
@@ -2623,7 +2623,7 @@ const sections = [
 		}
 
 		.video-frame {
-			aspect-ratio: 16 / 7;
+			aspect-ratio: 16 / 9;
 		}
 
 		.audio-bar {
@@ -2970,6 +2970,10 @@ const sections = [
 			padding-top: 73px;
 			padding-bottom: 65px;
 			gap: 5px;
+		}
+
+		.broadcast-layout {
+			grid-auto-rows: clamp(160px, 24vh, 220px);
 		}
 
 		.section-heading {
