@@ -55,50 +55,66 @@ const sections = [
 						</div>
 					</div>
 
-					<div class="broadcast" aria-label="OZ Bandung broadcast">
-						<div class="broadcast-heading">
-							<div class="broadcast-label"><span class="live-dot idle-dot"></span> LIVE FROM THE STUDIO</div>
-							<span class="on-air">ON AIR</span>
-						</div>
-						<div class="broadcast-options">
-							<button class="broadcast-option" type="button" data-tune-in>♫ <span>Tune in</span><span aria-hidden="true">↗</span></button>
-						</div>
-						<div class="broadcast-panel" data-broadcast-panel="audio" hidden>
-							<div class="audio-bar">
-								<span class="icon" aria-hidden="true">♫</span>
-								<div class="audio-copy">
-									<strong data-track-title>{audioStreamUrl ? 'Loading track...' : 'Audio stream unavailable'}</strong>
-									<span data-track-artist aria-live="polite"></span>
+					<div class="broadcast-layout">
+						<section class="live-chat" aria-labelledby="live-chat-title">
+							<div class="live-chat-heading">
+								<h2 id="live-chat-title">LIVE CHAT</h2>
+								<span>COMING SOON</span>
+							</div>
+							<div class="live-chat-body">
+								<p>Chat will be available during the live broadcast.</p>
+								<div class="live-chat-compose" aria-hidden="true">
+									<span>Chat is not connected yet</span>
+									<span>↗</span>
 								</div>
-								{audioStreamUrl ? (
-									<audio data-audio-player controls preload="none" src={audioStreamUrl} aria-label="OZ Bandung audio stream">
-										Your browser does not support audio playback.
-									</audio>
-								) : (
-									<span class="stream-status">AUDIO NOT CONNECTED</span>
-								)}
 							</div>
-							<div class="listener-stats" aria-live="polite" aria-label="Live listener statistics">
-								<span>LISTENERS <strong data-listener-count>—</strong></span>
+						</section>
+
+						<div class="broadcast" aria-label="OZ Bandung broadcast">
+							<div class="broadcast-heading">
+								<div class="broadcast-label"><span class="live-dot idle-dot"></span> LIVE FROM THE STUDIO</div>
+								<span class="on-air">ON AIR</span>
 							</div>
-						</div>
-						<div class="broadcast-panel" data-broadcast-panel="video" hidden>
-							<div class="video-frame">
-								{twitchChannel ? (
-									<iframe
-										title="OZ Bandung Twitch livestream"
-										data-twitch-channel={twitchChannel}
-										allow="autoplay; fullscreen"
-										allowfullscreen
-									></iframe>
-								) : (
-									<div class="video-placeholder">
-										<img src="/images/studio-livestream.jpg" alt="" aria-hidden="true" />
-										<span class="placeholder-play" aria-hidden="true">▶</span>
-										<p>Studio stream coming soon</p>
-										<span class="placeholder-caption">TWITCH LIVESTREAM · CHANNEL TO BE ADDED</span>
+							<div class="broadcast-options">
+								<button class="broadcast-option" type="button" data-tune-in>♫ <span>Tune in</span><span aria-hidden="true">↗</span></button>
+							</div>
+							<div class="broadcast-panel" data-broadcast-panel="audio" hidden>
+								<div class="audio-bar">
+									<span class="icon" aria-hidden="true">♫</span>
+									<div class="audio-copy">
+										<strong data-track-title>{audioStreamUrl ? 'Loading track...' : 'Audio stream unavailable'}</strong>
+										<span data-track-artist aria-live="polite"></span>
 									</div>
-								)}
+									{audioStreamUrl ? (
+										<audio data-audio-player controls preload="none" src={audioStreamUrl} aria-label="OZ Bandung audio stream">
+											Your browser does not support audio playback.
+										</audio>
+									) : (
+										<span class="stream-status">AUDIO NOT CONNECTED</span>
+									)}
+								</div>
+								<div class="listener-stats" aria-live="polite" aria-label="Live listener statistics">
+									<span>LISTENERS <strong data-listener-count>—</strong></span>
+								</div>
+							</div>
+							<div class="broadcast-panel" data-broadcast-panel="video" hidden>
+								<div class="video-frame">
+									{twitchChannel ? (
+										<iframe
+											title="OZ Bandung Twitch livestream"
+											data-twitch-channel={twitchChannel}
+											allow="autoplay; fullscreen"
+											allowfullscreen
+										></iframe>
+									) : (
+										<div class="video-placeholder">
+											<img src="/images/studio-livestream.jpg" alt="" aria-hidden="true" />
+											<span class="placeholder-play" aria-hidden="true">▶</span>
+											<p>Studio stream coming soon</p>
+											<span class="placeholder-caption">TWITCH LIVESTREAM · CHANNEL TO BE ADDED</span>
+										</div>
+									)}
+								</div>
 							</div>
 						</div>
 					</div>
@@ -1089,6 +1105,73 @@ const sections = [
 		border-radius: 4px;
 		background: rgb(255 255 243 / 76%);
 		backdrop-filter: blur(2px);
+	}
+
+	.broadcast-layout {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		align-items: stretch;
+		gap: 12px;
+	}
+
+	.live-chat {
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+		border: 1px solid #D8D8CC;
+		border-radius: 4px;
+		background: rgb(255 255 243 / 76%);
+		backdrop-filter: blur(2px);
+	}
+
+	.live-chat-heading {
+		min-height: 36px;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		padding: 0 13px;
+		border-bottom: 1px solid #D8D8CC;
+	}
+
+	.live-chat-heading h2,
+	.live-chat-heading span {
+		margin: 0;
+		color: #77776F;
+		font-size: 8px;
+		font-weight: 700;
+		letter-spacing: 0.12em;
+	}
+
+	.live-chat-body {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+		gap: 18px;
+		padding: 16px;
+	}
+
+	.live-chat-body p {
+		margin: auto 0;
+		color: #77776F;
+		font-size: 10px;
+		line-height: 1.6;
+		text-align: center;
+	}
+
+	.live-chat-compose {
+		min-height: 34px;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 10px;
+		padding: 0 11px;
+		border: 1px solid #D8D8CC;
+		border-radius: 2px;
+		color: #77776F;
+		font-size: 9px;
 	}
 
 	.broadcast-options {
@@ -2525,6 +2608,10 @@ const sections = [
 
 		.listen-heading {
 			gap: 5px;
+		}
+
+		.broadcast-layout {
+			grid-template-columns: minmax(0, 1fr);
 		}
 
 		h1 {
