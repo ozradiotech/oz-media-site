@@ -73,7 +73,10 @@ const sections = [
 								<span class="on-air">ON AIR</span>
 							</div>
 							<div class="broadcast-options">
-								<button class="broadcast-option" type="button" data-tune-in>♫ <span>Tune in</span><span aria-hidden="true">↗</span></button>
+								<button class="broadcast-option" type="button" data-tune-in>
+									<span class="tune-in-icon" aria-hidden="true">▶</span>
+									<span data-tune-in-label>Tune in</span>
+								</button>
 							</div>
 							<div class="broadcast-panel" data-broadcast-panel="audio" hidden>
 								<div class="audio-bar">
@@ -657,6 +660,8 @@ const sections = [
 	});
 
 	const tuneInButton = document.querySelector<HTMLButtonElement>('[data-tune-in]');
+	const tuneInLabel = tuneInButton?.querySelector<HTMLElement>('[data-tune-in-label]');
+	const broadcast = document.querySelector<HTMLElement>('.broadcast');
 	const broadcastSelection = document.querySelector<HTMLElement>('[data-broadcast-selection]');
 	const broadcastModeButtons = document.querySelectorAll<HTMLButtonElement>('[data-select-broadcast]');
 	const broadcastPanels = document.querySelectorAll<HTMLElement>('[data-broadcast-panel]');
@@ -729,12 +734,16 @@ const sections = [
 		stopNowPlayingUpdates();
 		audioPlayer?.pause();
 		twitchPlayer?.removeAttribute('src');
+		broadcast?.classList.remove('is-streaming');
+		if (tuneInLabel) tuneInLabel.textContent = 'Tune in';
 		broadcastPanels.forEach((panel) => { panel.hidden = true; });
 		if (broadcastEmpty) broadcastEmpty.hidden = false;
 	};
 
 	const startBroadcast = () => {
 		if (!selectedBroadcast) return;
+		broadcast?.classList.add('is-streaming');
+		if (tuneInLabel) tuneInLabel.textContent = 'Change stream';
 		broadcastPanels.forEach((panel) => {
 			panel.hidden = panel.dataset.broadcastPanel !== selectedBroadcast;
 		});
@@ -1083,6 +1092,7 @@ const sections = [
 	}
 
 	.broadcast {
+		position: relative;
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
@@ -1165,9 +1175,13 @@ const sections = [
 	}
 
 	.broadcast-options {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr);
-		border-top: 1px solid #D8D8CC;
+		position: absolute;
+		z-index: 1;
+		top: 50%;
+		left: 50%;
+		display: flex;
+		justify-content: center;
+		transform: translate(-50%, -50%);
 	}
 
 	.broadcast-option {
@@ -1198,12 +1212,62 @@ const sections = [
 	}
 
 	.broadcast-options .broadcast-option {
-		justify-content: space-between;
-		padding: 0 18px;
+		min-height: 92px;
+		flex: initial;
+		flex-direction: column;
+		justify-content: center;
+		gap: 7px;
+		padding: 10px 22px;
 	}
 
 	.broadcast-options .broadcast-option:hover {
 		background: #FFF0D1;
+	}
+
+	.tune-in-icon {
+		width: 38px;
+		height: 38px;
+		display: grid;
+		place-items: center;
+		border: 1px solid #f2bd57;
+		border-radius: 50%;
+		background: #f2bd57;
+		color: #000000;
+		font-size: 12px;
+		line-height: 1;
+	}
+
+	.broadcast.is-streaming .broadcast-options {
+		position: absolute;
+		z-index: 2;
+		top: 7px;
+		left: auto;
+		right: 8px;
+		transform: none;
+	}
+
+	.broadcast.is-streaming .broadcast-heading .on-air {
+		visibility: hidden;
+	}
+
+	.broadcast.is-streaming .broadcast-options .broadcast-option {
+		width: auto;
+		min-height: 32px;
+		flex: initial;
+		flex-direction: row;
+		gap: 0;
+		padding: 0 10px;
+		border: 1px solid #D8D8CC;
+		border-radius: 2px;
+		background: #FFFFF3;
+	}
+
+	.broadcast.is-streaming .broadcast-options .broadcast-option:hover {
+		background: #FFF0D1;
+	}
+
+	.broadcast.is-streaming .tune-in-icon {
+		display: none;
 	}
 
 	.broadcast-selection {
@@ -1573,18 +1637,21 @@ const sections = [
 	}
 
 	.audio-bar {
-		min-height: 56px;
-		display: flex;
+		min-height: 124px;
+		flex: 1;
+		display: grid;
+		grid-template-columns: 32px minmax(0, 1fr);
+		align-content: center;
 		align-items: center;
-		gap: 12px;
-		padding: 8px 13px;
+		gap: 9px 12px;
+		padding: 12px 16px;
 		border-top: 1px solid #D8D8CC;
 	}
 
 	.listener-stats {
 		display: flex;
-		gap: 20px;
-		padding: 8px 13px 10px;
+		justify-content: flex-start;
+		padding: 8px 16px 10px;
 		border-top: 1px solid #D8D8CC;
 		color: #77776F;
 		font-size: 8px;
@@ -1595,7 +1662,7 @@ const sections = [
 	.listener-stats strong {
 		margin-left: 5px;
 		color: #000000;
-		font-size: 10px;
+		font-size: 12px;
 		letter-spacing: 0;
 	}
 
@@ -1605,7 +1672,7 @@ const sections = [
 	}
 
 	.icon {
-		font-size: 18px;
+		font-size: 26px;
 	}
 
 	.audio-copy {
@@ -1616,17 +1683,27 @@ const sections = [
 	}
 
 	.audio-copy strong {
-		font-size: 10px;
+		display: -webkit-box;
+		overflow: hidden;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		font-size: 14px;
+		line-height: 1.4;
+		overflow-wrap: anywhere;
 	}
 
 	.audio-copy span {
+		overflow-wrap: anywhere;
 		color: #77776F;
-		font-size: 9px;
+		font-size: 12px;
 	}
 
 	audio {
-		width: min(260px, 42%);
+		grid-column: 1 / -1;
+		width: 100%;
+		max-width: 320px;
 		height: 34px;
+		justify-self: center;
 	}
 
 	.play-icon {
@@ -2611,7 +2688,7 @@ const sections = [
 
 		.broadcast-layout {
 			grid-template-columns: minmax(0, 1fr);
-			grid-auto-rows: clamp(180px, 27vh, 250px);
+			grid-auto-rows: minmax(clamp(240px, 34vh, 300px), auto);
 		}
 
 		h1 {
@@ -2627,21 +2704,21 @@ const sections = [
 		}
 
 		.audio-bar {
-			min-height: 48px;
-			gap: 8px;
-			padding: 6px 9px;
+			min-height: 124px;
+			gap: 8px 10px;
+			padding: 10px;
 		}
 
 		.audio-copy strong {
-			font-size: 9px;
+			font-size: 12px;
 		}
 
 		.audio-copy span {
-			font-size: 8px;
+			font-size: 10px;
 		}
 
 		audio {
-			width: 40%;
+			width: 100%;
 			height: 30px;
 		}
 
@@ -2973,7 +3050,7 @@ const sections = [
 		}
 
 		.broadcast-layout {
-			grid-auto-rows: clamp(160px, 24vh, 220px);
+			grid-auto-rows: minmax(clamp(240px, 34vh, 300px), auto);
 		}
 
 		.section-heading {
