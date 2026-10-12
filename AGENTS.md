@@ -10,7 +10,8 @@ Manage the background server with `astro dev stop`, `astro dev status`, and `ast
 
 ## Documentation
 
-Full documentation: https://docs.astro.build
+Astro full documentation: https://docs.astro.build
+Decap CMS documentation: https://decapcms.org/docs/intro/
 
 Consult these guides before working on related tasks:
 
