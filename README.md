@@ -18,8 +18,6 @@ Inside of your Astro project, you'll see the following folders and files:
 │       └── index.astro
 └── package.json
 ```
-## Tiktok Embed
-https://www.tiktok.com/@ozradio/video/7678938126311492884?is_from_webapp=1&sender_device=pc&web_id=7695649136419358260
 
 Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
 
@@ -44,6 +42,12 @@ All commands are run from the root of the project, from a terminal:
 | `npm run preview`         | Preview your build locally, before deploying     |
 | `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
 | `npm run astro -- --help` | Get help using the Astro CLI                     |
+
+## Decap CMS
+
+The OZ Bandung editorial content is stored in `src/content/` and managed from `/admin`. To edit it locally, start the Astro dev server with `npm run dev` and the Decap local proxy in another terminal with `npm run cms:proxy`, then open `http://localhost:4321/admin`. The proxy writes to the local repository; commit the content and uploaded files to publish them through the site's normal deployment.
+
+CMS-uploaded images go in `public/uploads` and are served from `/uploads`. The CMS is currently configured for local editing only. Before deploying the admin for hosted editing, choose a Decap Git backend, configure its repository, branch, and authentication, and remove `local_backend` from `public/admin/config.yml`. The current `git-gateway` backend entry is a local proxy placeholder, not a production login configuration.
 
 ## 👀 Want to learn more?
 

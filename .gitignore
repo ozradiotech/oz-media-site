@@ -14,6 +14,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# images
+**/uploads/*
+!**/uploads/.gitkeep
 
 # environment variables
 .env
