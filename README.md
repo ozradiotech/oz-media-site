@@ -1,54 +1,81 @@
-# Astro Starter Kit: Minimal
+# OZ Media Astro Site
 
-```sh
-npm create astro@latest -- --template minimal
-```
+This project is a lightweight Astro site for OZ Media with Decap CMS-powered editorial content. It serves the multi-location brand experience, local content editing, and static uploads for media assets.
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## Useful commands
 
-## 🚀 Project Structure
+Run these from the project root:
 
-Inside of your Astro project, you'll see the following folders and files:
+| Command | Action |
+| :--- | :--- |
+| `npm install` | Install project dependencies. |
+| `npm run dev` | Start the Astro dev server at `http://localhost:4321`. |
+| `npm run build` | Build the production site into `./dist/`. |
+| `npm run preview` | Preview the built site locally. |
+| `npm run cms:proxy` | Start the local Decap CMS proxy backend for local editing. |
+| `npm run astro` | Run Astro CLI commands. |
+| `npm run astro -- --help` | Show Astro CLI help and available commands. |
+| `npx astro check` | Run Astro validation and type/content checks. |
 
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
-```
+## Directory and route map
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+### Project directories
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+| Path | Purpose |
+| :--- | :--- |
+| `src/pages/` | Astro routes and page entry points. |
+| `src/pages/index.astro` | Landing/select page for OZ locations. |
+| `src/pages/oz-bandung.astro` | Main Bandung media page and broadcast UI. |
+| `src/pages/oz-bali.astro` | Bali landing placeholder page. |
+| `src/pages/admin.astro` | Decap CMS admin UI entry point. |
+| `src/pages/api/` | API routes such as listener/status endpoints. |
+| `src/content/` | Decap-managed content collections (`programs`, `announcers`, `activities`, `news`). |
+| `public/admin/` | Decap admin config and CMS setup files. |
+| `public/uploads/` | Uploaded media assets from Decap CMS. |
+| `public/images/` | Static site branding and media assets. |
+| `astro.config.mjs` | Astro configuration for the Node server adapter. |
 
-Any static assets, like images, can be placed in the `public/` directory.
+### Routes
 
-Color pallete:
-1. #f2bd57 (Yellow)
-2. #000000 (Black)
-3. #FFFFF3 (White)
+| Route | Source | Notes |
+| :--- | :--- | :--- |
+| `/` | `src/pages/index.astro` | Landing page that selects the Bandung/Bali location. |
+| `/oz-bandung/` | `src/pages/oz-bandung.astro` | Main OZ Bandung page with streaming and editorial sections. |
+| `/oz-bali/` | `src/pages/oz-bali.astro` | Bali brand preview placeholder page. |
+| `/admin` | `src/pages/admin.astro` | Decap CMS admin UI. |
+| `/api/listeners` | `src/pages/api/listeners.ts` | Listener-related API route. |
+| `/api/now-playing` | `src/pages/api/now-playing.ts` | Now-playing API route. |
+| `/uploads/*` | `public/uploads/` | CMS-uploaded image and media files. |
 
-## 🧞 Commands
+## Astro and Decap CMS
 
-All commands are run from the root of the project, from a terminal:
+### Astro
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+- Astro docs: https://docs.astro.build
+- Astro deployment guide: https://docs.astro.build/en/guides/deploy/
+- Astro content collections: https://docs.astro.build/en/guides/content-collections/
+- Node adapter: `@astrojs/node` is configured in `astro.config.mjs` for server output.
 
-## Decap CMS
+### Decap CMS
 
-The OZ Bandung editorial content is stored in `src/content/` and managed from `/admin`. To edit it locally, start the Astro dev server with `npm run dev` and the Decap local proxy in another terminal with `npm run cms:proxy`, then open `http://localhost:4321/admin`. The proxy writes to the local repository; commit the content and uploaded files to publish them through the site's normal deployment.
+- Decap CMS docs: https://decapcms.org/docs/intro/
+- Git Gateway backend: https://decapcms.org/docs/backend-git-gateway/
+- Local backend / dev workflow: https://decapcms.org/docs/working-with-a-local-git-backend/
 
-CMS-uploaded images go in `public/uploads` and are served from `/uploads`. The CMS is currently configured for local editing only. Before deploying the admin for hosted editing, choose a Decap Git backend, configure its repository, branch, and authentication, and remove `local_backend` from `public/admin/config.yml`. The current `git-gateway` backend entry is a local proxy placeholder, not a production login configuration.
+This project is configured to let editors manage content through `/admin`, with Decap writing to the repository from the local proxy. The current setup is intentionally local-only and is defined in `public/admin/config.yml` with `local_backend: true` and the `git-gateway` backend placeholder.
 
-## 👀 Want to learn more?
+Before deploying public CMS editing, switch the backend to a hosted Git provider, configure the repository and auth, and remove the local backend flag from `public/admin/config.yml`.
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+## Brand palette
+
+| Colour | Hex |
+| :--- | :--- |
+| Yellow | `#f2bd57` |
+| Black | `#000000` |
+| White | `#FFFFF3` |
+
+## Notes
+
+- Editorial content lives under `src/content/` and is grouped by collections such as `programs`, `announcers`, `activities`, and `news`.
+- Images uploaded through Decap are stored in `public/uploads/` and served from `/uploads`.
+- The site is built with Astro and uses the Node server adapter for a server-rendered output.
