@@ -43,6 +43,7 @@ const newsWithBody = await Promise.all(orderedNews.map(async (entry) => ({
 	entry,
 	Content: (await render(entry)).Content,
 })));
+const featuredNews = newsWithBody;
 
 const sections = [
 	{ id: 'listen', label: 'ON AIR' },
@@ -395,9 +396,9 @@ const sections = [
 						</div>
 					</div>
 					<div class="news-layout">
-						<div class="news-articles">
-							{newsWithBody.map(({ entry: article, Content }) => (
-								<article class="feature-card lead-story" data-article-card aria-haspopup="dialog" aria-label={`Read full article: ${article.data.title}`} role="button" tabindex="0">
+						<div class="news-articles" data-news-carousel aria-roledescription="carousel" aria-label="Latest OZ News articles">
+							{featuredNews.map(({ entry: article, Content }, index) => (
+								<article class="feature-card lead-story" data-article-card data-news-slide hidden={index !== 0} aria-haspopup="dialog" aria-label={`Read full article: ${article.data.title}`} role="button" tabindex="0">
 									<div class="story-art">
 										<img src={article.data.image} alt={article.data.imageAlt} loading="lazy" />
 										<span class="story-stamp">OZ<br />NEWS</span>
@@ -415,6 +416,12 @@ const sections = [
 									<template data-article-body><Content /></template>
 								</article>
 							))}
+							<div class="news-carousel-controls" data-news-controls hidden={featuredNews.length < 2}>
+								<button class="news-carousel-button" type="button" data-news-previous aria-label="Previous article">←</button>
+								<span class="news-carousel-count" data-news-count aria-live="polite">01 / {String(featuredNews.length).padStart(2, '0')}</span>
+								<button class="news-carousel-button" type="button" data-news-next aria-label="Next article">→</button>
+							</div>
+							<button class="news-list-trigger" type="button" data-news-list-open>VIEW ALL ARTICLES ↓</button>
 						</div>
 						<aside class="feature-card calendar-card">
 							<div class="calendar-head"><span class="card-index">SAVE THE DATE</span><span class="calendar-icon">▦</span></div>
@@ -477,6 +484,46 @@ const sections = [
 			</footer>
 			<!-- <SectionNav sections={sections} current="listen" /> -->
 		</main>
+		<dialog class="news-list-dialog" data-news-list-dialog aria-labelledby="news-list-title">
+			<button class="dialog-close news-list-close" type="button" data-news-list-close aria-label="Close article list">×</button>
+			<div class="news-list-content">
+				<p class="eyebrow">OZ BANDUNG · NEWSROOM</p>
+				<h2 id="news-list-title">All <span>Articles.</span></h2>
+				<label class="news-list-sort-label" for="news-list-sort">SORT BY</label>
+				<select class="news-list-sort" id="news-list-sort" data-news-list-sort>
+					<option value="newest">Newest first</option>
+					<option value="oldest">Oldest first</option>
+					<option value="title">Title A–Z</option>
+				</select>
+				<div class="news-list-items" data-news-list-items>
+					{newsWithBody.map(({ entry: article, Content }) => (
+						<button
+							class="news-list-item"
+							type="button"
+							data-article-card
+							data-news-list-item
+							data-news-date={article.data.publishedAt?.getTime() ?? 0}
+							data-news-title={article.data.title}
+							aria-haspopup="dialog"
+							aria-label={`Read full article: ${article.data.title}`}
+						>
+							<img src={article.data.image} alt="" loading="lazy" />
+							<span class="news-list-item-copy">
+								<span class="card-index">{article.data.category}</span>
+								<h3>{article.data.title}</h3>
+								<p>{article.data.summary}</p>
+								<time datetime={article.data.publishedAt?.toISOString()}>
+									{article.data.publishedAt
+										? article.data.publishedAt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+										: 'OZ NEWS'}
+								</time>
+							</span>
+							<template data-article-body><Content /></template>
+						</button>
+					))}
+				</div>
+			</div>
+		</dialog>
 		<dialog class="article-dialog" data-article-dialog aria-labelledby="article-dialog-title">
 			<button class="dialog-close article-dialog-close" type="button" data-article-close aria-label="Close article">×</button>
 			<img class="article-dialog-image" data-article-image alt="Article image" />
@@ -590,6 +637,7 @@ const sections = [
 	}
 
 	const articleDialog = document.querySelector<HTMLDialogElement>('[data-article-dialog]');
+	const newsListDialog = document.querySelector<HTMLDialogElement>('[data-news-list-dialog]');
 	const announcerMarquee = document.querySelector<HTMLElement>('[data-announcer-marquee]');
 	if (announcerMarquee) {
 		announcerMarquee.classList.toggle('is-paused', document.hidden);
@@ -644,7 +692,7 @@ const sections = [
 		};
 		const startAutoplay = () => {
 			stopAutoplay();
-			if (pageCount < 2 || reducedMotion.matches || document.hidden || isHovered || isFocused || articleDialog?.open) return;
+			if (pageCount < 2 || reducedMotion.matches || document.hidden || isHovered || isFocused || articleDialog?.open || newsListDialog?.open) return;
 			autoplayTimer = window.setTimeout(() => {
 				showProgramPage(currentPageIndex + 1);
 				startAutoplay();
@@ -683,8 +731,99 @@ const sections = [
 		document.addEventListener('visibilitychange', startAutoplay);
 		reducedMotion.addEventListener('change', startAutoplay);
 		articleDialog?.addEventListener('close', startAutoplay);
+		newsListDialog?.addEventListener('close', startAutoplay);
 		startAutoplay();
 	}
+
+	const newsCarousel = document.querySelector<HTMLElement>('[data-news-carousel]');
+	const newsSlides = newsCarousel?.querySelectorAll<HTMLElement>('[data-news-slide]');
+	const newsCount = newsCarousel?.querySelector<HTMLElement>('[data-news-count]');
+	const newsPrevious = newsCarousel?.querySelector<HTMLButtonElement>('[data-news-previous]');
+	const newsNext = newsCarousel?.querySelector<HTMLButtonElement>('[data-news-next]');
+	const newsListItems = newsListDialog?.querySelector<HTMLElement>('[data-news-list-items]');
+	const newsListSort = newsListDialog?.querySelector<HTMLSelectElement>('[data-news-list-sort]');
+	let pauseNewsAutoplay: (() => void) | undefined;
+
+	if (newsCarousel && newsSlides?.length && newsCount && newsPrevious && newsNext) {
+		const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+		const autoplayDelay = 6000;
+		let currentNewsIndex = 0;
+		let autoplayTimer: number | undefined;
+		let isHovered = false;
+		let isFocused = false;
+
+		const showNewsSlide = (index: number, direction: 'next' | 'previous') => {
+			currentNewsIndex = (index + newsSlides.length) % newsSlides.length;
+			newsSlides.forEach((slide, slideIndex) => {
+				const isActive = slideIndex === currentNewsIndex;
+				slide.hidden = !isActive;
+				slide.setAttribute('aria-hidden', String(!isActive));
+				slide.classList.toggle('from-next', isActive && direction === 'next');
+				slide.classList.toggle('from-previous', isActive && direction === 'previous');
+			});
+			newsCount.textContent = `${String(currentNewsIndex + 1).padStart(2, '0')} / ${String(newsSlides.length).padStart(2, '0')}`;
+		};
+
+		const stopAutoplay = () => {
+			if (autoplayTimer !== undefined) window.clearTimeout(autoplayTimer);
+			autoplayTimer = undefined;
+		};
+		const startAutoplay = () => {
+			stopAutoplay();
+			if (newsSlides.length < 2 || reducedMotion.matches || document.hidden || isHovered || isFocused || articleDialog?.open || newsListDialog?.open) return;
+			autoplayTimer = window.setTimeout(() => {
+				showNewsSlide(currentNewsIndex + 1, 'next');
+				startAutoplay();
+			}, autoplayDelay);
+		};
+		pauseNewsAutoplay = stopAutoplay;
+
+		newsPrevious.addEventListener('click', () => {
+			showNewsSlide(currentNewsIndex - 1, 'previous');
+			startAutoplay();
+		});
+		newsNext.addEventListener('click', () => {
+			showNewsSlide(currentNewsIndex + 1, 'next');
+			startAutoplay();
+		});
+		newsCarousel.addEventListener('pointerenter', () => {
+			isHovered = true;
+			stopAutoplay();
+		});
+		newsCarousel.addEventListener('pointerleave', () => {
+			isHovered = false;
+			startAutoplay();
+		});
+		newsCarousel.addEventListener('focusin', () => {
+			isFocused = true;
+			stopAutoplay();
+		});
+		newsCarousel.addEventListener('focusout', (event) => {
+			if (event.relatedTarget instanceof Node && newsCarousel.contains(event.relatedTarget)) return;
+			isFocused = false;
+			startAutoplay();
+		});
+		document.addEventListener('visibilitychange', startAutoplay);
+		reducedMotion.addEventListener('change', startAutoplay);
+		articleDialog?.addEventListener('close', startAutoplay);
+		newsListDialog?.addEventListener('close', startAutoplay);
+		showNewsSlide(0, 'next');
+		startAutoplay();
+	}
+
+	newsListSort?.addEventListener('change', () => {
+		if (!newsListItems || !newsListSort) return;
+		const sortedItems = Array.from(newsListItems.querySelectorAll<HTMLButtonElement>('[data-news-list-item]'));
+		sortedItems.sort((first, second) => {
+			if (newsListSort.value === 'title') {
+				return (first.dataset.newsTitle ?? '').localeCompare(second.dataset.newsTitle ?? '');
+			}
+			const firstDate = Number(first.dataset.newsDate ?? 0);
+			const secondDate = Number(second.dataset.newsDate ?? 0);
+			return newsListSort.value === 'oldest' ? firstDate - secondDate : secondDate - firstDate;
+		});
+		sortedItems.forEach((item) => newsListItems.append(item));
+	});
 
 	if (window.matchMedia('(hover: hover) and (pointer: fine)').matches && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
 		programSlides?.forEach((slide) => {
@@ -737,12 +876,34 @@ const sections = [
 	};
 
 	document.querySelectorAll<HTMLElement>('[data-article-card]').forEach((card) => {
-		card.addEventListener('click', () => openArticle(card));
-		card.addEventListener('keydown', (event) => {
-			if (event.key !== 'Enter' && event.key !== ' ') return;
-			event.preventDefault();
+		card.addEventListener('click', () => {
+			if (newsListDialog?.contains(card)) {
+				newsListDialog.close();
+				window.requestAnimationFrame(() => {
+					openArticle(card);
+					pauseNewsAutoplay?.();
+				});
+				return;
+			}
+			pauseNewsAutoplay?.();
 			openArticle(card);
 		});
+		if (!(card instanceof HTMLButtonElement)) {
+			card.addEventListener('keydown', (event) => {
+				if (event.key !== 'Enter' && event.key !== ' ') return;
+				event.preventDefault();
+				openArticle(card);
+			});
+		}
+	});
+
+	document.querySelector<HTMLButtonElement>('[data-news-list-open]')?.addEventListener('click', () => {
+		pauseNewsAutoplay?.();
+		newsListDialog?.showModal();
+	});
+	newsListDialog?.querySelector('[data-news-list-close]')?.addEventListener('click', () => newsListDialog.close());
+	newsListDialog?.addEventListener('click', (event) => {
+		if (event.target === newsListDialog) newsListDialog.close();
 	});
 
 	articleDialog?.querySelector('[data-article-close]')?.addEventListener('click', () => articleDialog.close());
@@ -1477,6 +1638,143 @@ const sections = [
 		box-shadow: 0 24px 80px rgb(0 0 0 / 55%);
 	}
 
+	.news-list-dialog {
+		position: relative;
+		width: min(760px, calc(100% - 28px));
+		max-width: none;
+		max-height: min(90dvh, 820px);
+		overflow: auto;
+		padding: 0;
+		border: 1px solid #D8D8CC;
+		border-radius: 4px;
+		background: #FFFFF3;
+		color: #000000;
+		box-shadow: 0 24px 80px rgb(0 0 0 / 55%);
+	}
+
+	.news-list-dialog[open] {
+		animation: dialog-reveal 220ms ease-out both;
+	}
+
+	.news-list-dialog::backdrop {
+		background: rgb(0 0 0 / 78%);
+		backdrop-filter: blur(3px);
+		animation: backdrop-reveal 220ms ease-out both;
+	}
+
+	.news-list-content {
+		padding: clamp(20px, 4vw, 34px);
+	}
+
+	.news-list-content > .eyebrow {
+		margin: 0 40px 8px 0;
+		color: #77776F;
+		font-size: 9px;
+		font-weight: 700;
+		letter-spacing: 0.12em;
+	}
+
+	.news-list-content h2 {
+		margin: 0 40px 20px 0;
+		font-size: clamp(28px, 5vw, 44px);
+		letter-spacing: -0.06em;
+	}
+
+	.news-list-content h2 span {
+		color: #A77823;
+	}
+
+	.news-list-sort-label {
+		display: block;
+		margin-bottom: 6px;
+		color: #77776F;
+		font-size: 8px;
+		font-weight: 700;
+		letter-spacing: 0.12em;
+	}
+
+	.news-list-sort {
+		min-height: 36px;
+		margin-bottom: 16px;
+		padding: 0 28px 0 10px;
+		border: 1px solid #D8D8CC;
+		border-radius: 2px;
+		background: #FFFFF3;
+		color: #000000;
+		font: inherit;
+		font-size: 12px;
+	}
+
+	.news-list-items {
+		display: grid;
+		gap: 8px;
+	}
+
+	.news-list-item {
+		display: grid;
+		width: 100%;
+		grid-template-columns: minmax(90px, 0.32fr) minmax(0, 1fr);
+		gap: 16px;
+		padding: 10px;
+		border: 1px solid #D8D8CC;
+		border-radius: 3px;
+		background: transparent;
+		color: #000000;
+		font: inherit;
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.news-list-item:hover {
+		border-color: #f2bd57;
+		background: #FFF9E8;
+	}
+
+	.news-list-item:focus-visible,
+	.news-list-sort:focus-visible,
+	.news-carousel-button:focus-visible,
+	.news-list-trigger:focus-visible {
+		outline: 2px solid #f2bd57;
+		outline-offset: 3px;
+	}
+
+	.news-list-item img {
+		width: 100%;
+		height: 100%;
+		min-height: 90px;
+		max-height: 150px;
+		object-fit: cover;
+	}
+
+	.news-list-item-copy {
+		display: flex;
+		min-width: 0;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 6px;
+	}
+
+	.news-list-item-copy h3 {
+		margin: 0;
+		font-size: clamp(14px, 2vw, 18px);
+		line-height: 1.15;
+	}
+
+	.news-list-item-copy p {
+		margin: 0;
+		color: #44443F;
+		font-size: 11px;
+		line-height: 1.45;
+	}
+
+	.news-list-item-copy time {
+		margin-top: auto;
+		color: #77776F;
+		font-size: 8px;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+	}
+
 	.article-dialog[open] {
 		animation: dialog-reveal 220ms ease-out both;
 	}
@@ -1553,7 +1851,8 @@ const sections = [
 		letter-spacing: 0.12em;
 	}
 
-	.article-dialog .dialog-close {
+	.article-dialog .dialog-close,
+	.news-list-dialog .dialog-close {
 		position: absolute;
 		z-index: 1;
 		top: 12px;
@@ -2568,14 +2867,72 @@ const sections = [
 	}
 
 	.news-articles {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+		display: flex;
+		flex-direction: column;
 		gap: 12px;
+	}
+
+	.news-carousel-controls {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+
+	.news-carousel-button {
+		display: grid;
+		width: 34px;
+		height: 34px;
+		place-items: center;
+		border: 1px solid #D8D8CC;
+		border-radius: 2px;
+		background: transparent;
+		color: #000000;
+		font-size: 16px;
+		cursor: pointer;
+	}
+
+	.news-carousel-button:hover {
+		border-color: #f2bd57;
+		background: #FFF0D1;
+	}
+
+	.news-carousel-count {
+		color: #77776F;
+		font-size: 8px;
+		font-weight: 700;
+		letter-spacing: 0.1em;
+	}
+
+	.news-list-trigger {
+		align-self: flex-start;
+		min-height: 36px;
+		padding: 8px 12px;
+		border: 1px solid #D8D8CC;
+		border-radius: 2px;
+		background: #FFFFF3;
+		color: #000000;
+		font-size: 8px;
+		font-weight: 700;
+		letter-spacing: 0.1em;
+		cursor: pointer;
+	}
+
+	.news-list-trigger:hover {
+		border-color: #f2bd57;
+		background: #FFF0D1;
 	}
 
 	.lead-story {
 		display: grid;
 		grid-template-columns: 0.85fr 1fr;
+	}
+
+	.lead-story[data-news-slide].from-next:not([hidden]) {
+		animation: news-slide-from-next 320ms ease both;
+	}
+
+	.lead-story[data-news-slide].from-previous:not([hidden]) {
+		animation: news-slide-from-previous 320ms ease both;
 	}
 
 	.story-art {
@@ -3146,7 +3503,6 @@ const sections = [
 		}
 
 		.news-articles {
-			grid-template-columns: 1fr;
 			gap: 8px;
 		}
 
@@ -3201,6 +3557,29 @@ const sections = [
 
 		.calendar-event {
 			padding: 8px 0;
+		}
+
+		.news-list-dialog {
+			width: calc(100% - 20px);
+			max-height: 92dvh;
+		}
+
+		.news-list-content {
+			padding: 18px 14px;
+		}
+
+		.news-list-item {
+			grid-template-columns: 82px minmax(0, 1fr);
+			gap: 10px;
+			padding: 8px;
+		}
+
+		.news-list-item img {
+			min-height: 82px;
+		}
+
+		.news-list-item-copy p {
+			font-size: 9px;
 		}
 
 		.contact-layout {
@@ -3388,6 +3767,13 @@ const sections = [
 			animation: none;
 		}
 
+		.news-list-dialog[open],
+		.news-list-dialog::backdrop,
+		.lead-story[data-news-slide].from-next:not([hidden]),
+		.lead-story[data-news-slide].from-previous:not([hidden]) {
+			animation: none;
+		}
+
 		.broadcast-option,
 		.dialog-close,
 		.topbar-nav-link {
@@ -3429,6 +3815,28 @@ const sections = [
 		to {
 			opacity: 1;
 			transform: translateY(0) scale(1);
+		}
+	}
+
+	@keyframes news-slide-from-next {
+		from {
+			opacity: 0;
+			transform: translateX(36px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	@keyframes news-slide-from-previous {
+		from {
+			opacity: 0;
+			transform: translateX(-36px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
 		}
 	}
 
