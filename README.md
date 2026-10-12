@@ -18,6 +18,8 @@ Inside of your Astro project, you'll see the following folders and files:
 │       └── index.astro
 └── package.json
 ```
+## Tiktok Embed
+https://www.tiktok.com/@ozradio/video/7678938126311492884?is_from_webapp=1&sender_device=pc&web_id=7695649136419358260
 
 Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
 

@@ -17,7 +17,7 @@ const locations = [
 	<body>
 		<main class="landing">
 			<header class="topbar">
-				<a class="wordmark" href="/" aria-label="OZ Radio home">O<span>Z</span></a>
+				<a class="wordmark" href="/" aria-label="OZ Radio home"><img src="/images/logo-oz-media.png" alt="OZ Media" /></a>
 				<nav class="topbar-nav" aria-label="Locations">
 					{locations.map((location) => (
 						<a class="topbar-nav-link" href={location.href}>{location.name}</a>
@@ -131,6 +131,12 @@ const locations = [
 		letter-spacing: -0.09em;
 		text-decoration: none;
 		flex: 0 0 auto;
+	}
+
+	.wordmark img {
+		display: block;
+		width: 88px;
+		height: auto;
 	}
 
 	.wordmark span {
