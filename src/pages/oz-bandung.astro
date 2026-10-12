@@ -38,8 +38,8 @@ const sections = [
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width" />
 		<meta name="theme-color" content="#FFFFF3" />
-		<meta name="description" content="Listen, watch and connect with OZ Radio Bandung." />
-		<title>OZ Bandung — OZ Radio</title>
+		<meta name="description" content="Listen, watch and connect with OZ Media." />
+		<title>OZ Media</title>
 	</head>
 	<body>
 		<main class="bandung-page">
@@ -309,26 +309,28 @@ const sections = [
 							<script async src="https://www.instagram.com/embed.js" is:inline></script>
 							<div class="social-card-bottom">
 								<div><h3>Stay in the loop.</h3><p>Behind the scenes and everything.</p></div>
-								<div class="social-profile-links" aria-label="Social media profiles">
-									<a class="social-profile-link" href={instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Instagram profile" title="Instagram">
-										<svg viewBox="0 0 24 24" aria-hidden="true">
-											<rect x="3.5" y="3.5" width="17" height="17" rx="5" />
-											<circle cx="12" cy="12" r="4" />
-											<circle class="icon-fill" cx="17.5" cy="6.8" r="1" />
-										</svg>
-									</a>
-									<a class="social-profile-link" href={tiktokUrl} target="_blank" rel="noopener noreferrer" aria-label="TikTok profile" title="TikTok">
-										<svg viewBox="0 0 24 24" aria-hidden="true">
-											<path class="tiktok-mark" d="M14 3v11.1a4.1 4.1 0 1 1-3-3.95V6.98a7.1 7.1 0 1 0 6 7.02V9.2a8.2 8.2 0 0 0 4 1.05v-3a5.2 5.2 0 0 1-4-4.25H14Z" />
-										</svg>
-									</a>
-									<a class="social-profile-link" href={threadsUrl} target="_blank" rel="noopener noreferrer" aria-label="Threads profile" title="Threads">
-										<svg viewBox="0 0 24 24" aria-hidden="true">
-											<path d="M18.7 10.3c-.4-4.1-2.7-6.2-6.8-6.2-4.5 0-7.1 2.8-7.1 7.8 0 5.1 2.7 8 7.2 8 3.6 0 5.9-1.8 5.9-4.7 0-2.4-1.7-3.9-4.5-3.9-2.1 0-3.5 1-3.5 2.5 0 1.2.9 2 2.2 2 1.7 0 2.7-1 2.9-2.9-1-.8-2.2-1.2-3.7-1.2-3.1 0-4.9 1.5-4.9 4.1" />
-											<path d="M12.3 7.5c3.7 0 5.8 2.4 5.8 6.2" />
-										</svg>
-									</a>
-								</div>
+								<a class="outline-link" href={instagramUrl} target="_blank" rel="noopener noreferrer">VISIT INSTAGRAM ↗</a>
+							</div>
+						</article>
+						<article class="feature-card social-card tiktok-card">
+							<div class="social-topline"><span class="social-mark">♪</span><span>OZ RADIO BANDUNG · TIKTOK</span></div>
+							<div class="tiktok-preview">
+								<blockquote
+									class="tiktok-embed"
+									cite={tiktokUrl}
+									data-unique-id="ozradio"
+									data-embed-type="creator"
+									style="max-width: 720px; min-width: 288px;"
+								>
+									<section>
+										<a target="_blank" rel="noopener noreferrer" href={`${tiktokUrl}?refer=creator_embed`}>@ozradio</a>
+									</section>
+								</blockquote>
+							</div>
+							<script async src="https://www.tiktok.com/embed.js" is:inline></script>
+							<div class="social-card-bottom">
+								<div><h3>Catch the moments.</h3><p>Short-form updates and behind the scenes from OZ Radio Bandung.</p></div>
+								<a class="outline-link" href={tiktokUrl} target="_blank" rel="noopener noreferrer">VISIT TIKTOK ↗</a>
 							</div>
 						</article>
 					</div>
@@ -969,6 +971,15 @@ const sections = [
 		margin: 0 auto;
 		padding: calc(clamp(14px, 3vh, 26px) + 64px) clamp(20px, 5vw, 64px) calc(clamp(14px, 3vh, 26px) + 56px);
 		border-bottom: 1px solid #D8D8CC;
+	}
+
+	#online.screen {
+		justify-content: flex-start;
+		overflow-y: auto;
+	}
+
+	#online .screen-content {
+		flex: 0 0 auto;
 	}
 
 	.listen-screen {
@@ -2173,7 +2184,7 @@ const sections = [
 	}
 
 	.social-grid {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
 
 	.social-card {
@@ -2197,7 +2208,7 @@ const sections = [
 
 	.channel-preview {
 		position: relative;
-		aspect-ratio: 16 / 9;
+		height: 260px;
 		display: grid;
 		place-items: center;
 		overflow: hidden;
@@ -2210,9 +2221,13 @@ const sections = [
 
 	:global(.channel-preview iframe) {
 		position: absolute;
-		inset: 0;
+		top: 50%;
+		left: 0;
 		width: 100%;
-		height: 100%;
+		height: auto;
+		aspect-ratio: 16 / 9;
+		max-height: 100%;
+		transform: translateY(-50%);
 		border: 0;
 	}
 
@@ -2346,53 +2361,6 @@ const sections = [
 		font-size: clamp(16px, 2vw, 20px);
 	}
 
-	.social-profile-links {
-		display: flex;
-		flex-shrink: 0;
-		align-items: center;
-		gap: 6px;
-	}
-
-	.social-profile-link {
-		display: inline-flex;
-		width: 34px;
-		height: 34px;
-		align-items: center;
-		justify-content: center;
-		border: 1px solid #D8D8CC;
-		border-radius: 2px;
-		color: #000000;
-	}
-
-	.social-profile-link:hover {
-		border-color: #000000;
-	}
-
-	.social-profile-link:focus-visible {
-		outline: 2px solid #f2bd57;
-		outline-offset: 2px;
-	}
-
-	.social-profile-link svg {
-		width: 18px;
-		height: 18px;
-		fill: none;
-		stroke: currentColor;
-		stroke-linecap: round;
-		stroke-linejoin: round;
-		stroke-width: 1.8;
-	}
-
-	.social-profile-link .icon-fill {
-		fill: currentColor;
-		stroke: none;
-	}
-
-	.social-profile-link .tiktok-mark {
-		fill: currentColor;
-		stroke: none;
-	}
-
 	.outline-link {
 		display: inline-flex;
 		min-height: 32px;
@@ -2420,6 +2388,29 @@ const sections = [
 		scrollbar-width: none;
 		margin: 12px 0;
 		background: #FFFFF3;
+	}
+
+	.tiktok-preview {
+		height: 260px;
+		display: grid;
+		place-items: start center;
+		overflow: auto;
+		margin: 12px 0;
+		background: #FFFFF3;
+	}
+
+	:global(.tiktok-preview .tiktok-embed) {
+		margin: 0 auto !important;
+	}
+
+	@media (max-width: 1100px) {
+		.social-grid {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+
+		.tiktok-card {
+			grid-column: 1 / -1;
+		}
 	}
 
 	:global(.instagram-preview::-webkit-scrollbar) {
@@ -2996,7 +2987,6 @@ const sections = [
 		}
 
 		.channel-preview {
-			aspect-ratio: 16 / 9;
 			margin: 7px 0;
 		}
 
@@ -3012,7 +3002,10 @@ const sections = [
 		}
 
 		.instagram-preview {
-			height: 190px;
+			margin: 7px 0;
+		}
+
+		.tiktok-preview {
 			margin: 7px 0;
 		}
 
