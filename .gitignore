@@ -1,9 +1,12 @@
 # build output
 dist/
-# listener records
+# Legacy local listener records; keep existing local data out of Git.
 data/listeners.jsonl
 # generated types
 .astro/
+
+# Vercel build and project metadata
+.vercel/
 
 # dependencies
 node_modules/

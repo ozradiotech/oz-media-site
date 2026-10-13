@@ -162,6 +162,7 @@ const sections = [
 								<button class="broadcast-option" type="button" data-select-broadcast="video">▶ <span>Watch the livestream</span></button>
 							</div>
 							<div data-listener-fields hidden>
+								<p class="listener-privacy-note">Your details are not sent to OZ or saved. They are only used in this page session.</p>
 								<label class="listener-field">Name<input name="name" autocomplete="name" required maxlength="80" /></label>
 								<label class="listener-field">Age<input name="age" type="number" inputmode="numeric" min="1" max="120" step="1" required /></label>
 								<label class="listener-field">Gender<select name="gender" required>
@@ -940,11 +941,7 @@ const sections = [
 	const trackTitle = document.querySelector<HTMLElement>('[data-track-title]');
 	const trackArtist = document.querySelector<HTMLElement>('[data-track-artist]');
 	const listenerCount = document.querySelector<HTMLElement>('[data-listener-count]');
-	const listenerSessionKey = 'oz-listener-details-saved';
 	let listenerDetailsSaved = false;
-	try {
-		listenerDetailsSaved = sessionStorage.getItem(listenerSessionKey) === 'true';
-	} catch {}
 	let selectedBroadcast: 'audio' | 'video' | null = null;
 	let nowPlayingTimer: number | undefined;
 
@@ -1067,42 +1064,14 @@ const sections = [
 
 	listenerDialog?.querySelector('[data-dialog-close]')?.addEventListener('click', () => listenerDialog.close());
 
-	listenerForm?.addEventListener('submit', async (event) => {
+	listenerForm?.addEventListener('submit', (event) => {
 		event.preventDefault();
 		if (!listenerFields || !listenerConfirmation || !listenerSubmit || !dialogTitle) return;
 
 		if (!listenerFields.hidden) {
 			if (!listenerForm.reportValidity()) return;
 			const listener = new FormData(listenerForm);
-		listenerSubmit.disabled = true;
-		listenerSubmit.textContent = 'Saving...';
-		try {
-			const response = await fetch('/api/listeners', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					name: String(listener.get('name')).trim(),
-					age: Number(listener.get('age')),
-					gender: listener.get('gender'),
-					location: String(listener.get('location')).trim(),
-					broadcast: selectedBroadcast,
-				}),
-			});
-			if (!response.ok) throw new Error('Listener details could not be saved. Please try again.');
 			listenerDetailsSaved = true;
-			try {
-				sessionStorage.setItem(listenerSessionKey, 'true');
-			} catch {}
-		} catch (error) {
-			const message = document.createElement('p');
-			message.textContent = error instanceof Error ? error.message : 'Listener details could not be saved. Please try again.';
-			listenerConfirmation.replaceChildren(message);
-			listenerConfirmation.hidden = false;
-			listenerSubmit.disabled = false;
-			listenerSubmit.textContent = 'Continue';
-			return;
-		}
-		listenerSubmit.disabled = false;
 			const details = [
 				['Name', listener.get('name')],
 				['Age', listener.get('age')],
@@ -1110,7 +1079,7 @@ const sections = [
 				['Location', listener.get('location')],
 			] as const;
 			const message = document.createElement('p');
-			message.textContent = `You are ready to ${selectedBroadcast === 'video' ? 'watch' : 'listen'}.`;
+			message.textContent = `Your details were not sent or saved. You are ready to ${selectedBroadcast === 'video' ? 'watch' : 'listen'}.`;
 			const summary = document.createElement('dl');
 			details.forEach(([label, value]) => {
 				const term = document.createElement('dt');
@@ -1912,6 +1881,14 @@ const sections = [
 		color: #77776F;
 		font-size: 10px;
 		font-weight: 700;
+	}
+
+	.listener-privacy-note {
+		grid-column: 1 / -1;
+		margin: 0;
+		color: #77776F;
+		font-size: 11px;
+		line-height: 1.5;
 	}
 
 	.listener-field input,
