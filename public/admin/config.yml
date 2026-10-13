@@ -2,7 +2,7 @@
 backend:
   name: github
   repo: brannn86/oz-proto
-  branch: main
+  branch: deploy
   base_url: https://oz-proto.vercel.app
   auth_endpoint: api/cms-auth
 
