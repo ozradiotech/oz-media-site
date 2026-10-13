@@ -1,0 +1,94 @@
+# The configured OAuth base URL must match CMS_OAUTH_BASE_URL in Vercel.
+backend:
+  name: github
+  repo: brannn86/oz-proto
+  branch: main
+  base_url: https://oz-proto.vercel.app
+  auth_endpoint: api/cms-auth
+
+media_folder: public/uploads
+public_folder: /uploads
+
+collections:
+  - name: programs
+    label: Programs
+    label_singular: Program
+    folder: src/content/programs
+    create: true
+    extension: md
+    format: frontmatter
+    identifier_field: title
+    slug: "{{slug}}"
+    sortable_fields: [order, title]
+    fields:
+      - { label: Title, name: title, widget: string }
+      - { label: Display order, name: order, widget: number, value_type: int, min: 1 }
+      - { label: Summary, name: summary, widget: text }
+      - { label: Image, name: image, widget: image }
+      - { label: Image alt text, name: imageAlt, widget: string, required: false }
+      - { label: Article, name: body, widget: markdown }
+
+  - name: announcers
+    label: Announcers
+    label_singular: Announcer
+    folder: src/content/announcers
+    create: true
+    extension: md
+    format: frontmatter
+    identifier_field: name
+    slug: "{{slug}}"
+    sortable_fields: [order, name]
+    fields:
+      - { label: Name, name: name, widget: string }
+      - { label: Display order, name: order, widget: number, value_type: int, min: 1 }
+      - { label: Summary, name: summary, widget: text }
+      - { label: Portrait, name: image, widget: image }
+      - { label: Image alt text, name: imageAlt, widget: string, required: false }
+      - { label: Profile, name: body, widget: markdown }
+
+  - name: activities
+    label: On-ground activities
+    label_singular: Activity
+    folder: src/content/activities
+    create: true
+    extension: md
+    format: frontmatter
+    identifier_field: title
+    slug: "{{slug}}"
+    sortable_fields: [order, title]
+    fields:
+      - { label: Title, name: title, widget: string }
+      - { label: Display order, name: order, widget: number, value_type: int, min: 1 }
+      - { label: Category, name: category, widget: string }
+      - { label: Summary, name: summary, widget: text }
+      - { label: Image, name: image, widget: image }
+      - { label: Image alt text, name: imageAlt, widget: string, required: false }
+      - label: Artwork style
+        name: artStyle
+        widget: select
+        options:
+          - { label: Listen, value: listen }
+          - { label: Meet, value: meet }
+          - { label: Create, value: create }
+      - { label: Artwork label, name: artLabel, widget: string, required: false }
+      - { label: Status, name: status, widget: string, required: false }
+      - { label: Article, name: body, widget: markdown }
+
+  - name: news
+    label: OZ News
+    label_singular: News article
+    folder: src/content/news
+    create: true
+    extension: md
+    format: frontmatter
+    identifier_field: title
+    slug: "{{slug}}"
+    sortable_fields: [publishedAt, title]
+    fields:
+      - { label: Title, name: title, widget: string }
+      - { label: Published date, name: publishedAt, widget: datetime, required: false }
+      - { label: Category, name: category, widget: string }
+      - { label: Summary, name: summary, widget: text }
+      - { label: Featured image, name: image, widget: image }
+      - { label: Image alt text, name: imageAlt, widget: string, required: false }
+      - { label: Article, name: body, widget: markdown }
