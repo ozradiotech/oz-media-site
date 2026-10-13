@@ -53,7 +53,7 @@ function errorResponse(message: string, status: number, headers?: HeadersInit) {
 
 function callbackPage(token: string, allowedOrigin: string) {
 	const nonce = randomBytes(18).toString('base64');
-	const successMessage = JSON.stringify(`authorization:github:success:${JSON.stringify({ token })}`).replace(/</g, '\\u003c');
+	const successMessage = `authorization:github:success:${JSON.stringify({ token })}`;
 	const originLiteral = JSON.stringify(allowedOrigin);
 	const messageLiteral = JSON.stringify(successMessage);
 	const html = `<!doctype html>
