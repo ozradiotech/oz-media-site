@@ -1642,10 +1642,10 @@ const sections = [
 		position: relative;
 		isolation: isolate;
 		max-width: 1800px;
-		min-height: clamp(360px, 68vh, 560px);
+		flex: 1 1 auto;
+		min-height: 0;
 		display: flex;
 		flex-direction: column;
-		justify-content: flex-end;
 		padding: clamp(14px, 3vw, 28px);
 	}
 
@@ -1712,10 +1712,12 @@ const sections = [
 	.broadcast-layout {
 		width: 100%;
 		max-width: 1800px;
+		flex: 1 1 auto;
+		min-height: 0;
 		display: grid;
 		grid-template-columns: minmax(0, 3fr) minmax(0, 7fr);
+		grid-template-rows: minmax(0, 1fr);
 		align-items: stretch;
-		grid-auto-rows: clamp(300px, 42vh, 440px);
 		gap: 12px;
 	}
 
@@ -3695,7 +3697,7 @@ const sections = [
 
 		.broadcast-layout {
 			grid-template-columns: minmax(0, 1fr);
-			grid-auto-rows: minmax(clamp(240px, 34vh, 300px), auto);
+			grid-template-rows: minmax(0, 3fr) minmax(0, 2fr);
 		}
 
 		.broadcast {
@@ -4094,10 +4096,6 @@ const sections = [
 			padding-top: 73px;
 			padding-bottom: 65px;
 			gap: 5px;
-		}
-
-		.broadcast-layout {
-			grid-auto-rows: minmax(clamp(240px, 34vh, 300px), auto);
 		}
 
 		.section-heading {
