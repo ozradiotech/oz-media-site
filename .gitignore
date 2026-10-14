@@ -4,6 +4,8 @@ dist/
 data/listeners.jsonl
 # generated types
 .astro/
+# vercel build output
+.vercel/
 
 # dependencies
 node_modules/

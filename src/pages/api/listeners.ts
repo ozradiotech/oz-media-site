@@ -19,22 +19,28 @@ export const POST: APIRoute = async ({ request }) => {
 	}
 
 	const { name, age, gender, location, broadcast } = input as Record<string, unknown>;
+	const trimmedName = typeof name === 'string' ? name.trim() : '';
+	const parsedAge = typeof age === 'number' ? age : typeof age === 'string' ? Number(age) : NaN;
+	const trimmedGender = typeof gender === 'string' ? gender.trim() : '';
+	const trimmedLocation = typeof location === 'string' ? location.trim() : '';
+	const normalizedBroadcast = typeof broadcast === 'string' ? broadcast.trim().toLowerCase() : '';
+
 	if (
-		typeof name !== 'string' || !name.trim() || name.trim().length > 80 ||
-		typeof age !== 'number' || !Number.isInteger(age) || age < 1 || age > 120 ||
-		typeof gender !== 'string' || !genders.has(gender) ||
-		typeof location !== 'string' || !location.trim() || location.trim().length > 100 ||
-		(broadcast !== 'audio' && broadcast !== 'video')
+		!trimmedName || trimmedName.length > 80 ||
+		!Number.isInteger(parsedAge) || parsedAge < 1 || parsedAge > 120 ||
+		!genders.has(trimmedGender) ||
+		!trimmedLocation || trimmedLocation.length > 100 ||
+		(normalizedBroadcast !== 'audio' && normalizedBroadcast !== 'video')
 	) {
 		return new Response('Invalid listener details.', { status: 400 });
 	}
 
 	const record = {
-		name: name.trim(),
-		age,
-		gender,
-		location: location.trim(),
-		broadcast,
+		name: trimmedName,
+		age: parsedAge,
+		gender: trimmedGender,
+		location: trimmedLocation,
+		broadcast: normalizedBroadcast,
 		createdAt: new Date().toISOString(),
 	};
 	const dataDirectory = join(process.cwd(), 'data');

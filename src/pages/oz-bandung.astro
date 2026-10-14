@@ -166,7 +166,11 @@ const sections = [
 								<label class="listener-field">Age<input name="age" type="number" inputmode="numeric" min="1" max="120" step="1" required /></label>
 								<label class="listener-field">Gender<select name="gender" required>
 									<option value="" selected disabled>Select gender</option>
-									<option>Female</option><option>Male</option>>
+									<option value="Female">Female</option>
+									<option value="Male">Male</option>
+									<option value="Non-binary">Non-binary</option>
+									<option value="Prefer not to say">Prefer not to say</option>
+									<option value="Self-describe">Self-describe</option>
 								</select></label>
 								<label class="listener-field">Location<input name="location" autocomplete="address-level2" required maxlength="100" /></label>
 							</div>
@@ -367,10 +371,20 @@ const sections = [
 							<h2 id="activities-title">On ground <span>activity.</span></h2>
 						</div>
 					</div>
-					<div class="feature-grid activity-grid">
-						{activitiesWithBody.map(({ entry: activity, Content }) => (
-							<article class="feature-card activity-card" data-article-card aria-haspopup="dialog" aria-label={`Read full article: ${activity.data.title}`} role="button" tabindex="0">
-								<div class:list={['activity-art', `art-${activity.data.artStyle}`]}>
+					<div
+						class="feature-grid activity-grid"
+						id="activity-grid"
+						role="region"
+						aria-label="On ground activities"
+						tabindex="0"
+						style={`--activity-desktop-columns: ${Math.max(1, Math.min(3, activitiesWithBody.length))}; --activity-tablet-columns: ${Math.max(1, Math.min(2, activitiesWithBody.length))}; --activity-mobile-columns: ${Math.max(1, Math.min(2, activitiesWithBody.length))};`}
+					>
+						{activitiesWithBody.map(({ entry: activity, Content }, index) => (
+							<article class="feature-card activity-card" data-article-card data-activity-card aria-haspopup="dialog" aria-label={`Read full article: ${activity.data.title}`} role="button" tabindex="0">
+								<div
+									class:list={['activity-art', `art-${activity.data.artStyle}`]}
+									style={`--activity-image-ratio: ${[1.2, 0.82, 1.6, 0.95, 1.35][index % 5]};`}
+								>
 									<img src={activity.data.image} alt={activity.data.imageAlt} loading="lazy" />
 									<span>{activity.data.artLabel}</span>
 								</div>
@@ -638,6 +652,48 @@ const sections = [
 
 	const articleDialog = document.querySelector<HTMLDialogElement>('[data-article-dialog]');
 	const newsListDialog = document.querySelector<HTMLDialogElement>('[data-news-list-dialog]');
+	const activityGrid = document.querySelector<HTMLElement>('#activity-grid');
+	const activityCards = activityGrid?.querySelectorAll<HTMLElement>('[data-activity-card]');
+	if (activityGrid && activityCards?.length) {
+		const cards = Array.from(activityCards);
+		let lastLayoutWidth = 0;
+		let lastColumnCount = 0;
+
+		const layoutActivityCards = () => {
+			const gridWidth = activityGrid.clientWidth;
+			const columnCount = Number.parseInt(getComputedStyle(activityGrid).getPropertyValue('--activity-column-count'), 10) || 1;
+			if (gridWidth === lastLayoutWidth && columnCount === lastColumnCount) return;
+			lastLayoutWidth = gridWidth;
+			lastColumnCount = columnCount;
+			const columns = Array.from({ length: columnCount }, () => {
+				const column = document.createElement('div');
+				column.className = 'activity-column';
+				return column;
+			});
+
+			activityGrid.replaceChildren(...columns);
+			cards.forEach((card, index) => columns[index % columnCount].append(card));
+			const cardHeights = new Map(cards.map((card) => [card, card.getBoundingClientRect().height]));
+			const columnHeights = Array<number>(columnCount).fill(0);
+			const columnGap = Number.parseFloat(getComputedStyle(columns[0]).rowGap) || 0;
+
+			columns.forEach((column) => column.replaceChildren());
+			cards.forEach((card) => {
+				const shortestColumn = columnHeights.indexOf(Math.min(...columnHeights));
+				columns[shortestColumn].append(card);
+				columnHeights[shortestColumn] += (cardHeights.get(card) ?? 0) + columnGap;
+			});
+		};
+
+		layoutActivityCards();
+
+		let resizeFrame = 0;
+		window.addEventListener('resize', () => {
+			window.cancelAnimationFrame(resizeFrame);
+			resizeFrame = window.requestAnimationFrame(layoutActivityCards);
+		});
+	}
+
 	const announcerMarquee = document.querySelector<HTMLElement>('[data-announcer-marquee]');
 	if (announcerMarquee) {
 		announcerMarquee.classList.toggle('is-paused', document.hidden);
@@ -2208,10 +2264,25 @@ const sections = [
 	.feature-grid {
 		display: grid;
 		gap: 12px;
+		
 	}
 
 	.activity-grid {
-		grid-template-columns: repeat(3, minmax(0, 1fr));
+		--activity-column-count: var(--activity-desktop-columns);
+		min-height: 0;
+		display: grid;
+		flex: 1 1 0;
+		grid-template-columns: repeat(var(--activity-column-count), minmax(0, 1fr));
+		align-items: start;
+		gap: 12px;
+		overflow-x: hidden;
+		overflow-y: auto;
+		padding: 0 8px 12px 0;
+		overscroll-behavior-y: contain;
+		scroll-behavior: smooth;
+		scrollbar-color: #B8B8AA transparent;
+		scrollbar-gutter: stable;
+		scrollbar-width: thin;
 	}
 
 	.feature-card {
@@ -2772,6 +2843,10 @@ const sections = [
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 
+		.activity-grid {
+			--activity-column-count: var(--activity-tablet-columns);
+		}
+
 		.tiktok-card {
 			grid-column: 1 / -1;
 		}
@@ -2792,13 +2867,45 @@ const sections = [
 	.activity-card {
 		display: flex;
 		flex-direction: column;
+		width: 100%;
+		transform-origin: center;
+		transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+	}
+
+	.activity-card:hover,
+	.activity-card:focus-visible {
+		z-index: 1;
+		border-color: #f2bd57;
+		box-shadow: 0 10px 24px rgb(0 0 0 / 12%);
+		transform: translateY(-4px);
+	}
+
+	.activity-card:focus-visible {
+		outline: 2px solid #f2bd57;
+		outline-offset: 2px;
+	}
+
+	:global(.activity-column) {
+		min-width: 0;
+		align-self: start;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	#activities .screen-content {
+		min-height: 0;
+		display: flex;
+		flex: 1 1 auto;
+		flex-direction: column;
+		margin-block: 0;
 	}
 
 	.activity-art {
 		position: relative;
 		overflow: hidden;
 		min-height: 100px;
-		aspect-ratio: 2.4 / 1;
+		aspect-ratio: var(--activity-image-ratio, 2.4 / 1);
 		display: flex;
 		align-items: flex-end;
 		padding: 12px;
@@ -2822,6 +2929,12 @@ const sections = [
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
+		transition: transform 350ms ease;
+	}
+
+	.activity-card:hover .activity-art img,
+	.activity-card:focus-visible .activity-art img {
+		transform: scale(1.045);
 	}
 
 	.activity-art > span {
@@ -3360,7 +3473,11 @@ const sections = [
 		}
 
 		.activity-grid {
-			grid-template-columns: 1fr;
+			--activity-column-count: var(--activity-mobile-columns);
+			gap: 7px;
+		}
+
+		:global(.activity-column) {
 			gap: 7px;
 		}
 
@@ -3469,20 +3586,19 @@ const sections = [
 		}
 
 		.activity-card {
-			display: grid;
-			grid-template-columns: 0.72fr 1fr;
+			display: flex;
 			min-height: 0;
 		}
 
 		.activity-art {
 			min-height: 0;
-			aspect-ratio: auto;
+			aspect-ratio: var(--activity-image-ratio, 2.4 / 1);
 			padding: 8px;
 			font-size: 8px;
 		}
 
 		.activity-info {
-			padding: 8px 10px;
+			padding: 10px;
 		}
 
 		.activity-info .card-index {
@@ -3801,6 +3917,26 @@ const sections = [
 		.program-slide[data-article-card]:hover {
 			--program-lift: 0;
 			box-shadow: none;
+		}
+
+		.activity-grid {
+			scroll-behavior: auto;
+		}
+
+		.activity-card,
+		.activity-art img {
+			transition: none;
+		}
+
+		.activity-card:hover,
+		.activity-card:focus-visible {
+			box-shadow: none;
+			transform: none;
+		}
+
+		.activity-card:hover .activity-art img,
+		.activity-card:focus-visible .activity-art img {
+			transform: none;
 		}
 	}
 
