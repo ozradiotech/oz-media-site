@@ -671,6 +671,33 @@ const sections = [
 		});
 	}
 
+	const topbarNavLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-topbar-section-id]'));
+	if (topbarNavLinks.length) {
+		const highlightTopbarLink = (sectionId: string) => {
+			topbarNavLinks.forEach((link) => {
+				if (link.dataset.topbarSectionId === sectionId) link.setAttribute('aria-current', 'location');
+				else link.removeAttribute('aria-current');
+			});
+			// On narrow screens the nav scrolls sideways; keep the current link in view.
+			const currentLink = topbarNavLinks.find((link) => link.dataset.topbarSectionId === sectionId);
+			const nav = currentLink?.parentElement;
+			if (currentLink && nav && nav.scrollWidth > nav.clientWidth) {
+				nav.scrollTo({
+					left: currentLink.offsetLeft - nav.offsetLeft - (nav.clientWidth - currentLink.offsetWidth) / 2,
+					behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+				});
+			}
+		};
+
+		// A section is current while it crosses the middle of the viewport; the hero clears the highlight.
+		const topbarSectionObserver = new IntersectionObserver((entries) => {
+			const currentSection = entries.find((entry) => entry.isIntersecting);
+			if (currentSection) highlightTopbarLink((currentSection.target as HTMLElement).id);
+		}, { rootMargin: '-50% 0px -50% 0px' });
+
+		document.querySelectorAll<HTMLElement>('[data-hero], .screen[id]').forEach((section) => topbarSectionObserver.observe(section));
+	}
+
 	const sectionNav = document.querySelector<HTMLElement>('[data-section-nav]');
 	if (sectionNav) {
 		const sectionLinks = Array.from(sectionNav.querySelectorAll<HTMLAnchorElement>('[data-section-id]'));
