@@ -43,6 +43,9 @@ export const POST: APIRoute = async ({ request }) => {
 		broadcast: normalizedBroadcast,
 		createdAt: new Date().toISOString(),
 	};
+	// Vercel's filesystem is read-only, so accept the details there without storing them.
+	if (process.env.VERCEL) return new Response(null, { status: 202 });
+
 	const dataDirectory = join(process.cwd(), 'data');
 
 	try {

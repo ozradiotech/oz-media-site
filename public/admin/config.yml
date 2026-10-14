@@ -1,8 +1,14 @@
-# Replace the local-only backend with the chosen Git provider before deployment.
-backend: 
-  name: git-gateway
+# The configured OAuth base URL must match CMS_OAUTH_BASE_URL in Vercel.
+backend:
+  name: github
+  repo: brannn86/oz-proto
+  branch: main
+  base_url: https://oz-proto.vercel.app
+  auth_endpoint: api/cms-auth
 
+# On localhost with `npm run cms:proxy` running, Decap edits local files instead of GitHub.
 local_backend: true
+
 media_folder: public/uploads
 public_folder: /uploads
 

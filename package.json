@@ -14,7 +14,13 @@
   },
   "dependencies": {
     "@astrojs/node": "^11.1.6",
+    "@astrojs/vercel": "^11.0.14",
     "astro": "^7.3.5"
+  },
+  "overrides": {
+    "@vercel/routing-utils": {
+      "path-to-regexp": "6.3.0"
+    }
   },
   "allowScripts": {
     "esbuild": true
