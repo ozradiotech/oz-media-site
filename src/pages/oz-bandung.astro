@@ -1387,7 +1387,7 @@ const sections = [
 		width: 100%;
 		max-width: 1800px;
 		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+		grid-template-columns: minmax(0, 3fr) minmax(0, 7fr);
 		align-items: stretch;
 		grid-auto-rows: clamp(300px, 42vh, 440px);
 		gap: 12px;
@@ -3304,6 +3304,14 @@ const sections = [
 		.broadcast-layout {
 			grid-template-columns: minmax(0, 1fr);
 			grid-auto-rows: minmax(clamp(240px, 34vh, 300px), auto);
+		}
+
+		.broadcast {
+			order: 1;
+		}
+
+		.live-chat {
+			order: 2;
 		}
 
 		h1 {
