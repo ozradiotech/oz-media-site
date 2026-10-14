@@ -17,6 +17,72 @@ Run these from the project root:
 | `npm run astro -- --help` | Show Astro CLI help and available commands. |
 | `npx astro check` | Run Astro validation and type/content checks. |
 
+## Git workflow
+
+| Branch | Purpose |
+| :--- | :--- |
+| `main` | Main development branch and source of truth. Decap CMS commits here. |
+| `test` | Scratch branch for major features. Gets its own Vercel preview URL. |
+| `deploy` | Vercel test deployment (not production). Only ever updated from `main`. |
+
+Changes flow one way only: **test → main → deploy**. Never commit directly on `deploy`.
+
+### Small change (fix, tweak, text)
+
+```sh
+git switch main
+git pull
+# edit, then:
+npm run build                 # make sure it builds
+git add -A && git commit -m "fix: ..."
+git push
+```
+
+### Big feature
+
+```sh
+git switch test
+git reset --hard main         # start clean (only if test has nothing you still need)
+# work, commit often, git push to get a Vercel preview
+```
+
+When it's done:
+
+```sh
+git switch main
+git merge test
+npm run build
+git push
+```
+
+### Update the Vercel test site
+
+```sh
+git push origin main:deploy
+git fetch
+```
+
+This is a fast-forward. If it is refused, something was committed on `deploy` that shouldn't have been; make that change on `main` instead.
+
+### Content edits
+
+- **Online CMS** (`https://oz-proto.vercel.app/admin`) commits to `main`. Run `git pull` before you start coding, and update `deploy` to publish the edits to the test site.
+- **Local CMS**: run `npm run dev` and `npm run cms:proxy`, open `http://localhost:4321/admin`. Edits are written to your files; commit them like code.
+
+### Don't
+
+- Put hosting-specific config on one branch. `astro.config.mjs` picks the Vercel or Node adapter automatically, so the same code runs everywhere.
+- Commit build output (`dist/`, `.vercel/`).
+- Merge `deploy` or `test` back into `main`, except to finish a feature from `test`.
+
+### Self-hosting (later)
+
+Point the server at `deploy` (or a version tag such as `v1.0`) and run:
+
+```sh
+git pull && npm ci && npm run build && node dist/server/entry.mjs
+```
+
 ## Directory and route map
 
 ### Project directories
