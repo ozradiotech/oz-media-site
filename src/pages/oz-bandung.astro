@@ -67,8 +67,8 @@ const sections = [
 	</head>
 	<body>
 		<main class="bandung-page">
-			<header class="topbar">
-				<a class="wordmark" href="/" aria-label="OZ Radio home"><img src="/images/logo-oz-media.png" alt="OZ Media" /></a>
+			<header class="topbar" data-topbar>
+				<a class="wordmark" href="/" aria-label="OZ Radio home" data-topbar-logo><img src="/images/logo-oz-bandung.png" alt="OZ Radio Bandung" width="1246" height="648" /></a>
 				<nav class="topbar-nav" aria-label="Page sections" data-topbar-nav>
 					{sections.map((section) => (
 						<a class="topbar-nav-link" href={`#${section.id}`} data-topbar-section-id={section.id}>
@@ -78,14 +78,25 @@ const sections = [
 				</nav>
 			</header>
 
-			<section class="screen listen-screen" id="listen" aria-labelledby="listen-title">
-				<div class="screen-content listen-content">
-					<div class="screen-heading listen-heading">
-						<div>
-							<h1 id="listen-title"><img src="/images/logo-oz-bandung.png" alt="OZ Radio Bandung" /></h1>
-						</div>
-					</div>
+			<section class="hero-screen" id="top" aria-labelledby="hero-title" data-hero>
+				<h1 class="hero-title" id="hero-title">
+					<img class="hero-logo" src="/images/logo-oz-bandung.png" alt="OZ Radio Bandung" width="1246" height="648" data-hero-logo />
+				</h1>
+				<nav class="hero-nav" aria-label="Page sections" data-hero-nav>
+					{sections.map((section) => (
+						<a class="hero-nav-link" href={`#${section.id}`} data-hero-section-id={section.id}>
+							{section.label}
+						</a>
+					))}
+				</nav>
+				<a class="hero-scroll-cue" href="#listen" data-hero-cue>
+					<span>SCROLL</span>
+					<span class="hero-scroll-line" aria-hidden="true"></span>
+				</a>
+			</section>
 
+			<section class="screen listen-screen" id="listen" aria-label="On air">
+				<div class="screen-content listen-content">
 					<div class="broadcast-layout">
 						<section class="live-chat" aria-labelledby="live-chat-title">
 							<div class="live-chat-heading">
@@ -553,6 +564,113 @@ const sections = [
 </html>
 
 <script>
+	const hero = document.querySelector<HTMLElement>('[data-hero]');
+	const topbar = document.querySelector<HTMLElement>('[data-topbar]');
+	const topbarLogo = topbar?.querySelector<HTMLElement>('[data-topbar-logo]');
+	const heroLogo = hero?.querySelector<HTMLImageElement>('[data-hero-logo]');
+	const heroNav = hero?.querySelector<HTMLElement>('[data-hero-nav]');
+
+	if (hero && topbar && topbarLogo && heroLogo && heroNav) {
+		type Box = { left: number; top: number; width: number; height: number };
+		type MorphPair = { element: HTMLElement; slot: HTMLElement; dockedBox: Box; slotBox: Box };
+
+		const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+		const topbarLinks = Array.from(topbar.querySelectorAll<HTMLElement>('[data-topbar-section-id]'));
+		const heroLinks = Array.from(heroNav.querySelectorAll<HTMLElement>('[data-hero-section-id]'));
+		const pairs: MorphPair[] = [
+			{ element: topbarLogo, slot: heroLogo },
+			...topbarLinks.flatMap((link) => {
+				const slot = heroLinks.find((heroLink) => heroLink.dataset.heroSectionId === link.dataset.topbarSectionId);
+				return slot ? [{ element: link, slot }] : [];
+			}),
+		].map((pair) => ({ ...pair, dockedBox: { left: 0, top: 0, width: 1, height: 1 }, slotBox: { left: 0, top: 0, width: 1, height: 1 } }));
+
+		const dockOffset = 64;
+		let morphDistance = 1;
+		let currentProgress = -1;
+		let targetProgress = 0;
+		let frame = 0;
+
+		const easeInOut = (value: number) => value < 0.5 ? 4 * value ** 3 : 1 - (-2 * value + 2) ** 3 / 2;
+		const toBox = (rect: DOMRect, scrollY = 0): Box => ({ left: rect.left, top: rect.top + scrollY, width: rect.width || 1, height: rect.height || 1 });
+
+		const measure = () => {
+			topbar.classList.add('is-measuring');
+			pairs.forEach((pair) => { pair.element.style.transform = ''; });
+			pairs.forEach((pair) => {
+				pair.dockedBox = toBox(pair.element.getBoundingClientRect());
+				pair.slotBox = toBox(pair.slot.getBoundingClientRect(), window.scrollY);
+			});
+			topbar.classList.remove('is-measuring');
+			morphDistance = Math.max(1, hero.offsetHeight - dockOffset);
+			currentProgress = -1;
+		};
+
+		const render = (progress: number) => {
+			const eased = easeInOut(progress);
+			const isDocked = progress >= 1;
+			topbar.classList.toggle('is-morphing', !isDocked);
+			topbar.style.setProperty('--hero-progress', String(eased));
+			hero.style.setProperty('--hero-progress', String(eased));
+			pairs.forEach(({ element, dockedBox, slotBox }) => {
+				if (isDocked) {
+					element.style.transform = '';
+					return;
+				}
+				// Start from where the slot sits at the top of the page, so items glide straight into the bar instead of scrolling off first.
+				const slotTop = slotBox.top;
+				const width = slotBox.width + (dockedBox.width - slotBox.width) * eased;
+				const centerX = slotBox.left + slotBox.width / 2 + (dockedBox.left + dockedBox.width / 2 - slotBox.left - slotBox.width / 2) * eased;
+				const centerY = slotTop + slotBox.height / 2 + (dockedBox.top + dockedBox.height / 2 - slotTop - slotBox.height / 2) * eased;
+				const translateX = centerX - (dockedBox.left + dockedBox.width / 2);
+				const translateY = centerY - (dockedBox.top + dockedBox.height / 2);
+				element.style.transform = `translate3d(${translateX}px, ${translateY}px, 0) scale(${width / dockedBox.width})`;
+			});
+		};
+
+		const tick = () => {
+			frame = 0;
+			targetProgress = Math.min(1, Math.max(0, window.scrollY / morphDistance));
+			const isFirstFrame = currentProgress < 0;
+			const nextProgress = isFirstFrame || reducedMotion.matches
+				? targetProgress
+				: currentProgress + (targetProgress - currentProgress) * 0.22;
+			const settledProgress = Math.abs(targetProgress - nextProgress) < 0.001 ? targetProgress : nextProgress;
+			const hasMoved = settledProgress !== currentProgress;
+			currentProgress = settledProgress;
+			if (hasMoved) render(currentProgress);
+			if (currentProgress !== targetProgress) frame = window.requestAnimationFrame(tick);
+		};
+
+		const requestTick = () => {
+			if (!frame) frame = window.requestAnimationFrame(tick);
+		};
+
+		const remeasure = () => {
+			window.cancelAnimationFrame(frame);
+			measure();
+			tick();
+		};
+
+		measure();
+		document.documentElement.classList.add('has-hero-morph');
+		heroNav.inert = true;
+		tick();
+		topbar.classList.add('is-entering');
+		window.setTimeout(() => topbar.classList.remove('is-entering'), 1400);
+
+		window.addEventListener('scroll', requestTick, { passive: true });
+		window.addEventListener('resize', () => {
+			window.cancelAnimationFrame(frame);
+			frame = window.requestAnimationFrame(remeasure);
+		});
+		window.addEventListener('load', remeasure);
+		document.fonts?.ready.then(remeasure);
+		[heroLogo, topbarLogo.querySelector('img')].forEach((image) => {
+			if (image instanceof HTMLImageElement && !image.complete) image.addEventListener('load', remeasure, { once: true });
+		});
+	}
+
 	const sectionNav = document.querySelector<HTMLElement>('[data-section-nav]');
 	if (sectionNav) {
 		const sectionLinks = Array.from(sectionNav.querySelectorAll<HTMLAnchorElement>('[data-section-id]'));
@@ -1316,8 +1434,133 @@ const sections = [
 
 	.wordmark img {
 		display: block;
-		width: 88px;
+		width: 80px;
 		height: auto;
+	}
+
+	.topbar.is-morphing {
+		border-bottom-color: rgb(216 216 204 / var(--hero-progress, 1));
+		background: rgb(255 255 243 / var(--hero-progress, 1));
+	}
+
+	.topbar.is-morphing .topbar-nav {
+		overflow: visible;
+	}
+
+	.topbar.is-morphing .wordmark,
+	.topbar.is-morphing .topbar-nav-link {
+		will-change: transform;
+	}
+
+	.topbar.is-morphing .topbar-nav-link {
+		transition-property: color, background-color, border-color;
+	}
+
+	.topbar.is-morphing .topbar-nav-link:not([aria-current]) {
+		border-color: rgb(216 216 204 / calc(1 - var(--hero-progress, 1)));
+		color: #000000;
+	}
+
+	.topbar.is-measuring .wordmark,
+	.topbar.is-measuring .topbar-nav-link {
+		transition: none;
+	}
+
+	.topbar.is-entering .wordmark img {
+		animation: hero-logo-in 1000ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+	}
+
+	.topbar.is-entering .topbar-nav-link {
+		animation: hero-link-in 700ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+	}
+
+	.topbar.is-entering .topbar-nav-link:nth-child(1) { animation-delay: 300ms; }
+	.topbar.is-entering .topbar-nav-link:nth-child(2) { animation-delay: 360ms; }
+	.topbar.is-entering .topbar-nav-link:nth-child(3) { animation-delay: 420ms; }
+	.topbar.is-entering .topbar-nav-link:nth-child(4) { animation-delay: 480ms; }
+	.topbar.is-entering .topbar-nav-link:nth-child(5) { animation-delay: 540ms; }
+	.topbar.is-entering .topbar-nav-link:nth-child(6) { animation-delay: 600ms; }
+	.topbar.is-entering .topbar-nav-link:nth-child(7) { animation-delay: 660ms; }
+
+	.hero-screen {
+		position: relative;
+		width: 100%;
+		height: 100svh;
+		min-height: 420px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: clamp(28px, 5vh, 48px);
+		padding: 64px clamp(32px, 6vw, 96px);
+		border-bottom: 1px solid #D8D8CC;
+	}
+
+	.hero-title {
+		margin: 0;
+		line-height: 0;
+	}
+
+	.hero-logo {
+		display: block;
+		width: min(72vw, 420px);
+		height: auto;
+	}
+
+	.hero-nav {
+		max-width: 760px;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+	}
+
+	/* Mirrors .topbar-nav-link at 1.5x so the docked links scale into these slots without distortion. */
+	.hero-nav-link {
+		min-height: 48px;
+		display: inline-flex;
+		align-items: center;
+		padding: 0 13.5px;
+		border: 1.5px solid #D8D8CC;
+		border-radius: 4.5px;
+		color: #000000;
+		font-size: 12px;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		text-decoration: none;
+		white-space: nowrap;
+	}
+
+	:global(.has-hero-morph) .hero-logo,
+	:global(.has-hero-morph) .hero-nav {
+		opacity: 0;
+	}
+
+	.hero-scroll-cue {
+		position: absolute;
+		bottom: clamp(16px, 4vh, 32px);
+		left: 50%;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 8px;
+		color: #77776F;
+		font-size: 9px;
+		font-weight: 700;
+		letter-spacing: 0.17em;
+		text-decoration: none;
+		opacity: calc(1 - var(--hero-progress, 0) * 6);
+		transform: translateX(-50%);
+		animation: hero-cue-in 800ms 900ms ease backwards;
+	}
+
+	.hero-scroll-line {
+		width: 1px;
+		height: 28px;
+		background: currentColor;
+		transform-origin: top;
+		animation: hero-cue-line 1800ms cubic-bezier(0.65, 0, 0.35, 1) infinite;
 	}
 
 	.section-heading h2 span,
@@ -3389,6 +3632,15 @@ const sections = [
 			font-size: 7px;
 		}
 
+		.wordmark img {
+			width: 64px;
+		}
+
+		.hero-nav-link {
+			padding: 0 7.5px;
+			font-size: 10.5px;
+		}
+
 		.screen-content {
 			width: 100%;
 		}
@@ -3909,6 +4161,13 @@ const sections = [
 			transform: none;
 		}
 
+		.topbar.is-entering .wordmark img,
+		.topbar.is-entering .topbar-nav-link,
+		.hero-scroll-cue,
+		.hero-scroll-line {
+			animation: none;
+		}
+
 		.program-slide[data-article-card] {
 			transform: none;
 			transition: none;
@@ -3987,5 +4246,54 @@ const sections = [
 	@keyframes backdrop-reveal {
 		from { opacity: 0; }
 		to { opacity: 1; }
+	}
+
+	@keyframes hero-logo-in {
+		from {
+			opacity: 0;
+			filter: blur(10px);
+			scale: 0.92;
+		}
+		to {
+			opacity: 1;
+			filter: blur(0);
+			scale: 1;
+		}
+	}
+
+	@keyframes hero-link-in {
+		from {
+			opacity: 0;
+			filter: blur(6px);
+		}
+		to {
+			opacity: 1;
+			filter: blur(0);
+		}
+	}
+
+	@keyframes hero-cue-in {
+		from {
+			opacity: 0;
+			translate: 0 8px;
+		}
+	}
+
+	@keyframes hero-cue-line {
+		0% {
+			transform: scaleY(0);
+			transform-origin: top;
+		}
+		50% {
+			transform: scaleY(1);
+			transform-origin: top;
+		}
+		50.01% {
+			transform-origin: bottom;
+		}
+		100% {
+			transform: scaleY(0);
+			transform-origin: bottom;
+		}
 	}
 </style>
