@@ -74,7 +74,6 @@ const sections = [
 		<meta name="theme-color" content="#FFFFF3" />
 		<meta name="description" content="Listen, watch and connect with OZ Media." />
 		<title>OZ Media</title>
-		<script src="/playerjs.js" is:inline defer></script>
 	</head>
 	<body>
 		<main class="bandung-page">
@@ -141,8 +140,8 @@ const sections = [
 										<span data-track-artist aria-live="polite"></span>
 									</div>
 									{audioStreamUrl ? (
-										<div class="audio-player" id="oz-audio-player" data-audio-player data-stream-url={audioStreamUrl}>
-											<audio controls preload="none" src={audioStreamUrl} aria-label="OZ Bandung audio stream">
+										<div class="audio-player" data-audio-player data-stream-url={audioStreamUrl}>
+											<audio controls preload="none" crossorigin="anonymous" src={audioStreamUrl} aria-label="OZ Bandung audio stream">
 												Your browser does not support audio playback.
 											</audio>
 										</div>
@@ -1266,7 +1265,7 @@ const sections = [
 			trackArtist.textContent = '';
 			listenerCount.textContent = '—';
 		}
-		syncPlayerjsTitle();
+		syncAudioPlayerTrack();
 	};
 
 	const startNowPlayingUpdates = () => {
@@ -1275,60 +1274,53 @@ const sections = [
 		nowPlayingTimer = window.setInterval(() => { void updateNowPlaying(); }, 30_000);
 	};
 
-	// PlayerJS (built at playerjs.com, served from /playerjs.js) drives the audio stream.
-	// Without it, the native <audio> element inside the container is used instead.
-	type PlayerjsInstance = { api: (command: string, value?: unknown) => unknown };
-	type PlayerjsConstructor = new (options: Record<string, unknown>) => PlayerjsInstance;
-	const PlayerjsClass = (window as unknown as { Playerjs?: PlayerjsConstructor }).Playerjs;
-	let playerjs: PlayerjsInstance | undefined;
+	// Video.js drives the audio stream (see src/scripts/oz-audio-player.ts). It is only downloaded once a
+	// visitor shows interest in tuning in; until then, or if it fails to load, the native <audio> element is used.
+	type OzAudioPlayer = import('../scripts/oz-audio-player').OzAudioPlayer;
+	let audioPlayer: OzAudioPlayer | undefined;
+	let audioPlayerRequest: Promise<OzAudioPlayer | undefined> | undefined;
 
-	// PlayerJS renders the title as HTML, so stream metadata is escaped first.
-	const getPlayerjsTitle = () => {
-		const text = [trackTitle?.textContent, trackArtist?.textContent]
-			.map((part) => part?.trim())
-			.filter(Boolean)
-			.join(' — ');
-		const escaper = document.createElement('span');
-		escaper.textContent = text;
-		return escaper.innerHTML;
+	const syncAudioPlayerTrack = () => {
+		audioPlayer?.setTrack(trackTitle?.textContent?.trim() ?? '', trackArtist?.textContent?.trim() ?? '');
 	};
 
-	const syncPlayerjsTitle = () => {
-		playerjs?.api('title', getPlayerjsTitle());
-	};
-
-	const getPlayerjs = () => {
-		if (playerjs || !PlayerjsClass || !audioPlayerContainer?.dataset.streamUrl) return playerjs;
-		audioPlayerContainer.replaceChildren();
-		audioPlayerContainer.closest('.audio-bar')?.classList.add('has-playerjs');
-		playerjs = new PlayerjsClass({
-			id: audioPlayerContainer.id,
-			file: audioPlayerContainer.dataset.streamUrl,
-			title: getPlayerjsTitle(),
-		});
-		return playerjs;
+	const loadAudioPlayer = () => {
+		const streamUrl = audioPlayerContainer?.dataset.streamUrl;
+		if (!audioPlayerContainer || !fallbackAudio || !streamUrl) return Promise.resolve(undefined);
+		audioPlayerRequest ??= import('../scripts/oz-audio-player')
+			.then(({ createOzAudioPlayer }) => {
+				audioPlayerContainer.closest('.audio-bar')?.classList.add('has-videojs');
+				audioPlayer = createOzAudioPlayer(fallbackAudio, streamUrl);
+				syncAudioPlayerTrack();
+				return audioPlayer;
+			})
+			.catch(() => undefined);
+		return audioPlayerRequest;
 	};
 
 	const playAudio = () => {
-		const player = getPlayerjs();
-		if (player) player.api('play');
-		else fallbackAudio?.play().catch(() => {});
+		if (audioPlayer) {
+			audioPlayer.play();
+			return;
+		}
+		void loadAudioPlayer().then((player) => {
+			// The visitor may have switched streams while the player was loading.
+			if (selectedBroadcast !== 'audio' || !broadcast?.classList.contains('is-streaming')) return;
+			if (player) player.play();
+			else fallbackAudio?.play().catch(() => {});
+		});
 	};
 
 	const pauseAudio = () => {
-		if (playerjs) playerjs.api('pause');
+		if (audioPlayer) audioPlayer.pause();
 		else fallbackAudio?.pause();
 	};
 
-	const playerjsWindow = window as unknown as { PlayerjsEvents?: (event: string, id: string, data: unknown) => void };
-	const previousPlayerjsEvents = playerjsWindow.PlayerjsEvents;
-	playerjsWindow.PlayerjsEvents = (event, id, data) => {
-		previousPlayerjsEvents?.(event, id, data);
-		if (id !== audioPlayerContainer?.id) return;
-		if (event === 'play') startNowPlayingUpdates();
-		if (event === 'pause' || event === 'stop' || event === 'end') stopNowPlayingUpdates();
-	};
+	// Fetch the player ahead of time when a visitor heads for the tune-in button.
+	tuneInButton?.addEventListener('pointerenter', () => { void loadAudioPlayer(); }, { once: true });
+	tuneInButton?.addEventListener('focus', () => { void loadAudioPlayer(); }, { once: true });
 
+	// These stay attached after the upgrade: Video.js plays through this same element.
 	fallbackAudio?.addEventListener('play', startNowPlayingUpdates);
 	fallbackAudio?.addEventListener('pause', stopNowPlayingUpdates);
 	fallbackAudio?.addEventListener('ended', stopNowPlayingUpdates);
@@ -1372,6 +1364,7 @@ const sections = [
 		if (!listenerDialog || !listenerForm || !listenerFields || !listenerConfirmation || !listenerSubmit || !dialogTitle || !broadcastSelection) return;
 		stopBroadcast();
 		selectedBroadcast = null;
+		void loadAudioPlayer();
 		listenerForm.reset();
 		listenerFields.hidden = true;
 		listenerConfirmation.hidden = true;
@@ -2614,18 +2607,24 @@ const sections = [
 		justify-self: center;
 	}
 
-	/* PlayerJS shows the track metadata itself, so it takes the whole bar. */
-	.audio-bar.has-playerjs {
-		grid-template-columns: minmax(0, 1fr);
+	/* The Video.js player shows the track metadata itself, so it takes the whole bar. */
+	.audio-bar.has-videojs {
+		display: flex;
+		padding: 16px 18px;
 	}
 
-	.audio-bar.has-playerjs .icon,
-	.audio-bar.has-playerjs .audio-copy {
+	.audio-bar.has-videojs .icon,
+	.audio-bar.has-videojs .audio-copy {
 		display: none;
 	}
 
-	.audio-bar.has-playerjs .audio-player {
+	.audio-bar.has-videojs .audio-player {
 		max-width: none;
+		min-width: 0;
+		min-height: 0;
+		align-self: stretch;
+		flex: 1;
+		display: flex;
 	}
 
 	audio {
@@ -3928,6 +3927,10 @@ const sections = [
 			min-height: 124px;
 			gap: 8px 10px;
 			padding: 10px;
+		}
+
+		.audio-bar.has-videojs {
+			padding: 12px;
 		}
 
 		.audio-copy strong {

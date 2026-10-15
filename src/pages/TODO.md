@@ -1,2 +1,2 @@
-1. optimize perfomance and fix lag
-2. continue work on the playerJS audio stream
+1. optimize perfomance and fix lag ## DONE
+2. change playerJS to videoJS for extra customizible

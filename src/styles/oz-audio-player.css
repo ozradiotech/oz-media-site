@@ -1,0 +1,527 @@
+/*
+ * OZ theme for the Video.js audio player. It replaces Video.js's default skin, so only the
+ * components the audio player uses are styled. Loaded together with the player script.
+ */
+.video-js.vjs-oz {
+	--oz-surface: #FFFFF3;
+	--oz-ink: #000000;
+	--oz-muted: #77776F;
+	--oz-line: #D8D8CC;
+	--oz-accent: #f2bd57;
+	--oz-accent-soft: #FFF0D1;
+	--oz-wave-tip: #f8d99c;
+	--oz-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+	position: relative;
+	box-sizing: border-box;
+	width: 100%;
+	height: 100%;
+	min-width: 0;
+	min-height: 0;
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	grid-template-rows: auto minmax(24px, 1fr) auto;
+	grid-template-areas:
+		'play info info'
+		'wave wave wave'
+		'volume volume live';
+	align-items: center;
+	gap: 12px 14px;
+	padding: 0;
+	overflow: hidden;
+	container-type: inline-size;
+	color: var(--oz-ink);
+	background: transparent;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	line-height: 1;
+	-webkit-tap-highlight-color: transparent;
+}
+
+.video-js.vjs-oz *,
+.video-js.vjs-oz *::before,
+.video-js.vjs-oz *::after {
+	box-sizing: inherit;
+}
+
+.vjs-oz:focus {
+	outline: none;
+}
+
+/* The audio element plays the stream but never needs a box of its own. */
+.vjs-oz .vjs-tech,
+.vjs-oz .vjs-hidden,
+.vjs-oz .vjs-mouse-display,
+.vjs-oz .vjs-volume-tooltip {
+	display: none !important;
+}
+
+.vjs-oz .vjs-control-text {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}
+
+/* The control bar's children sit directly in the player's grid. */
+.vjs-oz .vjs-control-bar {
+	display: contents;
+}
+
+.vjs-oz .vjs-button {
+	position: relative;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: inherit;
+	font: inherit;
+	cursor: pointer;
+	appearance: none;
+}
+
+.vjs-oz .vjs-button:focus-visible,
+.vjs-oz .vjs-volume-bar:focus-visible {
+	outline: 2px solid var(--oz-accent);
+	outline-offset: 3px;
+}
+
+.vjs-oz .vjs-svg-icon,
+.vjs-oz .vjs-svg-icon svg {
+	display: block;
+	width: 100%;
+	height: 100%;
+	fill: currentColor;
+}
+
+/* Play / pause: two halves of the play triangle morph into the two pause bars. */
+.vjs-oz .vjs-play-control {
+	grid-area: play;
+	width: 48px;
+	height: 48px;
+	border-radius: 50%;
+	background: var(--oz-ink);
+	color: var(--oz-surface);
+	box-shadow: 0 0 0 0 rgb(242 189 87 / 0%);
+	transition:
+		transform 260ms var(--oz-ease-out),
+		background-color 220ms ease,
+		color 220ms ease,
+		box-shadow 320ms ease;
+}
+
+.vjs-oz .vjs-play-control:hover {
+	transform: scale(1.06);
+	background: var(--oz-accent);
+	color: var(--oz-ink);
+}
+
+.vjs-oz .vjs-play-control:active {
+	transform: scale(0.94);
+}
+
+.vjs-oz .vjs-play-control .vjs-svg-icon {
+	display: none;
+}
+
+.vjs-oz .vjs-play-control::before,
+.vjs-oz .vjs-play-control::after {
+	content: '';
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 16px;
+	height: 18px;
+	background: currentColor;
+	transform: translate(-38%, -50%);
+	transition:
+		clip-path 280ms var(--oz-ease-out),
+		transform 280ms var(--oz-ease-out);
+}
+
+/* The left half overlaps the right slightly so no seam shows between them. */
+.vjs-oz .vjs-play-control::before {
+	clip-path: polygon(0 0, 52% 26%, 52% 74%, 0 100%);
+}
+
+.vjs-oz .vjs-play-control::after {
+	clip-path: polygon(50% 25%, 100% 50%, 100% 50%, 50% 75%);
+}
+
+.vjs-oz .vjs-play-control.vjs-playing::before,
+.vjs-oz .vjs-play-control.vjs-playing::after {
+	transform: translate(-50%, -50%);
+}
+
+.vjs-oz .vjs-play-control.vjs-playing::before {
+	clip-path: polygon(6% 0, 36% 0, 36% 100%, 6% 100%);
+}
+
+.vjs-oz .vjs-play-control.vjs-playing::after {
+	clip-path: polygon(64% 0, 94% 0, 94% 100%, 64% 100%);
+}
+
+.vjs-oz[data-oz-state='live'] .vjs-play-control {
+	box-shadow: 0 0 0 4px rgb(242 189 87 / 32%);
+}
+
+.vjs-oz[data-oz-state='connecting'] .vjs-play-control {
+	animation: oz-connecting 1.2s ease-in-out infinite;
+}
+
+/* Track metadata */
+.vjs-oz .oz-track-info {
+	grid-area: info;
+	min-width: 0;
+	display: grid;
+	gap: 6px;
+}
+
+.vjs-oz .oz-track-label {
+	color: var(--oz-muted);
+	font-size: 8px;
+	font-weight: 700;
+	letter-spacing: 0.17em;
+}
+
+.vjs-oz .oz-track-text {
+	min-width: 0;
+	display: grid;
+	gap: 4px;
+	transition:
+		opacity 200ms ease,
+		transform 360ms var(--oz-ease-out);
+}
+
+.vjs-oz .oz-track-info.is-changing .oz-track-text {
+	opacity: 0;
+	transform: translateY(-6px);
+	transition-duration: 200ms;
+}
+
+.vjs-oz .oz-track-title {
+	display: block;
+	overflow: hidden;
+	font-size: 15px;
+	font-weight: 700;
+	line-height: 1.3;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.vjs-oz .oz-track-title-text {
+	display: inline-block;
+}
+
+.vjs-oz .oz-track-title.is-marquee {
+	text-overflow: clip;
+	-webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent);
+	mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent);
+}
+
+.vjs-oz .oz-track-title.is-marquee .oz-track-title-text {
+	animation: oz-marquee var(--oz-marquee-duration, 10s) ease-in-out infinite alternate;
+}
+
+.vjs-oz .oz-track-artist {
+	overflow: hidden;
+	color: var(--oz-muted);
+	font-size: 12px;
+	line-height: 1.3;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.vjs-oz .oz-track-artist:empty {
+	display: none;
+}
+
+/* Waveform */
+.vjs-oz .oz-waveform {
+	grid-area: wave;
+	position: relative;
+	align-self: stretch;
+	min-width: 0;
+	min-height: 24px;
+}
+
+.vjs-oz .oz-waveform canvas {
+	position: absolute;
+	inset: 0;
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+/* Volume */
+.vjs-oz .vjs-volume-panel {
+	grid-area: volume;
+	width: min(100%, 200px);
+	min-width: 0;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.vjs-oz .vjs-mute-control {
+	width: 32px;
+	height: 32px;
+	flex: 0 0 auto;
+	display: grid;
+	place-items: center;
+	border-radius: 50%;
+	transition: background-color 180ms ease;
+}
+
+.vjs-oz .vjs-mute-control:hover {
+	background: var(--oz-accent-soft);
+}
+
+.vjs-oz .vjs-mute-control .vjs-svg-icon {
+	width: 18px;
+	height: 18px;
+}
+
+.vjs-oz .vjs-volume-control {
+	min-width: 0;
+	height: 32px;
+	flex: 1 1 auto;
+	display: flex;
+	align-items: center;
+	cursor: pointer;
+}
+
+.vjs-oz .vjs-volume-bar {
+	position: relative;
+	height: 4px;
+	flex: 1 1 auto;
+	margin: 0 6px 0 0;
+	border-radius: 999px;
+	background: var(--oz-line);
+	cursor: pointer;
+	touch-action: none;
+	user-select: none;
+	-webkit-user-select: none;
+}
+
+/* A taller invisible hit area makes the thin bar easy to grab. */
+.vjs-oz .vjs-volume-bar::before {
+	content: '';
+	position: absolute;
+	inset: -14px 0;
+}
+
+.vjs-oz .vjs-volume-level {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	/* Video.js only sets the width once the volume changes; media starts at full volume. */
+	width: 100%;
+	border-radius: inherit;
+	background: var(--oz-accent);
+}
+
+.vjs-oz .vjs-volume-level .vjs-svg-icon {
+	display: none;
+}
+
+.vjs-oz .vjs-volume-level::after {
+	content: '';
+	position: absolute;
+	top: 50%;
+	right: -6px;
+	width: 12px;
+	height: 12px;
+	border: 2px solid var(--oz-surface);
+	border-radius: 50%;
+	background: var(--oz-ink);
+	box-shadow: 0 1px 4px rgb(0 0 0 / 18%);
+	transform: translateY(-50%) scale(0.85);
+	transition: transform 200ms var(--oz-ease-out);
+}
+
+.vjs-oz .vjs-volume-bar:hover .vjs-volume-level::after,
+.vjs-oz .vjs-volume-bar:focus-visible .vjs-volume-level::after,
+.vjs-oz .vjs-volume-bar.vjs-sliding .vjs-volume-level::after {
+	transform: translateY(-50%) scale(1.1);
+}
+
+/* Live indicator */
+.vjs-oz .oz-live-badge {
+	grid-area: live;
+	justify-self: end;
+	height: 26px;
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	padding: 0 11px;
+	border: 1px solid var(--oz-line);
+	border-radius: 999px;
+	background: var(--oz-surface);
+	color: var(--oz-muted);
+	font-size: 8px;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	white-space: nowrap;
+	transition:
+		color 240ms ease,
+		background-color 240ms ease,
+		border-color 240ms ease;
+}
+
+.vjs-oz .oz-live-dot {
+	position: relative;
+	width: 7px;
+	height: 7px;
+	flex: 0 0 auto;
+	border-radius: 50%;
+	background: var(--oz-muted);
+	transition: background-color 240ms ease;
+}
+
+.vjs-oz .oz-live-dot::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	border-radius: 50%;
+	background: var(--oz-accent);
+	opacity: 0;
+}
+
+.vjs-oz[data-oz-state='connecting'] .oz-live-badge {
+	color: var(--oz-ink);
+}
+
+.vjs-oz[data-oz-state='connecting'] .oz-live-dot {
+	background: var(--oz-accent);
+	animation: oz-blink 0.8s ease-in-out infinite alternate;
+}
+
+.vjs-oz[data-oz-state='live'] .oz-live-badge {
+	border-color: var(--oz-accent);
+	background: var(--oz-accent-soft);
+	color: var(--oz-ink);
+}
+
+.vjs-oz[data-oz-state='live'] .oz-live-dot {
+	background: var(--oz-accent);
+}
+
+.vjs-oz[data-oz-state='live'] .oz-live-dot::after {
+	animation: oz-live-ping 1.8s ease-out infinite;
+}
+
+.vjs-oz[data-oz-state='error'] .oz-live-badge {
+	border-style: dashed;
+	color: var(--oz-ink);
+}
+
+/* Each part rises in when the player first appears. */
+.vjs-oz .vjs-play-control,
+.vjs-oz .oz-track-info,
+.vjs-oz .oz-waveform,
+.vjs-oz .vjs-volume-panel,
+.vjs-oz .oz-live-badge {
+	animation: oz-rise 520ms var(--oz-ease-out) both;
+}
+
+.vjs-oz .oz-track-info {
+	animation-delay: 60ms;
+}
+
+.vjs-oz .oz-waveform {
+	animation-delay: 120ms;
+}
+
+.vjs-oz .vjs-volume-panel {
+	animation-delay: 180ms;
+}
+
+.vjs-oz .oz-live-badge {
+	animation-delay: 220ms;
+}
+
+/* The connecting pulse replaces the play button's entrance once it has played. */
+.vjs-oz[data-oz-state='connecting'] .vjs-play-control {
+	animation-delay: 0ms;
+}
+
+@container (max-width: 360px) {
+	.vjs-oz .vjs-play-control {
+		width: 40px;
+		height: 40px;
+	}
+
+	.vjs-oz .oz-track-title {
+		font-size: 13px;
+	}
+
+	.vjs-oz .oz-track-artist {
+		font-size: 11px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.vjs-oz *,
+	.vjs-oz *::before,
+	.vjs-oz *::after {
+		animation: none !important;
+		transition: none !important;
+	}
+}
+
+/* Animates `translate`, not `transform`, so hover and press effects still apply afterwards. */
+@keyframes oz-rise {
+	from {
+		opacity: 0;
+		translate: 0 8px;
+	}
+	to {
+		opacity: 1;
+		translate: none;
+	}
+}
+
+@keyframes oz-connecting {
+	0%,
+	100% {
+		box-shadow: 0 0 0 0 rgb(242 189 87 / 60%);
+	}
+	60% {
+		box-shadow: 0 0 0 10px rgb(242 189 87 / 0%);
+	}
+}
+
+@keyframes oz-blink {
+	from {
+		opacity: 1;
+	}
+	to {
+		opacity: 0.25;
+	}
+}
+
+@keyframes oz-live-ping {
+	from {
+		opacity: 0.7;
+		transform: scale(1);
+	}
+	to {
+		opacity: 0;
+		transform: scale(3.2);
+	}
+}
+
+@keyframes oz-marquee {
+	0%,
+	12% {
+		transform: translateX(0);
+	}
+	88%,
+	100% {
+		transform: translateX(var(--oz-marquee-distance, 0));
+	}
+}

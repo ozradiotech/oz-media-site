@@ -15,7 +15,8 @@
   "dependencies": {
     "@astrojs/node": "^11.1.6",
     "@astrojs/vercel": "^11.0.14",
-    "astro": "^7.3.5"
+    "astro": "^7.3.5",
+    "video.js": "^8.24.2"
   },
   "overrides": {
     "@vercel/routing-utils": {
