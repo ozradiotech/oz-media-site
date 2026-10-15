@@ -45,6 +45,16 @@ const newsWithBody = await Promise.all(orderedNews.map(async (entry) => ({
 })));
 const featuredNews = newsWithBody;
 
+// Unsplash serves resized images on request; CMS uploads in /public are served as-is.
+const optimizeImageUrl = (src: string, width: number) => {
+	if (!src.startsWith('https://images.unsplash.com/')) return src;
+	const url = new URL(src);
+	url.searchParams.set('w', String(width));
+	url.searchParams.set('q', '75');
+	url.searchParams.set('auto', 'format');
+	return url.toString();
+};
+
 const sections = [
 	{ id: 'listen', label: 'ON AIR' },
 	{ id: 'programs', label: 'PROGRAMS' },
@@ -64,7 +74,7 @@ const sections = [
 		<meta name="theme-color" content="#FFFFF3" />
 		<meta name="description" content="Listen, watch and connect with OZ Media." />
 		<title>OZ Media</title>
-		<script src="/playerjs.js" is:inline></script>
+		<script src="/playerjs.js" is:inline defer></script>
 	</head>
 	<body>
 		<main class="bandung-page">
@@ -81,7 +91,7 @@ const sections = [
 
 			<section class="hero-screen" id="top" aria-labelledby="hero-title" data-hero>
 				<h1 class="hero-title" id="hero-title">
-					<img class="hero-logo" src="/images/logo-oz-bandung.png" alt="OZ Radio Bandung" width="1246" height="648" data-hero-logo />
+					<img class="hero-logo" src="/images/logo-oz-bandung.png" alt="OZ Radio Bandung" width="1246" height="648" fetchpriority="high" data-hero-logo />
 				</h1>
 				<nav class="hero-nav" aria-label="Page sections" data-hero-nav>
 					{sections.map((section) => (
@@ -155,7 +165,7 @@ const sections = [
 										></iframe>
 									) : (
 										<div class="video-placeholder">
-											<img src="/images/studio-livestream.jpg" alt="" aria-hidden="true" />
+											<img src="/images/studio-livestream.jpg" alt="" aria-hidden="true" loading="lazy" decoding="async" />
 											<span class="placeholder-play" aria-hidden="true">▶</span>
 											<p>Studio stream coming soon</p>
 											<span class="placeholder-caption">TWITCH LIVESTREAM · CHANNEL TO BE ADDED</span>
@@ -224,7 +234,7 @@ const sections = [
 									aria-roledescription="slide"
 									hidden={index >= 3}
 								>
-									<img src={program.data.image} alt={program.data.imageAlt} fetchpriority={index === 0 ? 'high' : undefined} loading={index === 0 ? undefined : 'lazy'} />
+									<img src={optimizeImageUrl(program.data.image, 900)} alt={program.data.imageAlt} loading="lazy" decoding="async" />
 									<div class="program-slide-copy">
 										<span class="card-index">{String(index + 1).padStart(2, '0')} / ON AIR</span>
 										<h3>{program.data.title}</h3>
@@ -271,7 +281,7 @@ const sections = [
 											role="button"
 											tabindex={isDuplicate ? -1 : 0}
 										>
-											<img src={announcer.data.image} alt={announcer.data.imageAlt} loading="lazy" />
+											<img src={optimizeImageUrl(announcer.data.image, 640)} alt={announcer.data.imageAlt} loading="lazy" decoding="async" />
 											<div class="announcer-card-copy">
 												<h3>{announcer.data.name}</h3>
 												<p>{announcer.data.summary}</p>
@@ -346,7 +356,6 @@ const sections = [
 									<a href={instagramUrl}>View this profile on Instagram</a>
 								</blockquote>
 							</div>
-							<script async src="https://www.instagram.com/embed.js" is:inline></script>
 							<div class="social-card-bottom">
 								<div><h3>Stay in the loop.</h3><p>Behind the scenes and everything.</p></div>
 								<a class="outline-link" href={instagramUrl} target="_blank" rel="noopener noreferrer">VISIT INSTAGRAM ↗</a>
@@ -367,7 +376,6 @@ const sections = [
 									</section>
 								</blockquote>
 							</div>
-							<script async src="https://www.tiktok.com/embed.js" is:inline></script>
 							<div class="social-card-bottom">
 								<div><h3>Catch the moments.</h3><p>Short-form updates and behind the scenes from OZ Radio Bandung.</p></div>
 								<a class="outline-link" href={tiktokUrl} target="_blank" rel="noopener noreferrer">VISIT TIKTOK ↗</a>
@@ -399,7 +407,7 @@ const sections = [
 									class:list={['activity-art', `art-${activity.data.artStyle}`]}
 									style={`--activity-image-ratio: ${[1.2, 0.82, 1.6, 0.95, 1.35][index % 5]};`}
 								>
-									<img src={activity.data.image} alt={activity.data.imageAlt} loading="lazy" />
+									<img src={optimizeImageUrl(activity.data.image, 900)} alt={activity.data.imageAlt} loading="lazy" decoding="async" />
 									<span>{activity.data.artLabel}</span>
 								</div>
 								<div class="activity-info">
@@ -428,7 +436,7 @@ const sections = [
 							{featuredNews.map(({ entry: article, Content }, index) => (
 								<article class="feature-card lead-story" data-article-card data-news-slide hidden={index !== 0} aria-haspopup="dialog" aria-label={`Read full article: ${article.data.title}`} role="button" tabindex="0">
 									<div class="story-art">
-										<img src={article.data.image} alt={article.data.imageAlt} loading="lazy" />
+										<img src={optimizeImageUrl(article.data.image, 1000)} alt={article.data.imageAlt} loading="lazy" decoding="async" />
 										<span class="story-stamp">OZ<br />NEWS</span>
 										<span class="story-date">
 											{article.data.publishedAt
@@ -470,7 +478,7 @@ const sections = [
 						</div>
 					</div>
 					<div class="contact-layout">
-						<div class="contact-intro"><img class="contact-mark" src="/images/logo-oz-bandung.png" alt="OZ Radio Bandung" /><p>Your friendly station.</p><span class="card-status">CONTACT DETAILS TO BE ADDED</span></div>
+						<div class="contact-intro"><img class="contact-mark" src="/images/logo-oz-bandung.png" alt="OZ Radio Bandung" loading="lazy" decoding="async" /><p>Your friendly station.</p><span class="card-status">CONTACT DETAILS TO BE ADDED</span></div>
 						<div class="contact-details">
 							<div class="contact-item"><span>EMAIL</span><strong><a href="mailto:ozmedianet.id@gmail.com">ozmedianet.id@gmail.com</a></strong><small>Business &amp; general enquiries</small></div>
 							<div class="contact-item"><span>WHATSAPP</span><strong><a href="https://wa.me/6285111391031" target="_blank" rel="noopener noreferrer">+62 851-1139-1031</a></strong><small>Reach the OZ team</small></div>
@@ -483,7 +491,7 @@ const sections = [
 			<footer class="site-footer" aria-label="Site footer">
 				<div class="site-footer-main">
 					<div class="site-footer-brand">
-						<a class="site-footer-wordmark" href="/" aria-label="OZ Radio home"><img src="/images/logo-oz-media.png" alt="OZ Media" /></a>
+						<a class="site-footer-wordmark" href="/" aria-label="OZ Radio home"><img src="/images/logo-oz-media.png" alt="OZ Media" loading="lazy" decoding="async" /></a>
 						<p>YOUR FRIENDLY STATION</p>
 					</div>
 					<div class="site-footer-column">
@@ -535,7 +543,7 @@ const sections = [
 							aria-haspopup="dialog"
 							aria-label={`Read full article: ${article.data.title}`}
 						>
-							<img src={article.data.image} alt="" loading="lazy" />
+							<img src={optimizeImageUrl(article.data.image, 1000)} alt="" loading="lazy" decoding="async" />
 							<span class="news-list-item-copy">
 								<span class="card-index">{article.data.category}</span>
 								<h3>{article.data.title}</h3>
@@ -757,21 +765,46 @@ const sections = [
 			title: button.dataset.youtubeTitle ?? '',
 		}));
 		let currentVideoIndex = 0;
+		// The YouTube player is heavy, so a thumbnail stands in until the visitor presses play.
+		let isPlayerActivated = false;
+
+		const loadVideoIframe = (video: { id: string; title: string }, autoplay: boolean) => {
+			const iframe = document.createElement('iframe');
+			iframe.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(video.id)}${autoplay ? '?autoplay=1' : ''}`;
+			iframe.title = video.title;
+			iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+			iframe.allowFullscreen = true;
+			iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+			youtubePlayer.replaceChildren(iframe);
+		};
 
 		const showVideo = (index: number) => {
 			currentVideoIndex = (index + videos.length) % videos.length;
 			const video = videos[currentVideoIndex];
 
 			youtubePlayer.replaceChildren();
-			if (video.id) {
-				const iframe = document.createElement('iframe');
-				iframe.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(video.id)}`;
-				iframe.title = video.title;
-				iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
-				iframe.allowFullscreen = true;
-				iframe.loading = 'lazy';
-				iframe.referrerPolicy = 'strict-origin-when-cross-origin';
-				youtubePlayer.append(iframe);
+			if (video.id && isPlayerActivated) {
+				loadVideoIframe(video, false);
+			} else if (video.id) {
+				const facade = document.createElement('button');
+				facade.type = 'button';
+				facade.className = 'youtube-facade';
+				facade.setAttribute('aria-label', `Play ${video.title}`);
+				const thumbnail = document.createElement('img');
+				thumbnail.src = `https://i.ytimg.com/vi/${encodeURIComponent(video.id)}/hqdefault.jpg`;
+				thumbnail.alt = '';
+				thumbnail.loading = 'lazy';
+				thumbnail.decoding = 'async';
+				const playIcon = document.createElement('span');
+				playIcon.className = 'preview-play';
+				playIcon.setAttribute('aria-hidden', 'true');
+				playIcon.textContent = '▶';
+				facade.append(thumbnail, playIcon);
+				facade.addEventListener('click', () => {
+					isPlayerActivated = true;
+					loadVideoIframe(video, true);
+				});
+				youtubePlayer.append(facade);
 			} else {
 				const placeholder = document.createElement('div');
 				placeholder.className = 'youtube-placeholder';
@@ -796,6 +829,22 @@ const sections = [
 			button.addEventListener('click', () => showVideo(index));
 		});
 		showVideo(0);
+	}
+
+	// Instagram and TikTok embeds pull in large third-party scripts, so load them only when the section is near.
+	const onlineSection = document.querySelector<HTMLElement>('#online');
+	if (onlineSection) {
+		const embedObserver = new IntersectionObserver((entries) => {
+			if (!entries.some((entry) => entry.isIntersecting)) return;
+			embedObserver.disconnect();
+			['https://www.instagram.com/embed.js', 'https://www.tiktok.com/embed.js'].forEach((src) => {
+				const script = document.createElement('script');
+				script.src = src;
+				script.async = true;
+				document.body.append(script);
+			});
+		}, { rootMargin: '400px 0px' });
+		embedObserver.observe(onlineSection);
 	}
 
 	const articleDialog = document.querySelector<HTMLDialogElement>('[data-article-dialog]');
@@ -844,15 +893,36 @@ const sections = [
 
 	const announcerMarquee = document.querySelector<HTMLElement>('[data-announcer-marquee]');
 	if (announcerMarquee) {
-		announcerMarquee.classList.toggle('is-paused', document.hidden);
-		announcerMarquee.addEventListener('focusin', () => announcerMarquee.classList.add('is-paused'));
+		let isMarqueeVisible = false;
+		let isMarqueeFocused = false;
+		const syncMarqueePause = () => {
+			announcerMarquee.classList.toggle('is-paused', document.hidden || !isMarqueeVisible || isMarqueeFocused);
+		};
+		syncMarqueePause();
+		announcerMarquee.addEventListener('focusin', () => {
+			isMarqueeFocused = true;
+			syncMarqueePause();
+		});
 		announcerMarquee.addEventListener('focusout', (event) => {
 			if (event.relatedTarget instanceof Node && announcerMarquee.contains(event.relatedTarget)) return;
-			announcerMarquee.classList.toggle('is-paused', document.hidden);
+			isMarqueeFocused = false;
+			syncMarqueePause();
 		});
-		document.addEventListener('visibilitychange', () => {
-			announcerMarquee.classList.toggle('is-paused', document.hidden);
-		});
+		document.addEventListener('visibilitychange', syncMarqueePause);
+
+		// Photos scrolling in from the side would otherwise load and decode mid-animation, so fetch them all just before the section appears.
+		const preloadObserver = new IntersectionObserver((entries) => {
+			if (!entries.some((entry) => entry.isIntersecting)) return;
+			preloadObserver.disconnect();
+			announcerMarquee.querySelectorAll('img').forEach((image) => { image.loading = 'eager'; });
+		}, { rootMargin: '600px 0px' });
+		preloadObserver.observe(announcerMarquee);
+
+		// The animation keeps running off-screen unless it is paused.
+		new IntersectionObserver((entries) => {
+			isMarqueeVisible = entries.some((entry) => entry.isIntersecting);
+			syncMarqueePause();
+		}).observe(announcerMarquee);
 	}
 
 	const programCarousel = document.querySelector<HTMLElement>('[data-program-carousel]');
@@ -1031,15 +1101,25 @@ const sections = [
 
 	if (window.matchMedia('(hover: hover) and (pointer: fine)').matches && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
 		programSlides?.forEach((slide) => {
+			// Pointer events can fire several times per frame, so apply at most one tilt per frame.
+			let tiltFrame = 0;
+			let pointer = { x: 0, y: 0 };
 			slide.addEventListener('pointermove', (event) => {
-				const bounds = slide.getBoundingClientRect();
-				const horizontalPosition = (event.clientX - bounds.left) / bounds.width;
-				const verticalPosition = (event.clientY - bounds.top) / bounds.height;
-				slide.style.setProperty('--program-tilt-x', `${(horizontalPosition - 2) * 8}deg`);
-				slide.style.setProperty('--program-tilt-y', `${(2 - verticalPosition) * 8}deg`);
+				pointer = { x: event.clientX, y: event.clientY };
+				if (tiltFrame) return;
+				tiltFrame = window.requestAnimationFrame(() => {
+					tiltFrame = 0;
+					const bounds = slide.getBoundingClientRect();
+					const horizontalPosition = (pointer.x - bounds.left) / bounds.width;
+					const verticalPosition = (pointer.y - bounds.top) / bounds.height;
+					slide.style.setProperty('--program-tilt-x', `${(horizontalPosition - 2) * 8}deg`);
+					slide.style.setProperty('--program-tilt-y', `${(2 - verticalPosition) * 8}deg`);
+				});
 			});
 
 			const resetTilt = () => {
+				window.cancelAnimationFrame(tiltFrame);
+				tiltFrame = 0;
 				slide.style.removeProperty('--program-tilt-x');
 				slide.style.removeProperty('--program-tilt-y');
 			};
@@ -1425,7 +1505,6 @@ const sections = [
 	.screen {
 		width: min(2200px, 100%);
 		height: 100svh;
-		height: 100dvh;
 		min-height: 0;
 		display: flex;
 		flex-direction: column;
@@ -1435,6 +1514,11 @@ const sections = [
 		margin: 0 auto;
 		padding: calc(clamp(14px, 3vh, 26px) + 64px) clamp(32px, 6vw, 96px) calc(clamp(14px, 3vh, 26px) + 56px);
 		border-bottom: 1px solid #D8D8CC;
+	}
+
+	/* Off-screen sections skip rendering; they already clip their overflow and have a fixed height, so nothing shifts. */
+	.screen:not(.listen-screen) {
+		content-visibility: auto;
 	}
 
 	#online.screen {
@@ -1765,7 +1849,6 @@ const sections = [
 		border: 1px solid #D8D8CC;
 		border-radius: 4px;
 		background: rgb(255 255 243 / 76%);
-		backdrop-filter: blur(2px);
 	}
 
 	.broadcast-layout {
@@ -1789,7 +1872,6 @@ const sections = [
 		border: 1px solid #D8D8CC;
 		border-radius: 4px;
 		background: rgb(255 255 243 / 76%);
-		backdrop-filter: blur(2px);
 	}
 
 	.live-chat-heading {
@@ -3013,6 +3095,51 @@ const sections = [
 		max-height: 100%;
 		transform: translateY(-50%);
 		border: 0;
+	}
+
+	:global(.youtube-facade) {
+		position: absolute;
+		inset: 0;
+		display: grid;
+		place-items: center;
+		padding: 0;
+		border: 0;
+		background: #000000;
+		cursor: pointer;
+	}
+
+	:global(.youtube-facade img) {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		opacity: 0.8;
+	}
+
+	/* Created by script, so it doesn't receive the scoped .preview-play styles. */
+	:global(.youtube-facade .preview-play) {
+		position: relative;
+		width: 46px;
+		height: 46px;
+		display: grid;
+		place-items: center;
+		border: 1px solid #f2bd57;
+		border-radius: 50%;
+		background: rgb(0 0 0 / 45%);
+		color: #f2bd57;
+		font-size: 12px;
+	}
+
+	:global(.youtube-facade:hover .preview-play),
+	:global(.youtube-facade:focus-visible .preview-play) {
+		background: #f2bd57;
+		color: #000000;
+	}
+
+	:global(.youtube-facade:focus-visible) {
+		outline: 2px solid #f2bd57;
+		outline-offset: -2px;
 	}
 
 	.youtube-placeholder {
