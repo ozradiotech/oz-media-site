@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import { appendFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
-const genders = new Set(['Female', 'Male', 'Non-binary', 'Prefer not to say', 'Self-describe']);
+const genders = new Set(['Female', 'Male']);
 
 export const prerender = false;
 
