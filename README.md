@@ -174,17 +174,58 @@ The chat on `/oz-bandung/` uses the Firebase Realtime Database. Anyone can read 
 
 ### Moderation
 
+Moderation happens in three places: `scripts/chat-admin.mjs` for roles and bans, the ⋯ menu on each chat message, and the Firebase console (**Realtime Database → Data**) for everything else. Run the script from the project root; it reads `.env`.
+
+#### Moderators
+
 ```sh
 node --env-file=.env scripts/chat-admin.mjs mod someone@gmail.com     # make a moderator
-node --env-file=.env scripts/chat-admin.mjs unmod someone@gmail.com
-node --env-file=.env scripts/chat-admin.mjs unban someone@gmail.com
+node --env-file=.env scripts/chat-admin.mjs unmod someone@gmail.com   # remove the role
 ```
 
-Moderators sign out and back in to pick up the role. They then see **Delete**, **Mute** (10 minutes) and **Ban** on messages, and a slow-mode menu in the chat header. Moderators skip slow mode and may post links.
+- The person must have signed in on the site once, and must sign out and back in after the change.
+- Moderators get a ⋯ menu on every message with **Delete message**, **Mute for 10 minutes** and **Ban from chat**, plus a **Slow mode** menu (off, 5, 10, 30 or 60 seconds) in the chat header.
+- Their messages show a MOD badge. They skip slow mode, may post links, and can't be muted or banned.
+- Signed-in listeners get **Report message** in the ⋯ menu. Signed-out visitors can only read.
 
-- Three strikes in a minute (posting too fast, repeats, links, severe words) mute a user for 5 minutes.
-- Mild swear words are masked; severe ones reject the message. Extra words go in the database at `chat/private/blocklist` as `{ "mild": "word, word", "severe": "word, word" }`.
-- A message reported by 3 people is hidden and copied to `chat/private/flagged` for review. Moderator actions are logged at `chat/private/modlog`.
+#### Bans and mutes
+
+```sh
+node --env-file=.env scripts/chat-admin.mjs unban someone@gmail.com   # lifts a ban and any mute
+```
+
+- **Ban** (by a moderator): blocks the user from sending and reporting, and removes their messages still in the chat. Banned users are listed at `chat/private/bans`.
+- **Mute**: a moderator's mute lasts 10 minutes. Three strikes within a minute (posting too fast, repeating a message, links, severe words) mute a user automatically for 5 minutes. Mutes expire on their own.
+- By hand in the Firebase console: delete `chat/private/bans/<uid>` to unban, or `chat/private/users/<uid>/mutedUntil` to unmute.
+
+#### Filtered, reported and deleted messages
+
+| What happened | What is kept | Where (Firebase console) |
+| :--- | :--- | :--- |
+| Mild swear word | Posted with the word masked (`a*****`); the original isn't kept | `chat/rooms/<room>/messages` |
+| Severe word, link or spam | Rejected; nothing is saved | — |
+| Reported by 3 listeners | Hidden from the chat; a full copy with the report count | `chat/private/flagged/<room>/<message id>` |
+| Deleted, muted or banned by a moderator | Who did what to whom, with the message text | `chat/private/modlog` |
+
+There is no review page on the site yet. In the Firebase console you can:
+
+- **Edit a live message**: change `chat/rooms/<room>/messages/<id>/t`. Everyone sees the change straight away.
+- **Restore a hidden message**: copy its entry from `chat/private/flagged/<room>` back under `chat/rooms/<room>/messages`, then delete the flagged copy.
+- **Clear old records**: flagged messages and the mod log are not cleaned up automatically. Delete entries once reviewed.
+
+Live messages are deleted after 24 hours by the daily `/api/chat-cleanup` job.
+
+#### Word lists
+
+The built-in lists are in `src/lib/chat-filter.ts`: **mild** words are masked, **severe** words reject the message and give a strike. Matching ignores letter case, leetspeak (`4nj1ng`), stretched letters (`anjiiing`), spaced-out spelling (`k o n t o l`) and common Indonesian affixes (`siAnjing`, `goblokmu`).
+
+To add words without a redeploy, create `chat/private/blocklist` in the database with two text fields:
+
+```json
+{ "mild": "word1, word2", "severe": "word3, word4" }
+```
+
+The server picks up changes within a minute. Removing a built-in word needs a code change in `chat-filter.ts`.
 
 The `jwks-rsa` override in `package.json` keeps `firebase-admin` on `jose` 5. `jose` 6 can't be loaded with `require()` on Vercel's runtime, which crashes every chat route. Remove the override only once `jwks-rsa` stops using `require('jose')`.
 
