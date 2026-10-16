@@ -2,6 +2,6 @@
 name: Rafi Musthafa
 order: 14
 summary: Summary
-image: /uploads/Rafi Musthafa.png
+image: /uploads/Rafi Musthafa.webp
 ---
 Deskripsi

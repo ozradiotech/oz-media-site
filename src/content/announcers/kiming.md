@@ -2,7 +2,7 @@
 name: Kiming
 order: 17
 summary: Summary
-image: /uploads/Kiming.png
+image: /uploads/Kiming.webp
 imageAlt: Kiming
 ---
 Deskripsi
