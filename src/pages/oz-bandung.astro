@@ -957,8 +957,10 @@ const sections = [
 			announcerMarquee.classList.toggle('is-paused', document.hidden || !isMarqueeVisible || isMarqueeFocused || Boolean(announcerDialog?.open));
 		};
 		syncMarqueePause();
-		announcerMarquee.addEventListener('focusin', () => {
-			isMarqueeFocused = true;
+		// Only keyboard focus pauses the strip. A clicked card keeps focus (and gets it back when its popup closes),
+		// which would otherwise leave the strip stopped until the visitor clicked somewhere else.
+		announcerMarquee.addEventListener('focusin', (event) => {
+			isMarqueeFocused = event.target instanceof Element && event.target.matches(':focus-visible');
 			syncMarqueePause();
 		});
 		announcerMarquee.addEventListener('focusout', (event) => {
