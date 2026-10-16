@@ -186,6 +186,8 @@ Moderators sign out and back in to pick up the role. They then see **Delete**, *
 - Mild swear words are masked; severe ones reject the message. Extra words go in the database at `chat/private/blocklist` as `{ "mild": "word, word", "severe": "word, word" }`.
 - A message reported by 3 people is hidden and copied to `chat/private/flagged` for review. Moderator actions are logged at `chat/private/modlog`.
 
+The `jwks-rsa` override in `package.json` keeps `firebase-admin` on `jose` 5. `jose` 6 can't be loaded with `require()` on Vercel's runtime, which crashes every chat route. Remove the override only once `jwks-rsa` stops using `require('jose')`.
+
 ## Brand palette
 
 | Colour | Hex |

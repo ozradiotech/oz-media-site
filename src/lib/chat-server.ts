@@ -2,9 +2,9 @@
 // /api/chat* routes, which use these helpers. Writes use the database REST API with a service-account token
 // rather than the Admin SDK's database client, which would hold a realtime connection open per serverless instance.
 import { FIREBASE_SERVICE_ACCOUNT } from 'astro:env/server';
-import { cert, getApp, getApps, initializeApp, type App } from 'firebase-admin/app';
-import { getAppCheck } from 'firebase-admin/app-check';
-import { getAuth, type DecodedIdToken } from 'firebase-admin/auth';
+import type { App } from 'firebase-admin/app';
+import type { AppCheck } from 'firebase-admin/app-check';
+import type { Auth, DecodedIdToken } from 'firebase-admin/auth';
 import { defaultBlocklist, type Blocklist } from './chat-filter';
 
 export const chatRooms = new Set(['bandung', 'bali']);
@@ -42,10 +42,38 @@ export const chatErrorResponse = (error: unknown) => {
 	return Response.json({ error: 'Something went wrong. Please try again.' }, { status: 500 });
 };
 
-const getAdminApp = (): App => {
-	if (getApps().length) return getApp();
-	if (!FIREBASE_SERVICE_ACCOUNT || !databaseUrl) throw new ChatError(503, 'Chat is not available right now.');
-	return initializeApp({ credential: cert(JSON.parse(FIREBASE_SERVICE_ACCOUNT)), databaseURL: databaseUrl });
+// Accepts the key file's JSON as pasted, with or without the quotes .env needs around it.
+const parseServiceAccount = (value: string): Record<string, unknown> => {
+	const json = value.trim().replace(/^(['"])(\{[\s\S]*\})\1$/, '$2');
+	try {
+		return JSON.parse(json);
+	} catch {
+		throw new Error('FIREBASE_SERVICE_ACCOUNT is not valid JSON. Paste the whole service-account key file as its value.');
+	}
+};
+
+type Admin = { app: App; auth: Auth; appCheck: AppCheck };
+let adminRequest: Promise<Admin> | undefined;
+
+// Firebase Admin is loaded on first use, so a problem with it is caught and logged by chatErrorResponse
+// rather than failing the whole route while it loads.
+const getAdmin = () => {
+	adminRequest ??= (async () => {
+		if (!FIREBASE_SERVICE_ACCOUNT || !databaseUrl) throw new ChatError(503, 'Chat is not available right now.');
+		const [{ cert, getApp, getApps, initializeApp }, { getAuth }, { getAppCheck }] = await Promise.all([
+			import('firebase-admin/app'),
+			import('firebase-admin/auth'),
+			import('firebase-admin/app-check'),
+		]);
+		const app = getApps().length
+			? getApp()
+			: initializeApp({ credential: cert(parseServiceAccount(FIREBASE_SERVICE_ACCOUNT)), databaseURL: databaseUrl });
+		return { app, auth: getAuth(app), appCheck: getAppCheck(app) };
+	})().catch((error: unknown) => {
+		adminRequest = undefined;
+		throw error;
+	});
+	return adminRequest;
 };
 
 export const readJsonBody = async (request: Request): Promise<Record<string, unknown>> => {
@@ -56,11 +84,11 @@ export const readJsonBody = async (request: Request): Promise<Record<string, unk
 
 /** Checks App Check (when enabled) and the Firebase ID token, and returns the verified user. */
 export const verifyChatRequest = async (request: Request): Promise<DecodedIdToken> => {
-	const app = getAdminApp();
+	const admin = await getAdmin();
 	if (appCheckRequired) {
 		const appCheckToken = request.headers.get('X-Firebase-AppCheck');
 		const failure = appCheckToken
-			? await getAppCheck(app).verifyToken(appCheckToken).then(() => null, (error: unknown) => error)
+			? await admin.appCheck.verifyToken(appCheckToken).then(() => null, (error: unknown) => error)
 			: 'no App Check token sent (the browser could not get one)';
 		if (failure) {
 			console.warn('Chat App Check failed:', failure);
@@ -70,7 +98,7 @@ export const verifyChatRequest = async (request: Request): Promise<DecodedIdToke
 	const idToken = /^Bearer (.+)$/.exec(request.headers.get('Authorization') ?? '')?.[1];
 	if (!idToken) throw new ChatError(401, 'Please sign in to chat.');
 	try {
-		return await getAuth(app).verifyIdToken(idToken);
+		return await admin.auth.verifyIdToken(idToken);
 	} catch {
 		throw new ChatError(401, 'Your session has expired. Please sign in again.');
 	}
@@ -79,7 +107,7 @@ export const verifyChatRequest = async (request: Request): Promise<DecodedIdToke
 export const isModerator = (user: DecodedIdToken) => user.mod === true;
 
 export const isModeratorUid = async (uid: string) => {
-	const target = await getAuth(getAdminApp()).getUser(uid).catch(() => undefined);
+	const target = await (await getAdmin()).auth.getUser(uid).catch(() => undefined);
 	return target?.customClaims?.mod === true;
 };
 
@@ -87,7 +115,7 @@ let accessToken: { value: string; expiresAt: number } | undefined;
 
 const getAccessToken = async () => {
 	if (accessToken && accessToken.expiresAt - 60_000 > Date.now()) return accessToken.value;
-	const credential = getAdminApp().options.credential;
+	const credential = (await getAdmin()).app.options.credential;
 	if (!credential) throw new ChatError(503, 'Chat is not available right now.');
 	const token = await credential.getAccessToken();
 	accessToken = { value: token.access_token, expiresAt: Date.now() + token.expires_in * 1000 };
