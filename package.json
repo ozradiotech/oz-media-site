@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "node scripts/optimize-uploads.mjs && astro build",
     "preview": "astro preview",
     "cms:proxy": "npx --yes decap-server",
     "astro": "astro"
@@ -18,6 +18,7 @@
     "astro": "^7.3.5",
     "firebase": "^13.0.0",
     "firebase-admin": "^14.5.0",
+    "sharp": "^0.35.5",
     "video.js": "^8.24.2"
   },
   "overrides": {
