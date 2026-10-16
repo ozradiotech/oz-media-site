@@ -1,5 +1,5 @@
-import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut, type User } from 'firebase/auth';
+import { getOzFirebaseApp, isFirebaseConfigured } from './oz-firebase';
 
 export type OzUser = Pick<User, 'uid' | 'displayName' | 'email' | 'photoURL'>;
 
@@ -10,22 +10,18 @@ export interface OzAuth {
 	signIn(): Promise<OzUser>;
 	signOut(): Promise<void>;
 	onChange(callback: (user: OzUser | null) => void): () => void;
+	/** A fresh Firebase ID token for our API routes, or null when signed out. */
+	idToken(): Promise<string | null>;
+	/** Whether the signed-in user has the chat moderator claim (set with scripts/chat-admin.mjs). */
+	isModerator(): Promise<boolean>;
 }
 
-// The Firebase web config is public by design; access is controlled by the authorized domains in the console.
-const firebaseConfig = {
-	apiKey: import.meta.env.PUBLIC_FIREBASE_API_KEY,
-	authDomain: import.meta.env.PUBLIC_FIREBASE_AUTH_DOMAIN,
-	projectId: import.meta.env.PUBLIC_FIREBASE_PROJECT_ID,
-	appId: import.meta.env.PUBLIC_FIREBASE_APP_ID,
-};
-
-export const isAuthConfigured = Boolean(firebaseConfig.apiKey && firebaseConfig.authDomain && firebaseConfig.projectId && firebaseConfig.appId);
+export const isAuthConfigured = isFirebaseConfigured;
 
 export const createOzAuth = (): OzAuth => {
 	if (!isAuthConfigured) throw new Error('Google sign-in is not configured.');
 
-	const auth = getAuth(initializeApp(firebaseConfig));
+	const auth = getAuth(getOzFirebaseApp());
 	const provider = new GoogleAuthProvider();
 	provider.setCustomParameters({ prompt: 'select_account' });
 
@@ -36,5 +32,10 @@ export const createOzAuth = (): OzAuth => {
 		signIn: () => signInWithPopup(auth, provider).then(({ user }) => user),
 		signOut: () => signOut(auth),
 		onChange: (callback) => onAuthStateChanged(auth, callback),
+		idToken: () => auth.currentUser?.getIdToken() ?? Promise.resolve(null),
+		isModerator: async () => {
+			const result = await auth.currentUser?.getIdTokenResult().catch(() => undefined);
+			return result?.claims.mod === true;
+		},
 	};
 };

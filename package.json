@@ -17,6 +17,7 @@
     "@astrojs/vercel": "^11.0.14",
     "astro": "^7.3.5",
     "firebase": "^13.0.0",
+    "firebase-admin": "^14.5.0",
     "video.js": "^8.24.2"
   },
   "overrides": {

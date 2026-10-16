@@ -1,0 +1,6 @@
+{
+	"regions": ["sin1"],
+	"crons": [
+		{ "path": "/api/chat-cleanup", "schedule": "0 20 * * *" }
+	]
+}

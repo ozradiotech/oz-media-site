@@ -94,7 +94,9 @@ git pull && npm ci && npm run build && node dist/server/entry.mjs
 | `src/pages/oz-bandung.astro` | Main Bandung media page and broadcast UI. |
 | `src/pages/oz-bali.astro` | Bali landing placeholder page. |
 | `src/pages/admin.astro` | Decap CMS admin UI entry point. |
-| `src/pages/api/` | API routes for listener details, live stream metadata and CMS OAuth. |
+| `src/pages/api/` | API routes for listener details, live stream metadata, live chat and CMS OAuth. |
+| `src/lib/` | Server-only code for the live chat (Firebase Admin, word filter). |
+| `scripts/chat-admin.mjs` | Grants the chat moderator role and lifts bans. |
 | `src/content/` | Decap-managed content collections (`programs`, `announcers`, `activities`, `news`). |
 | `public/admin/` | Decap admin config and CMS setup files. |
 | `public/uploads/` | Uploaded media assets from Decap CMS. |
@@ -111,6 +113,9 @@ git pull && npm ci && npm run build && node dist/server/entry.mjs
 | `/admin` | `src/pages/admin.astro` | Decap CMS admin UI. |
 | `/api/listeners` | `src/pages/api/listeners.ts` | Saves listener details to `data/listeners.jsonl` (skipped on Vercel). |
 | `/api/now-playing` | `src/pages/api/now-playing.ts` | Now-playing API route. |
+| `/api/chat` | `src/pages/api/chat.ts` | Sends and reports live chat messages (signed-in users). |
+| `/api/chat-mod` | `src/pages/api/chat-mod.ts` | Moderator actions: delete, mute, ban, slow mode. |
+| `/api/chat-cleanup` | `src/pages/api/chat-cleanup.ts` | Daily cron: removes chat messages older than 24 hours. |
 | `/api/cms-auth` and `/api/cms-callback` | `src/pages/api/cms-auth.ts`, `src/pages/api/cms-callback.ts` | GitHub OAuth flow for Decap CMS. |
 | `/uploads/*` | `public/uploads/` | CMS-uploaded image and media files. |
 
@@ -147,6 +152,39 @@ Decap is configured to edit `brannn86/oz-proto` on its `main` branch. For local 
 Listener details are saved to `data/listeners.jsonl` on self-hosted (Node) deployments. On Vercel the filesystem is read-only, so `/api/listeners` accepts the details without storing them.
 
 Uploaded media under `public/uploads/` is part of the repository so that current content references resolve in deployments. Review permissions and consent for portraits and other media before publishing.
+
+## Live chat
+
+The chat on `/oz-bandung/` uses the Firebase Realtime Database. Anyone can read it; sending needs Google sign-in. Browsers only read the database: every write goes through `/api/chat` or `/api/chat-mod`, which verify the user, rate-limit them, filter words and block links before writing. Security rules are in `database.rules.json`.
+
+### Setup
+
+1. Firebase console → **Build → Realtime Database** → create a database. Copy its URL.
+2. **Rules** tab: paste `database.rules.json` and publish (or run `firebase deploy --only database`).
+3. **Project settings → Service accounts → Generate new private key**.
+4. Optional but recommended: in the Google Cloud console (same project), enable the **reCAPTCHA Enterprise API** and create a **website** key for your domains, plus `localhost` for local testing. Then in Firebase **App Check → Apps**, register the web app with **reCAPTCHA Enterprise** using that site key. Once chat works, turn on App Check **enforcement** for the Realtime Database.
+5. Add the variables to `.env` and to Vercel (Settings → Environment Variables):
+
+| Variable | Value |
+| :--- | :--- |
+| `PUBLIC_FIREBASE_DATABASE_URL` | The database URL from step 1. |
+| `FIREBASE_SERVICE_ACCOUNT` | The whole key file from step 3 as one line of JSON. In `.env`, wrap it in single quotes. |
+| `PUBLIC_FIREBASE_APPCHECK_SITE_KEY` | Optional. The reCAPTCHA Enterprise site key from step 4. When set, the chat API requires App Check. |
+| `CRON_SECRET` | Any long random string. Vercel Cron sends it to `/api/chat-cleanup`. |
+
+### Moderation
+
+```sh
+node --env-file=.env scripts/chat-admin.mjs mod someone@gmail.com     # make a moderator
+node --env-file=.env scripts/chat-admin.mjs unmod someone@gmail.com
+node --env-file=.env scripts/chat-admin.mjs unban someone@gmail.com
+```
+
+Moderators sign out and back in to pick up the role. They then see **Delete**, **Mute** (10 minutes) and **Ban** on messages, and a slow-mode menu in the chat header. Moderators skip slow mode and may post links.
+
+- Three strikes in a minute (posting too fast, repeats, links, severe words) mute a user for 5 minutes.
+- Mild swear words are masked; severe ones reject the message. Extra words go in the database at `chat/private/blocklist` as `{ "mild": "word, word", "severe": "word, word" }`.
+- A message reported by 3 people is hidden and copied to `chat/private/flagged` for review. Moderator actions are logged at `chat/private/modlog`.
 
 ## Brand palette
 
