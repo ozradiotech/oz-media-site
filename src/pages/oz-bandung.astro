@@ -988,7 +988,6 @@ const sections = [
 		const announcerBody = announcerDialog?.querySelector<HTMLElement>('[data-announcer-body-content]');
 		if (announcerDialog && announcerImage && announcerTitle && announcerSummary && announcerBody) {
 			const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-			let announcerScrollPosition: { left: number; top: number } | undefined;
 
 			const openAnnouncer = (card: HTMLElement) => {
 				const image = card.querySelector<HTMLImageElement>('img');
@@ -1003,7 +1002,6 @@ const sections = [
 				announcerBody.replaceChildren(bodyTemplate?.content.cloneNode(true) ?? document.createDocumentFragment());
 				announcerBody.hidden = !announcerBody.textContent?.trim();
 				announcerDialog.classList.remove('is-closing');
-				announcerScrollPosition = { left: window.scrollX, top: window.scrollY };
 				announcerDialog.showModal();
 				syncMarqueePause();
 			};
@@ -1048,16 +1046,8 @@ const sections = [
 				announcerDialog.classList.remove('is-closing');
 				announcerDialog.removeEventListener('animationend', finishClose);
 				syncMarqueePause();
-				const scrollPosition = announcerScrollPosition;
-				if (!scrollPosition) return;
-				announcerScrollPosition = undefined;
-				// Returning focus to a card mid-marquee would otherwise jump the page.
-				window.requestAnimationFrame(() => {
-					const previousScrollBehavior = document.documentElement.style.scrollBehavior;
-					document.documentElement.style.scrollBehavior = 'auto';
-					window.scrollTo(scrollPosition.left, scrollPosition.top);
-					document.documentElement.style.scrollBehavior = previousScrollBehavior;
-				});
+				// Focus returning to a partly clipped card can scroll the clipped marquee sideways; the animation handles movement instead.
+				announcerMarquee.scrollLeft = 0;
 			});
 		}
 	}
@@ -1271,7 +1261,6 @@ const sections = [
 	const articleDescription = articleDialog?.querySelector<HTMLElement>('[data-article-description]');
 	const articleBody = articleDialog?.querySelector<HTMLElement>('[data-article-body-content]');
 	const articleStatus = articleDialog?.querySelector<HTMLElement>('[data-article-status]');
-	let articleScrollPosition: { left: number; top: number } | undefined;
 
 	const openArticle = (card: HTMLElement) => {
 		if (!articleDialog || !articleImage || !articleCategory || !articleTitle || !articleDescription || !articleBody || !articleStatus) return;
@@ -1292,7 +1281,6 @@ const sections = [
 		const status = card.querySelector<HTMLElement>('.card-status');
 		articleStatus.textContent = status?.textContent?.trim() ?? '';
 		articleStatus.hidden = !articleStatus.textContent;
-		articleScrollPosition = { left: window.scrollX, top: window.scrollY };
 		articleDialog.showModal();
 	};
 
@@ -1330,17 +1318,6 @@ const sections = [
 	articleDialog?.querySelector('[data-article-close]')?.addEventListener('click', () => articleDialog.close());
 	articleDialog?.addEventListener('click', (event) => {
 		if (event.target === articleDialog) articleDialog.close();
-	});
-	articleDialog?.addEventListener('close', () => {
-		const scrollPosition = articleScrollPosition;
-		if (!scrollPosition) return;
-		articleScrollPosition = undefined;
-		window.requestAnimationFrame(() => {
-			const previousScrollBehavior = document.documentElement.style.scrollBehavior;
-			document.documentElement.style.scrollBehavior = 'auto';
-			window.scrollTo(scrollPosition.left, scrollPosition.top);
-			document.documentElement.style.scrollBehavior = previousScrollBehavior;
-		});
 	});
 
 	const tuneInButton = document.querySelector<HTMLButtonElement>('[data-tune-in]');
@@ -2621,7 +2598,6 @@ const sections = [
 	}
 
 	.article-dialog {
-		position: relative;
 		width: min(820px, calc(100% - 28px));
 		max-width: none;
 		max-height: min(90dvh, 820px);
@@ -2635,7 +2611,6 @@ const sections = [
 	}
 
 	.news-list-dialog {
-		position: relative;
 		width: min(760px, calc(100% - 28px));
 		max-width: none;
 		max-height: min(90dvh, 820px);
@@ -3481,7 +3456,6 @@ const sections = [
 	/* Photos are 600×750, so capping the portrait at 300px wide keeps it at 2x density and sharp. */
 	.announcer-dialog {
 		--announcer-photo-width: min(300px, calc((min(90dvh, 520px) - 2px) * 0.8));
-		position: relative;
 		width: min(680px, calc(100% - 28px));
 		max-width: none;
 		max-height: min(90dvh, 520px);
