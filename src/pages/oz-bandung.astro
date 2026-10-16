@@ -320,18 +320,18 @@ const sections = [
 									{announcersWithBody.map(({ entry: announcer, Content }) => (
 										<article
 											class="announcer-card"
-											data-article-card
+											data-announcer-card
 											aria-haspopup="dialog"
 											aria-label={`Read announcer profile: ${announcer.data.name}`}
 											role="button"
 											tabindex={isDuplicate ? -1 : 0}
 										>
-											<img src={optimizeImageUrl(announcer.data.image, 640)} alt={announcer.data.imageAlt} loading="lazy" decoding="async" />
+											<img src={optimizeImageUrl(announcer.data.image, 640)} alt={announcer.data.imageAlt} width="600" height="750" loading="lazy" decoding="async" />
 											<div class="announcer-card-copy">
 												<h3>{announcer.data.name}</h3>
 												<p>{announcer.data.summary}</p>
 											</div>
-											<template data-article-body><Content /></template>
+											<template data-announcer-body><Content /></template>
 										</article>
 									))}
 								</div>
@@ -614,6 +614,18 @@ const sections = [
 				<p class="article-dialog-description" data-article-description></p>
 				<div class="article-dialog-body" data-article-body-content hidden></div>
 				<p class="article-dialog-status" data-article-status hidden></p>
+			</div>
+		</dialog>
+		<dialog class="announcer-dialog" data-announcer-dialog aria-labelledby="announcer-dialog-title">
+			<button class="dialog-close announcer-dialog-close" type="button" data-announcer-close aria-label="Close announcer profile">×</button>
+			<div class="announcer-dialog-photo">
+				<img data-announcer-image alt="" width="600" height="750" decoding="async" />
+			</div>
+			<div class="announcer-dialog-copy">
+				<p class="eyebrow">OZ BANDUNG · THE VOICES OF OZ</p>
+				<h2 id="announcer-dialog-title" data-announcer-title></h2>
+				<p class="announcer-dialog-summary" data-announcer-summary></p>
+				<div class="announcer-dialog-body" data-announcer-body-content hidden></div>
 			</div>
 		</dialog>
 	</body>
@@ -937,11 +949,12 @@ const sections = [
 	}
 
 	const announcerMarquee = document.querySelector<HTMLElement>('[data-announcer-marquee]');
+	const announcerDialog = document.querySelector<HTMLDialogElement>('[data-announcer-dialog]');
 	if (announcerMarquee) {
 		let isMarqueeVisible = false;
 		let isMarqueeFocused = false;
 		const syncMarqueePause = () => {
-			announcerMarquee.classList.toggle('is-paused', document.hidden || !isMarqueeVisible || isMarqueeFocused);
+			announcerMarquee.classList.toggle('is-paused', document.hidden || !isMarqueeVisible || isMarqueeFocused || Boolean(announcerDialog?.open));
 		};
 		syncMarqueePause();
 		announcerMarquee.addEventListener('focusin', () => {
@@ -968,6 +981,85 @@ const sections = [
 			isMarqueeVisible = entries.some((entry) => entry.isIntersecting);
 			syncMarqueePause();
 		}).observe(announcerMarquee);
+
+		const announcerImage = announcerDialog?.querySelector<HTMLImageElement>('[data-announcer-image]');
+		const announcerTitle = announcerDialog?.querySelector<HTMLElement>('[data-announcer-title]');
+		const announcerSummary = announcerDialog?.querySelector<HTMLElement>('[data-announcer-summary]');
+		const announcerBody = announcerDialog?.querySelector<HTMLElement>('[data-announcer-body-content]');
+		if (announcerDialog && announcerImage && announcerTitle && announcerSummary && announcerBody) {
+			const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+			let announcerScrollPosition: { left: number; top: number } | undefined;
+
+			const openAnnouncer = (card: HTMLElement) => {
+				const image = card.querySelector<HTMLImageElement>('img');
+				const name = card.querySelector('h3')?.textContent?.trim() ?? '';
+				// The card photo is already loaded, so the popup reuses it from cache instead of fetching again.
+				announcerImage.src = image?.currentSrc || image?.src || '';
+				announcerImage.alt = image?.alt || name;
+				announcerTitle.textContent = name;
+				announcerSummary.textContent = card.querySelector('p')?.textContent?.trim() ?? '';
+				announcerSummary.hidden = !announcerSummary.textContent;
+				const bodyTemplate = card.querySelector<HTMLTemplateElement>('template[data-announcer-body]');
+				announcerBody.replaceChildren(bodyTemplate?.content.cloneNode(true) ?? document.createDocumentFragment());
+				announcerBody.hidden = !announcerBody.textContent?.trim();
+				announcerDialog.classList.remove('is-closing');
+				announcerScrollPosition = { left: window.scrollX, top: window.scrollY };
+				announcerDialog.showModal();
+				syncMarqueePause();
+			};
+
+			const finishClose = (event: AnimationEvent) => {
+				if (event.target !== announcerDialog || event.pseudoElement) return;
+				announcerDialog.removeEventListener('animationend', finishClose);
+				announcerDialog.close();
+			};
+			const closeAnnouncer = () => {
+				if (!announcerDialog.open || announcerDialog.classList.contains('is-closing')) return;
+				if (reducedMotion.matches) {
+					announcerDialog.close();
+					return;
+				}
+				announcerDialog.classList.add('is-closing');
+				announcerDialog.addEventListener('animationend', finishClose);
+			};
+
+			// One delegated listener covers every card, including the duplicated marquee group.
+			announcerMarquee.addEventListener('click', (event) => {
+				const card = (event.target as Element).closest<HTMLElement>('[data-announcer-card]');
+				if (card) openAnnouncer(card);
+			});
+			announcerMarquee.addEventListener('keydown', (event) => {
+				if (event.key !== 'Enter' && event.key !== ' ') return;
+				const card = (event.target as Element).closest<HTMLElement>('[data-announcer-card]');
+				if (!card) return;
+				event.preventDefault();
+				openAnnouncer(card);
+			});
+
+			announcerDialog.querySelector('[data-announcer-close]')?.addEventListener('click', closeAnnouncer);
+			announcerDialog.addEventListener('click', (event) => {
+				if (event.target === announcerDialog) closeAnnouncer();
+			});
+			announcerDialog.addEventListener('cancel', (event) => {
+				event.preventDefault();
+				closeAnnouncer();
+			});
+			announcerDialog.addEventListener('close', () => {
+				announcerDialog.classList.remove('is-closing');
+				announcerDialog.removeEventListener('animationend', finishClose);
+				syncMarqueePause();
+				const scrollPosition = announcerScrollPosition;
+				if (!scrollPosition) return;
+				announcerScrollPosition = undefined;
+				// Returning focus to a card mid-marquee would otherwise jump the page.
+				window.requestAnimationFrame(() => {
+					const previousScrollBehavior = document.documentElement.style.scrollBehavior;
+					document.documentElement.style.scrollBehavior = 'auto';
+					window.scrollTo(scrollPosition.left, scrollPosition.top);
+					document.documentElement.style.scrollBehavior = previousScrollBehavior;
+				});
+			});
+		}
 	}
 
 	const programCarousel = document.querySelector<HTMLElement>('[data-program-carousel]');
@@ -3301,17 +3393,17 @@ const sections = [
 		background: #20201D;
 	}
 
-	.announcer-card[data-article-card] {
+	.announcer-card[data-announcer-card] {
 		cursor: pointer;
 		transition: transform 180ms ease, border-color 180ms ease;
 	}
 
-	.announcer-card[data-article-card]:hover {
+	.announcer-card[data-announcer-card]:hover {
 		transform: translateY(-4px);
 		border-color: #f2bd57;
 	}
 
-	.announcer-card[data-article-card]:focus-visible {
+	.announcer-card[data-announcer-card]:focus-visible {
 		outline: 2px solid #f2bd57;
 		outline-offset: 3px;
 	}
@@ -3335,8 +3427,8 @@ const sections = [
 		transition: transform 320ms ease;
 	}
 
-	.announcer-card[data-article-card]:hover img,
-	.announcer-card[data-article-card]:focus-visible img {
+	.announcer-card[data-announcer-card]:hover img,
+	.announcer-card[data-announcer-card]:focus-visible img {
 		transform: scale(1.04);
 	}
 
@@ -3361,10 +3453,10 @@ const sections = [
 		transition: opacity 180ms ease, transform 180ms ease;
 	}
 
-	.announcer-card[data-article-card]:hover h3,
-	.announcer-card[data-article-card]:hover p,
-	.announcer-card[data-article-card]:focus-visible h3,
-	.announcer-card[data-article-card]:focus-visible p {
+	.announcer-card[data-announcer-card]:hover h3,
+	.announcer-card[data-announcer-card]:hover p,
+	.announcer-card[data-announcer-card]:focus-visible h3,
+	.announcer-card[data-announcer-card]:focus-visible p {
 		opacity: 1;
 		transform: translateY(0);
 	}
@@ -3384,6 +3476,227 @@ const sections = [
 
 	@keyframes announcer-scroll {
 		to { transform: translateX(-50%); }
+	}
+
+	/* Photos are 600×750, so capping the portrait at 300px wide keeps it at 2x density and sharp. */
+	.announcer-dialog {
+		--announcer-photo-width: min(300px, calc((min(90dvh, 520px) - 2px) * 0.8));
+		position: relative;
+		width: min(680px, calc(100% - 28px));
+		max-width: none;
+		max-height: min(90dvh, 520px);
+		padding: 0;
+		overflow: hidden;
+		border: 1px solid #D8D8CC;
+		border-radius: 4px;
+		background: #FFFFF3;
+		color: #000000;
+		box-shadow: 0 24px 80px rgb(0 0 0 / 55%);
+	}
+
+	.announcer-dialog[open] {
+		display: grid;
+		grid-template-columns: var(--announcer-photo-width) minmax(0, 1fr);
+		animation: announcer-dialog-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+	}
+
+	.announcer-dialog::backdrop {
+		background: rgb(0 0 0 / 78%);
+		backdrop-filter: blur(3px);
+		animation: backdrop-reveal 220ms ease-out both;
+	}
+
+	.announcer-dialog.is-closing {
+		animation: announcer-dialog-out 180ms ease-in both;
+	}
+
+	.announcer-dialog.is-closing::backdrop {
+		animation: backdrop-hide 180ms ease-in both;
+	}
+
+	.announcer-dialog-photo {
+		position: relative;
+		overflow: hidden;
+		aspect-ratio: 4 / 5;
+		align-self: start;
+		background: #20201D;
+	}
+
+	.announcer-dialog-photo::after {
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(to bottom, transparent 70%, rgb(0 0 0 / 35%));
+		content: '';
+		pointer-events: none;
+	}
+
+	.announcer-dialog-photo img {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+	}
+
+	.announcer-dialog[open] .announcer-dialog-photo img {
+		animation: announcer-photo-in 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+	}
+
+	.announcer-dialog-copy {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		max-height: min(90dvh, 520px);
+		overflow-y: auto;
+		overscroll-behavior: contain;
+		padding: clamp(24px, 4vw, 38px) clamp(20px, 4vw, 34px);
+	}
+
+	.announcer-dialog-copy::before {
+		width: 42px;
+		height: 3px;
+		margin-bottom: 18px;
+		background: #f2bd57;
+		content: '';
+		transform-origin: left;
+	}
+
+	.announcer-dialog-copy .eyebrow {
+		margin: 0 40px 10px 0;
+		color: #77776F;
+		font-size: 9px;
+		font-weight: 700;
+		letter-spacing: 0.12em;
+	}
+
+	.announcer-dialog-copy h2 {
+		margin: 0 0 14px;
+		font-size: clamp(26px, 4.4vw, 40px);
+		letter-spacing: -0.06em;
+		line-height: 1.05;
+	}
+
+	.announcer-dialog-summary {
+		margin: 0;
+		color: #44443F;
+		font-size: 14px;
+		font-weight: 700;
+		line-height: 1.6;
+	}
+
+	.announcer-dialog-body {
+		margin-top: 16px;
+		padding-top: 16px;
+		border-top: 1px solid #D8D8CC;
+		color: #44443F;
+		font-size: 14px;
+		line-height: 1.7;
+	}
+
+	:global(.announcer-dialog-body > :first-child) {
+		margin-top: 0;
+	}
+
+	:global(.announcer-dialog-body p),
+	:global(.announcer-dialog-body ul),
+	:global(.announcer-dialog-body ol) {
+		margin: 0 0 1em;
+	}
+
+	:global(.announcer-dialog-body a) {
+		color: #7C5718;
+		text-decoration: underline;
+	}
+
+	.announcer-dialog[open] .announcer-dialog-copy::before {
+		animation: announcer-rule-in 420ms 120ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+	}
+
+	.announcer-dialog[open] .announcer-dialog-copy > * {
+		animation: announcer-copy-in 360ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+	}
+
+	.announcer-dialog[open] .announcer-dialog-copy > :nth-child(1) { animation-delay: 100ms; }
+	.announcer-dialog[open] .announcer-dialog-copy > :nth-child(2) { animation-delay: 150ms; }
+	.announcer-dialog[open] .announcer-dialog-copy > :nth-child(3) { animation-delay: 200ms; }
+	.announcer-dialog[open] .announcer-dialog-copy > :nth-child(4) { animation-delay: 250ms; }
+
+	.announcer-dialog .dialog-close {
+		position: absolute;
+		z-index: 1;
+		top: 12px;
+		right: 12px;
+	}
+
+	@keyframes announcer-dialog-in {
+		from {
+			opacity: 0;
+			transform: translateY(18px) scale(0.96);
+		}
+		to {
+			opacity: 1;
+			transform: none;
+		}
+	}
+
+	@keyframes announcer-dialog-out {
+		to {
+			opacity: 0;
+			transform: translateY(10px) scale(0.98);
+		}
+	}
+
+	@keyframes announcer-photo-in {
+		from {
+			opacity: 0;
+			transform: scale(1.06) translateX(-12px);
+		}
+		to {
+			opacity: 1;
+			transform: none;
+		}
+	}
+
+	@keyframes announcer-copy-in {
+		from {
+			opacity: 0;
+			transform: translateX(14px);
+		}
+		to {
+			opacity: 1;
+			transform: none;
+		}
+	}
+
+	@keyframes announcer-rule-in {
+		from { transform: scaleX(0); }
+		to { transform: scaleX(1); }
+	}
+
+	@keyframes backdrop-hide {
+		to { opacity: 0; }
+	}
+
+	@media (max-width: 560px) {
+		.announcer-dialog {
+			max-height: 90dvh;
+			overflow-y: auto;
+			overscroll-behavior: contain;
+		}
+
+		.announcer-dialog[open] {
+			grid-template-columns: minmax(0, 1fr);
+		}
+
+		.announcer-dialog-photo {
+			width: min(240px, 62vw);
+			margin: 20px auto 0;
+			border-radius: 3px;
+		}
+
+		.announcer-dialog-copy {
+			max-height: none;
+			overflow: visible;
+		}
 	}
 
 	.program-slides {
@@ -4904,6 +5217,14 @@ const sections = [
 
 		.article-dialog[open],
 		.article-dialog::backdrop {
+			animation: none;
+		}
+
+		.announcer-dialog[open],
+		.announcer-dialog::backdrop,
+		.announcer-dialog[open] .announcer-dialog-photo img,
+		.announcer-dialog[open] .announcer-dialog-copy::before,
+		.announcer-dialog[open] .announcer-dialog-copy > * {
 			animation: none;
 		}
 
