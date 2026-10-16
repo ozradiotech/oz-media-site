@@ -2,7 +2,7 @@
 name: Abel Hamdani
 order: 1
 summary: Summary
-image: /uploads/Abel Hamdani.JPG
+image: /uploads/Abel Hamdani.png
 imageAlt: ""
 ---
 
