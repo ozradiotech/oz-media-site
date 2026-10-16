@@ -18,19 +18,24 @@ export const POST: APIRoute = async ({ request }) => {
 		return new Response('Invalid listener details.', { status: 400 });
 	}
 
-	const { name, age, gender, location, broadcast } = input as Record<string, unknown>;
+	const { name, age, gender, location, broadcast, uid, email } = input as Record<string, unknown>;
 	const trimmedName = typeof name === 'string' ? name.trim() : '';
 	const parsedAge = typeof age === 'number' ? age : typeof age === 'string' ? Number(age) : NaN;
 	const trimmedGender = typeof gender === 'string' ? gender.trim() : '';
 	const trimmedLocation = typeof location === 'string' ? location.trim() : '';
 	const normalizedBroadcast = typeof broadcast === 'string' ? broadcast.trim().toLowerCase() : '';
+	// The Google account the listener signed in with. Sent by the browser, so treat it as unverified.
+	const googleUid = typeof uid === 'string' ? uid.trim() : '';
+	const googleEmail = typeof email === 'string' ? email.trim() : '';
 
 	if (
 		!trimmedName || trimmedName.length > 80 ||
 		!Number.isInteger(parsedAge) || parsedAge < 1 || parsedAge > 120 ||
 		!genders.has(trimmedGender) ||
 		!trimmedLocation || trimmedLocation.length > 100 ||
-		(normalizedBroadcast !== 'audio' && normalizedBroadcast !== 'video')
+		(normalizedBroadcast !== 'audio' && normalizedBroadcast !== 'video') ||
+		!googleUid || googleUid.length > 128 ||
+		googleEmail.length > 254
 	) {
 		return new Response('Invalid listener details.', { status: 400 });
 	}
@@ -41,6 +46,8 @@ export const POST: APIRoute = async ({ request }) => {
 		gender: trimmedGender,
 		location: trimmedLocation,
 		broadcast: normalizedBroadcast,
+		googleUid,
+		googleEmail,
 		createdAt: new Date().toISOString(),
 	};
 	// Vercel's filesystem is read-only, so accept the details there without storing them.
