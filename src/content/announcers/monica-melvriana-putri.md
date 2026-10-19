@@ -1,7 +1,7 @@
 ---
-name: Monica Melvriana Putri
+name: Monica
 order: 11
-summary: Summary
+summary: Monica Melvriana Putri
 image: /uploads/Monica Melvriana Putri.webp
 ---
 Deskripsi

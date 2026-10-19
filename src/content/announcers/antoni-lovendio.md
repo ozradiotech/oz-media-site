@@ -1,7 +1,7 @@
 ---
-name: Antoni Lovendio
+name: Anton
 order: 4
-summary: Summary
+summary: Antoni Lovendio
 image: /uploads/Antoni Lovendio.webp
 imageAlt: ""
 ---

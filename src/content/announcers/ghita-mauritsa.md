@@ -1,7 +1,7 @@
 ---
-name: Ghita Mauritsa
+name: Maury Ghita
 order: 7
-summary: Summary
+summary: Ghita Mauritsa
 image: /uploads/Ghita Mauritsa.webp
 ---
 Deskripsi

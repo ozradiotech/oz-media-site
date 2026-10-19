@@ -1,7 +1,7 @@
 ---
-name: Rafi Musthafa
+name: Ramus Pramega
 order: 14
-summary: Summary
+summary: Rafi Musthafa
 image: /uploads/Rafi Musthafa.webp
 ---
 Deskripsi

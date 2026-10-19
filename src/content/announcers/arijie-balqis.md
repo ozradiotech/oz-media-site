@@ -1,7 +1,7 @@
 ---
-name: Arijie Balqis
+name: Aizira Fariza
 order: 5
-summary: Summary
+summary: Arijie Balqis
 image: /uploads/Arijie Balqiis.webp
 imageAlt: ""
 ---

@@ -1,7 +1,7 @@
 ---
-name: Mochamad Fahmi
+name: Amoy
 order: 10
-summary: Summary
+summary: Mochamad Fahmi
 image: /uploads/Mochamad Fahmi.webp
 ---
 Deskripsi

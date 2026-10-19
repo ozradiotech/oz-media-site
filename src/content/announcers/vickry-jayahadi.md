@@ -1,7 +1,7 @@
 ---
-name: Vickry Jayahadi
+name: VJ
 order: 15
-summary: Summary
+summary: Vickry Jayahadi
 image: /uploads/Vickry Jayahadi.webp
 ---
 Deskripsi
