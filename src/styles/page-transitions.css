@@ -1,0 +1,95 @@
+/* Cross-document view transition between the home page and OZ Bandung.
+   Both pages opt in here; pages that don't import this file (e.g. OZ Bali) navigate normally.
+   The Bandung logo carries the `oz-bandung-logo` name on both pages, so it glides between them
+   while the rest of the page crossfades. The animations below run in the page being opened. */
+
+@media (prefers-reduced-motion: no-preference) {
+	@view-transition {
+		navigation: auto;
+	}
+}
+
+/* Shared logo: the same image on both sides, so show only the live new one instead of
+   crossfading two copies, and let the group carry it from the old box to the new one. */
+::view-transition-group(oz-bandung-logo) {
+	animation-duration: 720ms;
+	animation-timing-function: cubic-bezier(0.7, 0, 0.2, 1);
+}
+
+::view-transition-old(oz-bandung-logo) {
+	animation: none;
+	opacity: 0;
+}
+
+::view-transition-new(oz-bandung-logo) {
+	animation: none;
+}
+
+/* Home → Bandung: the chooser recedes, Bandung rises in behind the arriving logo. */
+html[data-page='bandung']::view-transition-old(root) {
+	animation: vt-recede 320ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+html[data-page='bandung']::view-transition-new(root) {
+	animation: vt-rise 520ms 200ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* Bandung → home: the reverse. */
+html[data-page='home']::view-transition-old(root) {
+	animation: vt-sink 320ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+html[data-page='home']::view-transition-new(root) {
+	animation: vt-emerge 520ms 200ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* Opacity and transform only, so every frame stays on the compositor. */
+@keyframes vt-recede {
+	to {
+		opacity: 0;
+		transform: scale(0.97);
+	}
+}
+
+@keyframes vt-rise {
+	from {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+}
+
+@keyframes vt-sink {
+	to {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+}
+
+@keyframes vt-emerge {
+	from {
+		opacity: 0;
+		transform: scale(0.97);
+	}
+}
+
+/* Bandung while it is being revealed (see the inline script in oz-bandung.astro): the static
+   hero logo stands in for the scroll-morphing topbar logo, which sits in the same spot. */
+html.vt-arriving .hero-screen .hero-logo {
+	opacity: 1;
+	view-transition-name: oz-bandung-logo;
+}
+
+html.vt-arriving .topbar .wordmark {
+	opacity: 0;
+}
+
+/* Until the morph script has placed the nav, keep it out of the live snapshot. */
+html.vt-arriving:not(.has-hero-morph) .topbar,
+html.vt-arriving:not(.has-hero-morph) .hero-screen .hero-nav {
+	visibility: hidden;
+}
+
+/* The logo already arrived via the transition; skip its blur-in entrance. */
+html.vt-arrived .topbar.is-entering .wordmark img {
+	animation: none;
+}

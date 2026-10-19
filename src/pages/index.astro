@@ -1,34 +1,27 @@
 ---
 import { Font } from 'astro:assets';
 import '../styles/typography.css';
+import '../styles/page-transitions.css';
 const locations = [
-	{ name: 'Bandung', href: '/oz-bandung/', logo: '/images/logo-oz-bandung.png' },
+	{ name: 'Bandung', href: '/oz-bandung/', logo: '/images/logo-oz-bandung.png', transitionName: 'oz-bandung-logo' },
 	{ name: 'Bali', href: '/oz-bali/', logo: '/images/logo-oz-bali.png' },
 ];
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-page="home">
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width" />
-		<meta name="theme-color" content="#FEE0A6" />
+		<meta name="theme-color" content="#FFFFF3" />
 		<meta name="description" content="Location select for OZ Radio" />
 		<Font cssVariable="--font-tango" preload={[{ style: 'normal' }]} />
 		<Font cssVariable="--font-jakarta" preload={[{ style: 'normal' }]} />
 		<title>OZ Radio — Choose your frequency</title>
+		<script type="speculationrules" is:inline set:html={JSON.stringify({ prefetch: [{ where: { href_matches: '/oz-bandung/' }, eagerness: 'moderate' }] })} />
 	</head>
 	<body>
 		<main class="landing">
-			<header class="topbar">
-				<a class="wordmark" href="/" aria-label="OZ Radio home"><img src="/images/logo-oz-media.png" alt="OZ Media" /></a>
-				<nav class="topbar-nav" aria-label="Locations">
-					{locations.map((location) => (
-						<a class="topbar-nav-link" href={location.href}>{location.name}</a>
-					))}
-				</nav>
-			</header>
-
 			<section class="chooser" aria-labelledby="page-title">
 				<h1 id="page-title"><img src="/images/logo-oz-media.png" alt="OZ Media" /></h1>
 				<p class="intro">Where music meets stories, content meets community, and ideas become experiences beyond the airwaves.</p>
@@ -37,7 +30,7 @@ const locations = [
 					{locations.map((location) => (
 						<div class="location-item">
 							<a class="location-link" href={location.href} aria-label={`OZ Radio ${location.name}`}>
-								<img class="location-logo" src={location.logo} alt="" />
+								<img class="location-logo" src={location.logo} alt="" width="1246" height="648" style={location.transitionName && `view-transition-name: ${location.transitionName}`} />
 							</a>
 						</div>
 					))}
@@ -54,7 +47,7 @@ const locations = [
 
 	:global(body) {
 		margin: 0;
-		background: #FEE0A6;
+		background: #FFFFF3;
 		color: #000000;
 		font-family: var(--font-jakarta);
 	}
@@ -192,7 +185,7 @@ const locations = [
 	.intro {
 		margin: 24px 0 38px;
 		color: #77776F;
-		font-size: 14px;
+		font-size: 20px;
 		line-height: 1.6;
 	}
 
@@ -236,9 +229,10 @@ const locations = [
 
 	.location-logo {
 		display: block;
-		width: min(100%, 340px);
-		height: 150px;
-		object-fit: contain;
+		/* Box matches the logos' shared aspect ratio so the Bandung logo morphs without distortion. */
+		width: min(100%, 288px);
+		height: auto;
+		aspect-ratio: 1246 / 648;
 		transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
 	}
 

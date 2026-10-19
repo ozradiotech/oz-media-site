@@ -1,6 +1,7 @@
 ---
 import { Font } from 'astro:assets';
 import '../styles/typography.css';
+import '../styles/page-transitions.css';
 import SectionNav from '../components/SectionNav.astro';
 import { getCollection, render } from 'astro:content';
 
@@ -69,7 +70,7 @@ const sections = [
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-page="bandung">
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width" />
@@ -78,6 +79,27 @@ const sections = [
 		<Font cssVariable="--font-tango" preload={[{ style: 'normal' }]} />
 		<Font cssVariable="--font-jakarta" preload={[{ style: 'normal' }]} />
 		<title>OZ Media</title>
+		<script type="speculationrules" is:inline set:html={JSON.stringify({ prefetch: [{ where: { href_matches: '/' }, eagerness: 'moderate' }] })} />
+		<script is:inline>
+			// Logo hand-off for the view transition with the home page (see src/styles/page-transitions.css).
+			addEventListener('pagereveal', (event) => {
+				const root = document.documentElement;
+				const topbarLogo = document.querySelector('[data-topbar-logo]');
+				topbarLogo?.style.removeProperty('view-transition-name');
+				if (!event.viewTransition) return;
+				if (window.scrollY < 1) {
+					// At the top the static hero logo is the target; it hands back to the morphing topbar logo once revealed.
+					root.classList.add('vt-arriving', 'vt-arrived');
+					event.viewTransition.finished.finally(() => root.classList.remove('vt-arriving'));
+				} else {
+					// Restored mid-page: the topbar logo is already where it belongs.
+					topbarLogo?.style.setProperty('view-transition-name', 'oz-bandung-logo');
+				}
+			});
+			addEventListener('pageswap', (event) => {
+				if (event.viewTransition) document.querySelector('[data-topbar-logo]')?.style.setProperty('view-transition-name', 'oz-bandung-logo');
+			});
+		</script>
 	</head>
 	<body>
 		<main class="bandung-page">
