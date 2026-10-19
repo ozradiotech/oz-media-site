@@ -59,12 +59,6 @@ const optimizeImageUrl = (src: string, width: number) => {
 	return url.toString();
 };
 
-const equalizerBars = Array.from({ length: 32 }, (_, index) => ({
-	height: `${Math.round(28 + 62 * Math.abs(Math.sin(index * 1.7) * Math.cos(index * 0.45)))}%`,
-	delay: (index * 137) % 900,
-	speed: 700 + ((index * 211) % 600),
-}));
-
 const sections = [
 	{ id: 'listen', label: 'ON AIR' },
 	{ id: 'programs', label: 'PROGRAMS' },
@@ -194,9 +188,6 @@ const sections = [
 							</div>
 							<div class="broadcast-backdrop" aria-hidden="true">
 								<img src="/images/studio-livestream.jpg" alt="" loading="lazy" decoding="async" />
-								<div class="broadcast-eq">
-									{equalizerBars.map((bar) => <span style={`--bar-height: ${bar.height}; --bar-delay: ${bar.delay}ms; --bar-speed: ${bar.speed}ms;`}></span>)}
-								</div>
 							</div>
 							<div class="broadcast-options">
 								<button class="broadcast-option" type="button" data-tune-in>
@@ -2147,7 +2138,7 @@ const sections = [
 		box-shadow: var(--box-shadow);
 	}
 
-	/* Dark studio backdrop: a faded photo with an equalizer that idles until a stream starts. */
+	/* Dark studio backdrop: a faded photo of the studio behind the tune-in button. */
 	.broadcast-backdrop {
 		position: absolute;
 		z-index: 0;
@@ -2169,47 +2160,6 @@ const sections = [
 		inset: 0;
 		background: radial-gradient(ellipse at 50% 45%, transparent 0%, rgb(20 20 18 / 70%) 70%);
 		content: '';
-	}
-
-	.broadcast-eq {
-		position: absolute;
-		z-index: 1;
-		right: 0;
-		bottom: 0;
-		left: 0;
-		height: 38%;
-		display: flex;
-		align-items: flex-end;
-		gap: 4px;
-		padding: 0 4px;
-		opacity: 0.55;
-	}
-
-	.broadcast-eq span {
-		flex: 1;
-		height: var(--bar-height);
-		border-radius: 3px 3px 0 0;
-		background: linear-gradient(to top, #f2bd57, rgb(242 189 87 / 15%));
-		transform-origin: bottom;
-		animation: broadcast-eq calc(var(--bar-speed) * 2.4) var(--bar-delay) ease-in-out infinite alternate;
-	}
-
-	.broadcast.is-streaming .broadcast-eq {
-		opacity: 0.85;
-	}
-
-	.broadcast.is-streaming .broadcast-eq span {
-		animation-duration: var(--bar-speed);
-	}
-
-	@keyframes broadcast-eq {
-		from {
-			transform: scaleY(0.25);
-		}
-
-		to {
-			transform: scaleY(1);
-		}
 	}
 
 	.broadcast-heading,
@@ -5386,10 +5336,6 @@ const sections = [
 
 		.program-slide.from-next,
 		.program-slide.from-previous {
-			animation: none;
-		}
-
-		.broadcast-eq span {
 			animation: none;
 		}
 
