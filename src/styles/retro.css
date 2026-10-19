@@ -1,0 +1,48 @@
+/* Retro look shared by the home page and OZ Bandung (OZ Bali doesn't import it yet).
+   Boxes borrow the logos' language: a heavy black outline and a hard, offset block shadow. */
+
+:root {
+	--box-border: 2px solid #000000;
+	--box-radius: 14px;
+	--box-offset: 6px;
+	--box-shadow: var(--box-offset) var(--box-offset) 0 #000000;
+	--box-shadow-hover: calc(var(--box-offset) + 2px) calc(var(--box-offset) + 2px) 0 #f2bd57;
+	/* Fine printed-paper grain, tiled under the cream page background. */
+	--paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.09'/%3E%3C/svg%3E");
+}
+
+@media (max-width: 560px) {
+	:root {
+		--box-radius: 12px;
+		--box-offset: 4px;
+	}
+}
+
+/* Slowly turning sunburst behind a hero logo. The parent needs position: relative and isolation: isolate. */
+.sunburst {
+	position: absolute;
+	z-index: -1;
+	top: 50%;
+	left: 50%;
+	width: var(--sunburst-size, 1000px);
+	aspect-ratio: 1;
+	border-radius: 50%;
+	background: repeating-conic-gradient(from 0deg, rgb(242 189 87 / 30%) 0deg 5deg, transparent 5deg 15deg);
+	-webkit-mask-image: radial-gradient(circle closest-side, #000000 12%, rgb(0 0 0 / 55%) 40%, transparent 100%);
+	mask-image: radial-gradient(circle closest-side, #000000 12%, rgb(0 0 0 / 55%) 40%, transparent 100%);
+	pointer-events: none;
+	translate: -50% -50%;
+	animation: sunburst-spin 180s linear infinite;
+}
+
+@keyframes sunburst-spin {
+	to {
+		rotate: 360deg;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.sunburst {
+		animation: none;
+	}
+}
