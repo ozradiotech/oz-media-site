@@ -1,3 +1,8 @@
+---
+import { Font } from 'astro:assets';
+import '../styles/typography.css';
+---
+
 <!doctype html>
 <html lang="en">
 	<head>
@@ -5,6 +10,8 @@
 		<meta name="viewport" content="width=device-width" />
 		<meta name="theme-color" content="#FFFFF3" />
 		<meta name="description" content="O.Z. Radio Bali — coming soon." />
+		<Font cssVariable="--font-tango" preload={[{ style: 'normal' }]} />
+		<Font cssVariable="--font-jakarta" preload={[{ style: 'normal' }]} />
 		<title>O.Z. Bali — O.Z. Radio</title>
 	</head>
 	<body>
@@ -34,7 +41,7 @@
 		margin: 0;
 		background: #FFFFF3;
 		color: #000000;
-		font-family: Arial, Helvetica, sans-serif;
+		font-family: var(--font-jakarta);
 	}
 
 	:global(a) {
@@ -59,7 +66,7 @@
 	.wordmark {
 		font-size: 25px;
 		font-weight: 900;
-		letter-spacing: -0.09em;
+		letter-spacing: -0.06em;
 		text-decoration: none;
 	}
 
@@ -107,7 +114,7 @@
 		margin: 0;
 		font-size: clamp(54px, 10vw, 96px);
 		font-weight: 800;
-		letter-spacing: -0.085em;
+		letter-spacing: -0.055em;
 		line-height: 1;
 	}
 

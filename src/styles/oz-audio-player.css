@@ -32,7 +32,7 @@
 	container-type: inline-size;
 	color: var(--oz-ink);
 	background: transparent;
-	font-family: Arial, Helvetica, sans-serif;
+	font-family: var(--font-jakarta, Arial, Helvetica, sans-serif);
 	font-size: 12px;
 	line-height: 1;
 	-webkit-tap-highlight-color: transparent;

@@ -1,4 +1,6 @@
 ---
+import { Font } from 'astro:assets';
+import '../styles/typography.css';
 import SectionNav from '../components/SectionNav.astro';
 import { getCollection, render } from 'astro:content';
 
@@ -73,6 +75,8 @@ const sections = [
 		<meta name="viewport" content="width=device-width" />
 		<meta name="theme-color" content="#FFFFF3" />
 		<meta name="description" content="Listen, watch and connect with OZ Media." />
+		<Font cssVariable="--font-tango" preload={[{ style: 'normal' }]} />
+		<Font cssVariable="--font-jakarta" preload={[{ style: 'normal' }]} />
 		<title>OZ Media</title>
 	</head>
 	<body>
@@ -1722,7 +1726,7 @@ const sections = [
 		margin: 0;
 		background: #FFFFF3;
 		color: #000000;
-		font-family: Arial, Helvetica, sans-serif;
+		font-family: var(--font-jakarta);
 	}
 
 	:global(a) {
@@ -2058,7 +2062,7 @@ const sections = [
 		margin: 0;
 		font-size: clamp(32px, 5vw, 56px);
 		font-weight: 800;
-		letter-spacing: -0.075em;
+		letter-spacing: -0.045em;
 		line-height: 1;
 	}
 
@@ -2650,7 +2654,7 @@ const sections = [
 	.news-list-content h2 {
 		margin: 0 40px 20px 0;
 		font-size: clamp(28px, 5vw, 44px);
-		letter-spacing: -0.06em;
+		letter-spacing: -0.03em;
 	}
 
 	.news-list-content h2 span {
@@ -2780,7 +2784,7 @@ const sections = [
 	.article-dialog-copy h2 {
 		margin: 0 30px 14px 0;
 		font-size: clamp(24px, 5vw, 42px);
-		letter-spacing: -0.06em;
+		letter-spacing: -0.03em;
 		line-height: 1.05;
 	}
 
@@ -3284,7 +3288,7 @@ const sections = [
 		margin: 0;
 		font-size: clamp(30px, 5.4vw, 58px);
 		font-weight: 800;
-		letter-spacing: -0.075em;
+		letter-spacing: -0.045em;
 		line-height: 0.98;
 	}
 
@@ -3448,7 +3452,7 @@ const sections = [
 	.announcer-card-copy h3 {
 		margin: 8px 0 5px;
 		font-size: clamp(17px, 2.1vw, 24px);
-		letter-spacing: -0.05em;
+		letter-spacing: -0.02em;
 	}
 
 	.announcer-card-copy p {
@@ -3554,7 +3558,7 @@ const sections = [
 	.announcer-dialog-copy h2 {
 		margin: 0 0 14px;
 		font-size: clamp(26px, 4.4vw, 40px);
-		letter-spacing: -0.06em;
+		letter-spacing: -0.03em;
 		line-height: 1.05;
 	}
 
@@ -3832,7 +3836,7 @@ const sections = [
 	.feature-card h3 {
 		margin: 0 0 7px;
 		font-size: clamp(17px, 2.3vw, 24px);
-		letter-spacing: -0.05em;
+		letter-spacing: -0.02em;
 	}
 
 	.feature-card p {

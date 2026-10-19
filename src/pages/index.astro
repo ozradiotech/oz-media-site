@@ -1,4 +1,6 @@
 ---
+import { Font } from 'astro:assets';
+import '../styles/typography.css';
 const locations = [
 	{ name: 'Bandung', href: '/oz-bandung/', logo: '/images/logo-oz-bandung.png' },
 	{ name: 'Bali', href: '/oz-bali/', logo: '/images/logo-oz-bali.png' },
@@ -12,6 +14,8 @@ const locations = [
 		<meta name="viewport" content="width=device-width" />
 		<meta name="theme-color" content="#FEE0A6" />
 		<meta name="description" content="Location select for OZ Radio" />
+		<Font cssVariable="--font-tango" preload={[{ style: 'normal' }]} />
+		<Font cssVariable="--font-jakarta" preload={[{ style: 'normal' }]} />
 		<title>OZ Radio — Choose your frequency</title>
 	</head>
 	<body>
@@ -52,7 +56,7 @@ const locations = [
 		margin: 0;
 		background: #FEE0A6;
 		color: #000000;
-		font-family: Arial, Helvetica, sans-serif;
+		font-family: var(--font-jakarta);
 	}
 
 	:global(a) {
@@ -128,7 +132,7 @@ const locations = [
 	.wordmark {
 		font-size: 25px;
 		font-weight: 900;
-		letter-spacing: -0.09em;
+		letter-spacing: -0.06em;
 		text-decoration: none;
 		flex: 0 0 auto;
 	}

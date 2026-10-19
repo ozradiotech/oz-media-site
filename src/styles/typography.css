@@ -1,0 +1,11 @@
+/* Tango Sans (primary) for headings, logos and display text; Plus Jakarta Sans (secondary) for body and UI.
+   The --font-* variables come from the fonts config in astro.config.mjs. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.wordmark {
+	font-family: var(--font-tango);
+}
