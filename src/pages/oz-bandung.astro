@@ -59,6 +59,12 @@ const optimizeImageUrl = (src: string, width: number) => {
 	return url.toString();
 };
 
+const equalizerBars = Array.from({ length: 32 }, (_, index) => ({
+	height: `${Math.round(28 + 62 * Math.abs(Math.sin(index * 1.7) * Math.cos(index * 0.45)))}%`,
+	delay: (index * 137) % 900,
+	speed: 700 + ((index * 211) % 600),
+}));
+
 const sections = [
 	{ id: 'listen', label: 'ON AIR' },
 	{ id: 'programs', label: 'PROGRAMS' },
@@ -186,10 +192,17 @@ const sections = [
 								<div class="broadcast-label"><span class="live-dot idle-dot"></span> LIVE FROM THE STUDIO</div>
 								<span class="on-air">ON AIR</span>
 							</div>
+							<div class="broadcast-backdrop" aria-hidden="true">
+								<img src="/images/studio-livestream.jpg" alt="" loading="lazy" decoding="async" />
+								<div class="broadcast-eq">
+									{equalizerBars.map((bar) => <span style={`--bar-height: ${bar.height}; --bar-delay: ${bar.delay}ms; --bar-speed: ${bar.speed}ms;`}></span>)}
+								</div>
+							</div>
 							<div class="broadcast-options">
 								<button class="broadcast-option" type="button" data-tune-in>
 									<span class="tune-in-icon" aria-hidden="true">▶</span>
 									<span data-tune-in-label>Tune in</span>
+									<span class="tune-in-frequency">103.1 FM · BANDUNG</span>
 								</button>
 							</div>
 							<div class="broadcast-panel" data-broadcast-panel="audio" hidden>
@@ -285,7 +298,7 @@ const sections = [
 
 			</section>
 
-			<section class="screen" id="programs" aria-labelledby="programs-title">
+			<section class="screen screen-sand" id="programs" aria-labelledby="programs-title">
 				<div class="screen-content">
 					<div class="section-heading" data-section-number="02">
 						<div>
@@ -333,7 +346,7 @@ const sections = [
 				</div>
 			</section>
 
-			<section class="screen" id="announcer" aria-labelledby="announcer-title">
+			<section class="screen screen-dark" id="announcer" aria-labelledby="announcer-title">
 				<div class="screen-content">
 					<div class="section-heading" data-section-number="03">
 						<div>
@@ -458,7 +471,7 @@ const sections = [
 				</div>
 			</section>
 
-			<section class="screen" id="activities" aria-labelledby="activities-title">
+			<section class="screen screen-sand" id="activities" aria-labelledby="activities-title">
 				<div class="screen-content">
 					<div class="section-heading" data-section-number="05">
 						<div>
@@ -542,7 +555,7 @@ const sections = [
 				</div>
 			</section>
 
-			<section class="screen contact-screen" id="contact" aria-labelledby="contact-title">
+			<section class="screen screen-sand contact-screen" id="contact" aria-labelledby="contact-title">
 				<div class="screen-content">
 					<div class="section-heading" data-section-number="07">
 						<div>
@@ -1772,7 +1785,21 @@ const sections = [
 		overflow: hidden;
 		margin: 0 auto;
 		padding: calc(clamp(14px, 3vh, 26px) + 64px) clamp(32px, 6vw, 96px) calc(clamp(14px, 3vh, 26px) + 56px);
-		border-bottom: 1px solid #D8D8CC;
+		border-bottom: 2px solid #000000;
+	}
+
+	/* Sections alternate cream / sand, with one dark band, so scrolling has a rhythm. */
+	.screen-sand {
+		background: var(--paper-grain), #F6EDD3;
+	}
+
+	.screen-dark {
+		background: var(--paper-grain), #141412;
+		color: #FFFFF3;
+	}
+
+	.screen-dark .eyebrow {
+		color: #A8A89C;
 	}
 
 	/* Off-screen sections skip rendering; they already clip their overflow and have a fixed height, so nothing shifts. */
@@ -2115,8 +2142,80 @@ const sections = [
 		overflow: hidden;
 		border: var(--box-border);
 		border-radius: var(--box-radius);
-		background: #FFFFF3;
+		background: #141412;
+		color: #FFFFF3;
 		box-shadow: var(--box-shadow);
+	}
+
+	/* Dark studio backdrop: a faded photo with an equalizer that idles until a stream starts. */
+	.broadcast-backdrop {
+		position: absolute;
+		z-index: 0;
+		inset: 48px 0 0;
+		overflow: hidden;
+		pointer-events: none;
+	}
+
+	.broadcast-backdrop img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		filter: grayscale(1) contrast(1.1);
+		opacity: 0.22;
+	}
+
+	.broadcast-backdrop::after {
+		position: absolute;
+		inset: 0;
+		background: radial-gradient(ellipse at 50% 45%, transparent 0%, rgb(20 20 18 / 70%) 70%);
+		content: '';
+	}
+
+	.broadcast-eq {
+		position: absolute;
+		z-index: 1;
+		right: 0;
+		bottom: 0;
+		left: 0;
+		height: 38%;
+		display: flex;
+		align-items: flex-end;
+		gap: 4px;
+		padding: 0 4px;
+		opacity: 0.55;
+	}
+
+	.broadcast-eq span {
+		flex: 1;
+		height: var(--bar-height);
+		border-radius: 3px 3px 0 0;
+		background: linear-gradient(to top, #f2bd57, rgb(242 189 87 / 15%));
+		transform-origin: bottom;
+		animation: broadcast-eq calc(var(--bar-speed) * 2.4) var(--bar-delay) ease-in-out infinite alternate;
+	}
+
+	.broadcast.is-streaming .broadcast-eq {
+		opacity: 0.85;
+	}
+
+	.broadcast.is-streaming .broadcast-eq span {
+		animation-duration: var(--bar-speed);
+	}
+
+	@keyframes broadcast-eq {
+		from {
+			transform: scaleY(0.25);
+		}
+
+		to {
+			transform: scaleY(1);
+		}
+	}
+
+	.broadcast-heading,
+	.broadcast-panel {
+		position: relative;
+		z-index: 1;
 	}
 
 	.broadcast-layout {
@@ -2510,25 +2609,49 @@ const sections = [
 		flex: initial;
 		flex-direction: column;
 		justify-content: center;
-		gap: 7px;
+		gap: 10px;
 		padding: 10px 22px;
+		background: transparent;
+		color: #FFFFF3;
+		font-family: var(--font-tango);
+		font-size: clamp(20px, 2.4vw, 30px);
+		letter-spacing: -0.02em;
 	}
 
-	.broadcast-options .broadcast-option:hover {
-		background: #FFF0D1;
+	.broadcast-options .broadcast-option:hover,
+	.broadcast-options .broadcast-option:focus-visible {
+		background: transparent;
+		color: #f2bd57;
 	}
 
 	.tune-in-icon {
-		width: 38px;
-		height: 38px;
+		width: clamp(72px, 8vw, 96px);
+		height: clamp(72px, 8vw, 96px);
 		display: grid;
 		place-items: center;
-		border: 1px solid #f2bd57;
+		padding-left: 0.15em;
+		border: 2px solid #000000;
 		border-radius: 50%;
 		background: #f2bd57;
 		color: #000000;
-		font-size: 12px;
+		font-size: clamp(22px, 2.4vw, 30px);
 		line-height: 1;
+		box-shadow: 5px 5px 0 #FFFFF3;
+		transition: transform 180ms ease, box-shadow 180ms ease;
+	}
+
+	.broadcast-options .broadcast-option:hover .tune-in-icon {
+		box-shadow: 7px 7px 0 #FFFFF3;
+		transform: translate(-2px, -2px);
+	}
+
+	.tune-in-frequency {
+		color: #A8A89C;
+		font-family: var(--font-jakarta);
+		font-size: 9px;
+		font-weight: 700;
+		letter-spacing: 0.16em;
+		white-space: nowrap;
 	}
 
 	.broadcast.is-streaming .broadcast-options {
@@ -2551,16 +2674,22 @@ const sections = [
 		flex-direction: row;
 		gap: 0;
 		padding: 0 10px;
-		border: 1px solid #D8D8CC;
-		border-radius: 2px;
+		border: 1.5px solid #000000;
+		border-radius: 8px;
 		background: #FFFFF3;
+		color: #000000;
+		font-family: var(--font-jakarta);
+		font-size: 12px;
+		letter-spacing: 0;
 	}
 
 	.broadcast.is-streaming .broadcast-options .broadcast-option:hover {
 		background: #FFF0D1;
+		color: #000000;
 	}
 
-	.broadcast.is-streaming .tune-in-icon {
+	.broadcast.is-streaming .tune-in-icon,
+	.broadcast.is-streaming .tune-in-frequency {
 		display: none;
 	}
 
@@ -2619,7 +2748,7 @@ const sections = [
 	}
 
 	.stream-status {
-		color: #77776F;
+		color: #A8A89C;
 		font-size: 7px;
 		font-weight: 700;
 		letter-spacing: 0.1em;
@@ -3103,9 +3232,7 @@ const sections = [
 		width: 100%;
 		height: 100%;
 		aspect-ratio: 16 / 9;
-		background:
-			radial-gradient(ellipse at 50% 110%, rgba(242, 189, 87, 0.14), transparent 53%),
-			#FFFFF3;
+		background: #141412;
 	}
 
 	.video-frame iframe {
@@ -3189,15 +3316,15 @@ const sections = [
 		align-items: center;
 		gap: 9px 12px;
 		padding: 12px 16px;
-		border-top: 1px solid #D8D8CC;
 	}
 
 	.listener-stats {
 		display: flex;
 		justify-content: flex-start;
 		padding: 8px 16px 10px;
-		border-top: 1px solid #D8D8CC;
-		color: #77776F;
+		border-top: 1px solid rgb(255 255 243 / 14%);
+		background: rgb(20 20 18 / 70%);
+		color: #A8A89C;
 		font-size: 8px;
 		font-weight: 700;
 		letter-spacing: 0.1em;
@@ -3205,7 +3332,7 @@ const sections = [
 
 	.listener-stats strong {
 		margin-left: 5px;
-		color: #000000;
+		color: #f2bd57;
 		font-size: 12px;
 		letter-spacing: 0;
 	}
@@ -3238,7 +3365,7 @@ const sections = [
 
 	.audio-copy span {
 		overflow-wrap: anywhere;
-		color: #77776F;
+		color: #A8A89C;
 		font-size: 12px;
 	}
 
@@ -3247,6 +3374,15 @@ const sections = [
 		width: 100%;
 		max-width: 320px;
 		justify-self: center;
+	}
+
+	/* The OZ Video.js theme is light by default; flip its palette for the dark broadcast panel. */
+	.broadcast :global(.video-js.vjs-oz) {
+		--oz-surface: #141412;
+		--oz-ink: #FFFFF3;
+		--oz-muted: #A8A89C;
+		--oz-line: rgb(255 255 243 / 18%);
+		--oz-accent-soft: rgb(242 189 87 / 18%);
 	}
 
 	/* The Video.js player shows the track metadata itself, so it takes the whole bar. */
@@ -3327,7 +3463,7 @@ const sections = [
 		color: transparent;
 		content: attr(data-section-number);
 		font-family: var(--font-tango);
-		font-size: clamp(120px, 20vw, 300px);
+		font-size: clamp(96px, 12vw, 180px);
 		font-weight: 800;
 		letter-spacing: -0.04em;
 		line-height: 0.8;
@@ -3443,6 +3579,15 @@ const sections = [
 	.announcer-card[data-announcer-card]:hover {
 		transform: translate(-2px, -4px);
 		box-shadow: var(--box-shadow-hover);
+	}
+
+	.screen-dark .announcer-card {
+		border-color: #FFFFF3;
+		box-shadow: var(--box-offset) var(--box-offset) 0 #f2bd57;
+	}
+
+	.screen-dark .announcer-card[data-announcer-card]:hover {
+		box-shadow: calc(var(--box-offset) + 2px) calc(var(--box-offset) + 2px) 0 #FFFFF3;
 	}
 
 	.announcer-card[data-announcer-card]:focus-visible {
@@ -4770,7 +4915,7 @@ const sections = [
 
 		/* The heading spans the full width here, so keep the number quieter behind it. */
 		.section-heading[data-section-number]::after {
-			font-size: 96px;
+			font-size: 76px;
 			-webkit-text-stroke-width: 1.5px;
 			-webkit-text-stroke-color: rgb(242 189 87 / 40%);
 		}
@@ -5241,6 +5386,10 @@ const sections = [
 
 		.program-slide.from-next,
 		.program-slide.from-previous {
+			animation: none;
+		}
+
+		.broadcast-eq span {
 			animation: none;
 		}
 
