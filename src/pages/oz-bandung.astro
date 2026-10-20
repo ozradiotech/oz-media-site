@@ -241,7 +241,7 @@ const sections = [
 					<dialog class="listener-dialog" data-listener-dialog aria-labelledby="listener-dialog-title">
 						<form class="listener-form" data-listener-form>
 							<button class="dialog-close" type="button" data-dialog-close aria-label="Close">×</button>
-							<p class="eyebrow" data-dialog-eyebrow>OZ BANDUNG · LIVE</p>
+							<p class="eyebrow" data-dialog-eyebrow>OZ RADIO BANDUNG</p>
 							<h2 id="listener-dialog-title" data-dialog-title>Choose how to tune in</h2>
 							<div class="broadcast-selection" data-broadcast-selection role="group" aria-label="Choose a broadcast">
 								<button class="broadcast-option" type="button" data-select-broadcast="audio">♫ <span>Listen to audio stream</span></button>
@@ -292,33 +292,41 @@ const sections = [
 				<div class="screen-content">
 					<div class="section-heading" data-section-number="02">
 						<div>
-							<p class="eyebrow">02 / ON AIR PROGRAM</p>
+							<p class="eyebrow">ON AIR PROGRAM</p>
 							<h2 id="programs-title">Our<span> on air</span> program</h2>
 						</div>
 					</div>
 					<div class="program-carousel" data-program-carousel aria-roledescription="carousel" aria-label="On air programs">
-						<div class="program-slides">
-							{programsWithBody.map(({ entry: program, Content }, index) => (
-								<article
-									class:list={['program-slide', { 'is-active': index < 3 }]}
-									data-program-slide
-									data-article-card
-									aria-haspopup="dialog"
-									aria-label={`Read full article: ${program.data.title}, slide ${index + 1} of ${programsWithBody.length}`}
-									role="button"
-									tabindex="0"
-									aria-roledescription="slide"
-									hidden={index >= 3}
-								>
-									<img src={optimizeImageUrl(program.data.image, 900)} alt={program.data.imageAlt} loading="lazy" decoding="async" />
-									<div class="program-slide-copy">
-										<span class="card-index">{String(index + 1).padStart(2, '0')} / ON AIR</span>
-										<h3>{program.data.title}</h3>
-										<p>{program.data.summary}</p>
-									</div>
-									<template data-article-body><Content /></template>
-								</article>
-							))}
+						<div class="carousel-stage">
+							<button class="carousel-chevron carousel-chevron-previous" type="button" data-program-previous aria-label="Previous programs">
+								<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5" /></svg>
+							</button>
+							<div class="program-slides">
+								{programsWithBody.map(({ entry: program, Content }, index) => (
+									<article
+										class:list={['program-slide', { 'is-active': index < 3 }]}
+										data-program-slide
+										data-article-card
+										aria-haspopup="dialog"
+										aria-label={`Read full article: ${program.data.title}, slide ${index + 1} of ${programsWithBody.length}`}
+										role="button"
+										tabindex="0"
+										aria-roledescription="slide"
+										hidden={index >= 3}
+									>
+										<img src={optimizeImageUrl(program.data.image, 900)} alt={program.data.imageAlt} loading="lazy" decoding="async" />
+										<div class="program-slide-copy">
+											<span class="card-index">{String(index + 1).padStart(2, '0')} / ON AIR</span>
+											<h3>{program.data.title}</h3>
+											<p>{program.data.summary}</p>
+										</div>
+										<template data-article-body><Content /></template>
+									</article>
+								))}
+							</div>
+							<button class="carousel-chevron carousel-chevron-next" type="button" data-program-next aria-label="Next programs">
+								<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 4.5 16.5 12 9 19.5" /></svg>
+							</button>
 						</div>
 						<div class="program-carousel-controls">
 							<div class="program-pagination" role="group" aria-label="Choose a group of programs">
@@ -326,11 +334,7 @@ const sections = [
 									<button class="program-dot" type="button" data-program-index={index} aria-label={`Show programs ${index + 1} to ${Math.min(index + 3, programsWithBody.length)}`} aria-pressed={index === 0 ? 'true' : 'false'}></button>
 								))}
 							</div>
-							<div class="program-arrows">
-								<button class="carousel-arrow" type="button" data-program-previous aria-label="Previous programs">←</button>
-								<span class="program-count" data-program-count aria-live="polite">{programsWithBody.length ? `01-${String(Math.min(3, programsWithBody.length)).padStart(2, '0')} / ${String(programsWithBody.length).padStart(2, '0')}` : '00-00 / 00'}</span>
-								<button class="carousel-arrow" type="button" data-program-next aria-label="Next programs">→</button>
-							</div>
+							<span class="program-count" data-program-count aria-live="polite">{programsWithBody.length ? `01-${String(Math.min(3, programsWithBody.length)).padStart(2, '0')} / ${String(programsWithBody.length).padStart(2, '0')}` : '00-00 / 00'}</span>
 						</div>
 					</div>
 				</div>
@@ -340,7 +344,7 @@ const sections = [
 				<div class="screen-content">
 					<div class="section-heading" data-section-number="03">
 						<div>
-							<p class="eyebrow">03 / THE VOICES OF OZ</p>
+							<p class="eyebrow">THE VOICES OF OZ</p>
 							<h2 id="announcer-title">Announcer</h2>
 						</div>
 					</div>
@@ -376,7 +380,7 @@ const sections = [
 				<div class="screen-content">
 					<div class="section-heading" data-section-number="04">
 						<div>
-							<p class="eyebrow">04 / ONLINE</p>
+							<p class="eyebrow">ONLINE</p>
 							<h2 id="online-title">Online <span>digital</span></h2>
 						</div>
 					</div>
@@ -384,13 +388,20 @@ const sections = [
 						<article class="feature-card social-card youtube-card">
 							<div class="social-topline"><span class="social-mark">▶</span><span>OZ RADIO BANDUNG · YOUTUBE</span></div>
 							<div class="youtube-carousel" data-youtube-carousel>
-								<div class="channel-preview" data-youtube-player>
-									<span class="preview-play">▶</span>
-									<span class="preview-caption">PODCASTS<br />&amp; LIVESTREAMS</span>
-									<span class="preview-duration">YOUTUBE VIDEO TO BE ADDED</span>
+								<div class="carousel-stage">
+									<button class="carousel-chevron carousel-chevron-previous carousel-chevron-inset" type="button" data-youtube-previous aria-label="Previous video">
+										<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5" /></svg>
+									</button>
+									<div class="channel-preview" data-youtube-player>
+										<span class="preview-play">▶</span>
+										<span class="preview-caption">PODCASTS<br />&amp; LIVESTREAMS</span>
+										<span class="preview-duration">YOUTUBE VIDEO TO BE ADDED</span>
+									</div>
+									<button class="carousel-chevron carousel-chevron-next carousel-chevron-inset" type="button" data-youtube-next aria-label="Next video">
+										<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 4.5 16.5 12 9 19.5" /></svg>
+									</button>
 								</div>
 								<div class="youtube-carousel-nav">
-									<button class="carousel-arrow" type="button" data-youtube-previous aria-label="Previous video">←</button>
 									<div class="video-picker" role="group" aria-label="Select a YouTube video">
 										{youtubeVideos.map((video, index) => (
 											<button
@@ -407,7 +418,6 @@ const sections = [
 											</button>
 										))}
 									</div>
-									<button class="carousel-arrow" type="button" data-youtube-next aria-label="Next video">→</button>
 								</div>
 								<div class="youtube-current" aria-live="polite">
 									<strong data-youtube-current-title>{youtubeVideos[0].title}</strong>
@@ -465,7 +475,7 @@ const sections = [
 				<div class="screen-content">
 					<div class="section-heading" data-section-number="05">
 						<div>
-							<p class="eyebrow">05 / ON GROUND ACTIVITY</p>
+							<p class="eyebrow">ON GROUND ACTIVITY</p>
 							<h2 id="activities-title">On ground <span>activity.</span></h2>
 						</div>
 					</div>
@@ -503,35 +513,41 @@ const sections = [
 				<div class="screen-content">
 					<div class="section-heading" data-section-number="06">
 						<div>
-							<p class="eyebrow">06 / OZ NEWS TODAY</p>
+							<p class="eyebrow">OZ NEWS TODAY</p>
 							<h2 id="news-title">OZ <span>News.</span></h2>
 						</div>
 					</div>
 					<div class="news-layout">
 						<div class="news-articles" data-news-carousel aria-roledescription="carousel" aria-label="Latest OZ News articles">
-							{featuredNews.map(({ entry: article, Content }, index) => (
-								<article class="feature-card lead-story" data-article-card data-news-slide hidden={index !== 0} aria-haspopup="dialog" aria-label={`Read full article: ${article.data.title}`} role="button" tabindex="0">
-									<div class="story-art">
-										<img src={optimizeImageUrl(article.data.image, 1000)} alt={article.data.imageAlt} loading="lazy" decoding="async" />
-										<span class="story-stamp">OZ<br />NEWS</span>
-										<span class="story-date">
-											{article.data.publishedAt
-												? <time datetime={article.data.publishedAt.toISOString()}>{article.data.publishedAt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</time>
-												: 'OZ NEWS'}
-										</span>
-									</div>
-									<div class="story-copy">
-										<span class="card-index">{article.data.category}</span>
-										<h3>{article.data.title}</h3>
-										<p>{article.data.summary}</p>
-									</div>
-									<template data-article-body><Content /></template>
-								</article>
-							))}
+							<div class="carousel-stage">
+								<button class="carousel-chevron carousel-chevron-previous carousel-chevron-inset" type="button" data-news-previous hidden={featuredNews.length < 2} aria-label="Previous article">
+									<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5" /></svg>
+								</button>
+								{featuredNews.map(({ entry: article, Content }, index) => (
+									<article class="feature-card lead-story" data-article-card data-news-slide hidden={index !== 0} aria-haspopup="dialog" aria-label={`Read full article: ${article.data.title}`} role="button" tabindex="0">
+										<div class="story-art">
+											<img src={optimizeImageUrl(article.data.image, 1000)} alt={article.data.imageAlt} loading="lazy" decoding="async" />
+											<span class="story-stamp">OZ<br />NEWS</span>
+											<span class="story-date">
+												{article.data.publishedAt
+													? <time datetime={article.data.publishedAt.toISOString()}>{article.data.publishedAt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</time>
+													: 'OZ NEWS'}
+											</span>
+										</div>
+										<div class="story-copy">
+											<span class="card-index">{article.data.category}</span>
+											<h3>{article.data.title}</h3>
+											<p>{article.data.summary}</p>
+										</div>
+										<template data-article-body><Content /></template>
+									</article>
+								))}
+								<button class="carousel-chevron carousel-chevron-next carousel-chevron-inset" type="button" data-news-next hidden={featuredNews.length < 2} aria-label="Next article">
+									<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 4.5 16.5 12 9 19.5" /></svg>
+								</button>
+							</div>
 							<div class="news-carousel-controls" data-news-controls hidden={featuredNews.length < 2}>
-								<button class="news-carousel-button" type="button" data-news-previous aria-label="Previous article">←</button>
 								<span class="news-carousel-count" data-news-count aria-live="polite">01 / {String(featuredNews.length).padStart(2, '0')}</span>
-								<button class="news-carousel-button" type="button" data-news-next aria-label="Next article">→</button>
 							</div>
 							<button class="news-list-trigger" type="button" data-news-list-open>VIEW ALL ARTICLES ↓</button>
 						</div>
@@ -549,7 +565,7 @@ const sections = [
 				<div class="screen-content">
 					<div class="section-heading" data-section-number="07">
 						<div>
-							<p class="eyebrow">07 / LET'S TALK BUSINESS</p>
+							<p class="eyebrow">LET'S TALK BUSINESS</p>
 							<h2 id="contact-title">Contact <span>Information.</span></h2>
 						</div>
 					</div>
@@ -599,7 +615,7 @@ const sections = [
 		<dialog class="news-list-dialog" data-news-list-dialog aria-labelledby="news-list-title">
 			<button class="dialog-close news-list-close" type="button" data-news-list-close aria-label="Close article list">×</button>
 			<div class="news-list-content">
-				<p class="eyebrow">OZ BANDUNG · NEWSROOM</p>
+				<p class="eyebrow">OZ RADIO BANDUNG · NEWSROOM</p>
 				<h2 id="news-list-title">All <span>Articles.</span></h2>
 				<label class="news-list-sort-label" for="news-list-sort">SORT BY</label>
 				<select class="news-list-sort" id="news-list-sort" data-news-list-sort>
@@ -653,7 +669,7 @@ const sections = [
 				<img data-announcer-image alt="" width="600" height="750" decoding="async" />
 			</div>
 			<div class="announcer-dialog-copy">
-				<p class="eyebrow">OZ BANDUNG · THE VOICES OF OZ</p>
+				<p class="eyebrow">OZ RADIO BANDUNG · THE VOICES OF OZ</p>
 				<h2 id="announcer-dialog-title" data-announcer-title></h2>
 				<p class="announcer-dialog-summary" data-announcer-summary></p>
 				<div class="announcer-dialog-body" data-announcer-body-content hidden></div>
@@ -1260,31 +1276,39 @@ const sections = [
 	});
 
 	if (window.matchMedia('(hover: hover) and (pointer: fine)').matches && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-		programSlides?.forEach((slide) => {
+		const tiltCards = [
+			...(programSlides ?? []),
+			...document.querySelectorAll<HTMLElement>('[data-announcer-card]'),
+		];
+		// Tilt ramps from 0 at the card's center to the max at its edges.
+		const tiltMax = 9;
+		const edgeTilt = (position: number) => (position - 0.5) * 2 * tiltMax;
+		tiltCards.forEach((card) => {
 			// Pointer events can fire several times per frame, so apply at most one tilt per frame.
 			let tiltFrame = 0;
 			let pointer = { x: 0, y: 0 };
-			slide.addEventListener('pointermove', (event) => {
+			card.addEventListener('pointermove', (event) => {
 				pointer = { x: event.clientX, y: event.clientY };
 				if (tiltFrame) return;
 				tiltFrame = window.requestAnimationFrame(() => {
 					tiltFrame = 0;
-					const bounds = slide.getBoundingClientRect();
-					const horizontalPosition = (pointer.x - bounds.left) / bounds.width;
-					const verticalPosition = (pointer.y - bounds.top) / bounds.height;
-					slide.style.setProperty('--program-tilt-x', `${(horizontalPosition - 0.5) * 8}deg`);
-					slide.style.setProperty('--program-tilt-y', `${(2 - verticalPosition) * 8}deg`);
+					const bounds = card.getBoundingClientRect();
+					const horizontalPosition = Math.min(Math.max((pointer.x - bounds.left) / bounds.width, 0), 1);
+					const verticalPosition = Math.min(Math.max((pointer.y - bounds.top) / bounds.height, 0), 1);
+					// The pressed edge sinks away from the viewer.
+					card.style.setProperty('--card-tilt-x', `${edgeTilt(horizontalPosition)}deg`);
+					card.style.setProperty('--card-tilt-y', `${-edgeTilt(verticalPosition)}deg`);
 				});
 			});
 
 			const resetTilt = () => {
 				window.cancelAnimationFrame(tiltFrame);
 				tiltFrame = 0;
-				slide.style.removeProperty('--program-tilt-x');
-				slide.style.removeProperty('--program-tilt-y');
+				card.style.removeProperty('--card-tilt-x');
+				card.style.removeProperty('--card-tilt-y');
 			};
-			slide.addEventListener('pointerleave', resetTilt);
-			slide.addEventListener('pointercancel', resetTilt);
+			card.addEventListener('pointerleave', resetTilt);
+			card.addEventListener('pointercancel', resetTilt);
 		});
 	}
 
@@ -2817,7 +2841,6 @@ const sections = [
 
 	.news-list-item:focus-visible,
 	.news-list-sort:focus-visible,
-	.news-carousel-button:focus-visible,
 	.news-list-trigger:focus-visible {
 		outline: 2px solid #f2bd57;
 		outline-offset: 3px;
@@ -3517,11 +3540,13 @@ const sections = [
 
 	.announcer-card[data-announcer-card] {
 		cursor: pointer;
+		transform: perspective(900px) rotateX(var(--card-tilt-y, 0deg)) rotateY(var(--card-tilt-x, 0deg)) scale(var(--card-scale, 1));
+		transform-style: preserve-3d;
 		transition: transform 180ms ease, box-shadow 180ms ease;
 	}
 
 	.announcer-card[data-announcer-card]:hover {
-		transform: translate(-2px, -4px);
+		--card-scale: 1.04;
 		box-shadow: var(--box-shadow-hover);
 	}
 
@@ -3872,13 +3897,13 @@ const sections = [
 	}
 
 	.program-slide[data-article-card] {
-		transform: perspective(900px) rotateX(var(--program-tilt-y, 0deg)) rotateY(var(--program-tilt-x, 0deg)) translateY(var(--program-lift, 0px));
+		transform: perspective(900px) rotateX(var(--card-tilt-y, 0deg)) rotateY(var(--card-tilt-x, 0deg)) scale(var(--card-scale, 1));
 		transform-style: preserve-3d;
 		transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
 	}
 
 	.program-slide[data-article-card]:hover {
-		--program-lift: -5px;
+		--card-scale: 1.04;
 	}
 
 	.program-slide[data-article-card]:focus-visible,
@@ -3919,8 +3944,85 @@ const sections = [
 		white-space: nowrap;
 	}
 
+	/* Carousel chevrons sit on the left and right edges, in the same outlined, hard-shadow style as the cards. */
+	.carousel-stage {
+		position: relative;
+	}
+
+	.carousel-chevron {
+		--chevron-size: 46px;
+		position: absolute;
+		z-index: 2;
+		top: 50%;
+		width: var(--chevron-size);
+		height: var(--chevron-size);
+		display: grid;
+		place-items: center;
+		padding: 0;
+		border: var(--box-border);
+		border-radius: 50%;
+		background: #FFFFF3;
+		box-shadow: 4px 4px 0 #000000;
+		color: #000000;
+		cursor: pointer;
+		translate: 0 -50%;
+		transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+	}
+
+	.carousel-chevron-previous {
+		left: calc(var(--chevron-size) / -2);
+	}
+
+	.carousel-chevron-next {
+		right: calc(var(--chevron-size) / -2);
+	}
+
+	/* Inside a card or next to another column there's no margin to hang over, so these sit just inside the edge. */
+	.carousel-chevron-inset {
+		--chevron-size: 38px;
+	}
+
+	.carousel-chevron-previous.carousel-chevron-inset {
+		left: 10px;
+	}
+
+	.carousel-chevron-next.carousel-chevron-inset {
+		right: 10px;
+	}
+
+	.carousel-chevron[hidden] {
+		display: none;
+	}
+
+	.carousel-chevron svg {
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 3;
+		stroke-linecap: square;
+	}
+
+	.carousel-chevron:hover {
+		background: #FFF0D1;
+		box-shadow: 6px 6px 0 #f2bd57;
+		transform: translate(-2px, -2px);
+	}
+
+	.carousel-chevron:active {
+		box-shadow: 0 0 0 #000000;
+		transform: translate(4px, 4px);
+	}
+
+	.carousel-chevron-inset svg {
+		width: 18px;
+		height: 18px;
+	}
+
+	.carousel-chevron:focus-visible {
+		outline: 2px solid #f2bd57;
+		outline-offset: 3px;
+	}
+
 	.program-carousel-controls,
-	.program-arrows,
 	.program-pagination {
 		display: flex;
 		align-items: center;
@@ -3957,16 +4059,10 @@ const sections = [
 		outline-offset: 4px;
 	}
 
-	.program-arrows {
-		gap: 12px;
-	}
-
 	.program-count {
-		min-width: 68px;
 		color: #77776F;
 		font-size: 9px;
 		font-variant-numeric: tabular-nums;
-		text-align: center;
 	}
 
 	@keyframes program-slide-from-next {
@@ -4119,7 +4215,6 @@ const sections = [
 		gap: 6px;
 	}
 
-	.carousel-arrow,
 	.video-picker-item {
 		border: 1.5px solid #000000;
 		border-radius: 8px;
@@ -4127,12 +4222,6 @@ const sections = [
 		color: #000000;
 		font: inherit;
 		cursor: pointer;
-	}
-
-	.carousel-arrow {
-		width: 30px;
-		flex: 0 0 30px;
-		font-size: 14px;
 	}
 
 	.video-picker {
@@ -4165,13 +4254,11 @@ const sections = [
 		color: #000000;
 	}
 
-	.carousel-arrow:hover,
 	.video-picker-item:hover {
 		background: #FFF0D1;
 		color: #000000;
 	}
 
-	.carousel-arrow:focus-visible,
 	.video-picker-item:focus-visible {
 		outline: 2px solid #f2bd57;
 		outline-offset: 2px;
@@ -4433,23 +4520,6 @@ const sections = [
 		display: flex;
 		align-items: center;
 		gap: 10px;
-	}
-
-	.news-carousel-button {
-		display: grid;
-		width: 34px;
-		height: 34px;
-		place-items: center;
-		border: 1.5px solid #000000;
-		border-radius: 8px;
-		background: #FFFFF3;
-		color: #000000;
-		font-size: 16px;
-		cursor: pointer;
-	}
-
-	.news-carousel-button:hover {
-		background: #FFF0D1;
 	}
 
 	.news-carousel-count {
@@ -4976,8 +5046,13 @@ const sections = [
 			width: 22px;
 		}
 
-		.program-arrows {
-			gap: 6px;
+		.carousel-chevron {
+			--chevron-size: 36px;
+		}
+
+		.carousel-chevron svg {
+			width: 18px;
+			height: 18px;
 		}
 
 		.social-grid {
@@ -5248,6 +5323,14 @@ const sections = [
 			padding-left: 12px;
 		}
 
+		.carousel-chevron-previous {
+			left: 6px;
+		}
+
+		.carousel-chevron-next {
+			right: 6px;
+		}
+
 		.back-link,
 		.location-tag,
 		.section-label {
@@ -5328,9 +5411,17 @@ const sections = [
 			transform: none;
 		}
 
+		.announcer-card[data-announcer-card] {
+			transform: none;
+		}
+
 		.program-slide.from-next,
 		.program-slide.from-previous {
 			animation: none;
+		}
+
+		.carousel-chevron {
+			transition: none;
 		}
 
 		.broadcast-panel:not([hidden]),
@@ -5383,7 +5474,7 @@ const sections = [
 		}
 
 		.program-slide[data-article-card]:hover {
-			--program-lift: 0;
+			--card-scale: 1;
 			box-shadow: none;
 		}
 
