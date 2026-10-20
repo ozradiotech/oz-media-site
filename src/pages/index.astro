@@ -4,14 +4,9 @@ import '../styles/typography.css';
 import '../styles/page-transitions.css';
 import '../styles/retro.css';
 const locations = [
-	{ name: 'Bandung', href: '/oz-bandung/', logo: '/images/logo-oz-bandung.png', frequency: 103.1, transitionName: 'oz-bandung-logo' },
-	{ name: 'Bali', href: '/oz-bali/', logo: '/images/logo-oz-bali.png', frequency: 101.2 },
+	{ name: 'Bandung', href: '/oz-bandung/', logo: '/images/logo-oz-bandung.png', transitionName: 'oz-bandung-logo' },
+	{ name: 'Bali', href: '/oz-bali/', logo: '/images/logo-oz-bali.png' },
 ];
-
-// FM band shown on the tuner dial; stations sit at their share of the way along it.
-const band = { min: 88, max: 108 };
-const dialPosition = (frequency: number) => `${((frequency - band.min) / (band.max - band.min)) * 100}%`;
-const dialLabels = [88, 92, 96, 100, 104, 108];
 ---
 
 <!doctype html>
@@ -29,29 +24,13 @@ const dialLabels = [88, 92, 96, 100, 104, 108];
 	<body>
 		<main class="landing">
 			<section class="chooser" aria-labelledby="page-title">
-				<h1 id="page-title"><span class="sunburst" aria-hidden="true"></span><img src="/images/logo-oz-media.png" alt="OZ Media" /></h1>
+				<h1 id="page-title"><img src="/images/logo-oz-media.png" alt="OZ Media" /></h1>
 				<p class="intro">Where music meets stories, content meets community, and ideas become experiences beyond the airwaves.</p>
-
-				<div class="tuner" aria-hidden="true" data-tuner>
-					<div class="tuner-readout">
-						<span class="tuner-band">FM</span>
-						<span class="tuner-station" data-tuner-readout>Choose your frequency</span>
-					</div>
-					<div class="tuner-dial">
-						{locations.map((location) => (
-							<span class="tuner-marker" style={`left: ${dialPosition(location.frequency)}`}></span>
-						))}
-						<span class="tuner-needle" data-tuner-needle></span>
-					</div>
-					<div class="tuner-labels">
-						{dialLabels.map((label) => <span style={`left: ${dialPosition(label)}`}>{label}</span>)}
-					</div>
-				</div>
 
 				<nav class="locations" aria-label="Choose a location">
 					{locations.map((location) => (
 						<div class="location-item">
-							<a class="location-link" href={location.href} aria-label={`OZ Radio ${location.name}`} data-tuner-station={`${location.frequency.toFixed(1)} · ${location.name}`} data-tuner-position={dialPosition(location.frequency)}>
+							<a class="location-link" href={location.href} aria-label={`OZ Radio ${location.name}`}>
 								<img class="location-logo" src={location.logo} alt="" width="1246" height="648" style={location.transitionName && `view-transition-name: ${location.transitionName}`} />
 							</a>
 						</div>
@@ -61,27 +40,6 @@ const dialLabels = [88, 92, 96, 100, 104, 108];
 		</main>
 	</body>
 </html>
-
-<script>
-	// Pointing at a station swings the tuner needle to its frequency.
-	const tuner = document.querySelector<HTMLElement>('[data-tuner]');
-	const readout = tuner?.querySelector<HTMLElement>('[data-tuner-readout]');
-	if (tuner && readout) {
-		const idleText = readout.textContent;
-		const tuneTo = (link: HTMLElement | null) => {
-			tuner.classList.toggle('is-tuned', Boolean(link));
-			if (link) tuner.style.setProperty('--needle-position', link.dataset.tunerPosition ?? '');
-			else tuner.style.removeProperty('--needle-position');
-			readout.textContent = link ? `${link.dataset.tunerStation} FM` : idleText;
-		};
-		document.querySelectorAll<HTMLElement>('[data-tuner-station]').forEach((link) => {
-			link.addEventListener('pointerenter', () => tuneTo(link));
-			link.addEventListener('focus', () => tuneTo(link));
-			link.addEventListener('pointerleave', () => tuneTo(null));
-			link.addEventListener('blur', () => tuneTo(null));
-		});
-	}
-</script>
 
 <style>
 	:global(*) {
@@ -216,13 +174,7 @@ const dialLabels = [88, 92, 96, 100, 104, 108];
 	}
 
 	h1 {
-		position: relative;
-		isolation: isolate;
 		margin: 0;
-	}
-
-	h1 .sunburst {
-		--sunburst-size: min(1200px, 170vw);
 	}
 
 	h1 img {
@@ -237,94 +189,6 @@ const dialLabels = [88, 92, 96, 100, 104, 108];
 		color: #77776F;
 		font-size: 20px;
 		line-height: 1.6;
-	}
-
-	/* FM tuner dial: a station's frequency is a position along the band. */
-	.tuner {
-		--needle-position: 50%;
-		width: min(100%, 620px);
-		margin: 0 auto 26px;
-		padding: 12px 22px 10px;
-		border: var(--box-border);
-		border-radius: var(--box-radius);
-		background: #FFFFF3;
-		box-shadow: var(--box-shadow);
-	}
-
-	.tuner-readout {
-		display: flex;
-		align-items: baseline;
-		justify-content: space-between;
-		gap: 12px;
-		margin-bottom: 10px;
-		font-size: 10px;
-		font-weight: 700;
-		letter-spacing: 0.14em;
-		text-transform: uppercase;
-	}
-
-	.tuner-band {
-		padding: 2px 6px;
-		border-radius: 4px;
-		background: #000000;
-		color: #f2bd57;
-	}
-
-	.tuner-station {
-		color: #77776F;
-		transition: color 180ms ease;
-	}
-
-	.tuner.is-tuned .tuner-station {
-		color: #000000;
-	}
-
-	.tuner-dial {
-		position: relative;
-		height: 26px;
-		/* Minor tick every 1 MHz, major every 4 MHz; the last tick closes the band at 108. */
-		background:
-			linear-gradient(#000000, #000000) right bottom / 1.5px 100% no-repeat,
-			repeating-linear-gradient(90deg, #000000 0 1.5px, transparent 1.5px 20%) left bottom / 100% 100% no-repeat,
-			repeating-linear-gradient(90deg, rgb(0 0 0 / 45%) 0 1px, transparent 1px 5%) left bottom / 100% 55% no-repeat;
-	}
-
-	.tuner-marker {
-		position: absolute;
-		top: -3px;
-		width: 7px;
-		height: 7px;
-		border-radius: 50%;
-		background: #f2bd57;
-		box-shadow: 0 0 0 1.5px #000000;
-		translate: -50% 0;
-	}
-
-	.tuner-needle {
-		position: absolute;
-		top: -6px;
-		bottom: -4px;
-		left: var(--needle-position);
-		width: 3px;
-		border-radius: 2px;
-		background: #E8572A;
-		box-shadow: 0 0 10px rgb(232 87 42 / 55%);
-		translate: -50% 0;
-		transition: left 520ms cubic-bezier(0.34, 1.4, 0.5, 1);
-	}
-
-	.tuner-labels {
-		position: relative;
-		height: 14px;
-		margin-top: 5px;
-		color: #77776F;
-		font-size: 9px;
-		font-weight: 700;
-	}
-
-	.tuner-labels span {
-		position: absolute;
-		translate: -50% 0;
 	}
 
 	.locations {
@@ -436,8 +300,7 @@ const dialLabels = [88, 92, 96, 100, 104, 108];
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.location-logo,
-		.tuner-needle {
+		.location-logo {
 			transition: none;
 		}
 	}

@@ -117,7 +117,6 @@ const sections = [
 
 			<section class="hero-screen" id="top" aria-labelledby="hero-title" data-hero>
 				<h1 class="hero-title" id="hero-title">
-					<span class="sunburst" aria-hidden="true"></span>
 					<img class="hero-logo" src="/images/logo-oz-bandung.png" alt="OZ Radio Bandung" width="1246" height="648" fetchpriority="high" data-hero-logo />
 				</h1>
 				<nav class="hero-nav" aria-label="Page sections" data-hero-nav>
@@ -1949,11 +1948,6 @@ const sections = [
 		isolation: isolate;
 		margin: 0;
 		line-height: 0;
-	}
-
-	.hero-title .sunburst {
-		--sunburst-size: min(1100px, 150vw);
-		opacity: calc(1 - var(--hero-progress, 0) * 2);
 	}
 
 	.hero-logo {
