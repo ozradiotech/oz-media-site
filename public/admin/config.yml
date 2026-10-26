@@ -26,10 +26,28 @@ collections:
     fields:
       - { label: Title, name: title, widget: string }
       - { label: Display order, name: order, widget: number, value_type: int, min: 1 }
-      - { label: Summary, name: summary, widget: text }
       - { label: Image, name: image, widget: image }
       - { label: Image alt text, name: imageAlt, widget: string, required: false }
-      - { label: Article, name: body, widget: markdown }
+      - label: Airing schedule
+        name: schedule
+        widget: list
+        required: false
+        summary: "{{fields.days}} · {{fields.time}}"
+        hint: One row per airing slot, e.g. "Senin - Jumat" and "07.00 - 09.00". Leave empty if the schedule is not announced yet.
+        fields:
+          - { label: Days, name: days, widget: string, hint: "e.g. Senin - Jumat" }
+          - { label: Time, name: time, widget: string, hint: "e.g. 07.00 - 09.00" }
+      - label: Hosts
+        name: hosts
+        widget: relation
+        collection: announcers
+        search_fields: [name]
+        value_field: "{{slug}}"
+        display_fields: [name]
+        multiple: true
+        required: false
+        hint: Pick the announcers who host this program. Their photos appear in the popup.
+      - { label: Description, name: body, widget: markdown }
 
   - name: announcers
     label: Announcers

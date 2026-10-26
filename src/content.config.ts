@@ -12,7 +12,12 @@ const programs = defineCollection({
 	schema: z.object({
 		title: z.string(),
 		order: z.number().int().default(0),
-		...cardFields,
+		image: cardFields.image,
+		imageAlt: cardFields.imageAlt,
+		// Airing slots shown in the popup, e.g. { days: 'Senin - Jumat', time: '07.00 - 09.00' }.
+		schedule: z.array(z.object({ days: z.string(), time: z.string() })).default([]),
+		// Announcer entry ids (the file name without .md), shown in the popup with their photos.
+		hosts: z.array(z.string()).default([]),
 	}),
 });
 

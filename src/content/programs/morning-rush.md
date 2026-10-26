@@ -1,12 +1,14 @@
 ---
 title: OZ Morning Rush
 order: 8
-summary: Prime Time Pagi dari OZ Radio hadir untuk menyemangati aktivitas pagimu
-  lewat sajian musik segar, informasi terkini, dan berbagai segmen yang seru.
 image: /uploads/8.webp
 imageAlt: ""
+schedule:
+  - days: Senin - Jumat
+    time: 07.00 - 09.00
+hosts:
+  - vickry-jayahadi
+  - alifah-dama-kahathur
 ---
 
 Program Prime Time Pagi dari OZ Radio yang bakal nemenin aktivitas pagi kamu agar lebih semangat dengan lagu yang fresh, info terupdate, dan pastinya segmen - segmen yang seru banget!
-
-Ditemenin sama VJ dan Kayra Dama setiap Senin - Jumat, Jam 07.00 - 09.00!

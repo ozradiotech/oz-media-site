@@ -38,6 +38,7 @@ const orderedNews = news.sort((a, b) => {
 	const dateDifference = (b.data.publishedAt?.getTime() ?? 0) - (a.data.publishedAt?.getTime() ?? 0);
 	return dateDifference || a.data.title.localeCompare(b.data.title);
 });
+const hostsById = new Map(orderedAnnouncers.map((announcer) => [announcer.id, announcer]));
 const programsWithBody = await Promise.all(orderedPrograms.map(async (entry) => ({
 	entry,
 	Content: (await render(entry)).Content,
@@ -310,27 +311,41 @@ const sections = [
 								<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5" /></svg>
 							</button>
 							<div class="program-slides">
-								{programsWithBody.map(({ entry: program, Content }, index) => (
-									<article
-										class:list={['program-slide', { 'is-active': index < 3 }]}
-										data-program-slide
-										data-article-card
-										aria-haspopup="dialog"
-										aria-label={`Read full article: ${program.data.title}, slide ${index + 1} of ${programsWithBody.length}`}
-										role="button"
-										tabindex="0"
-										aria-roledescription="slide"
-										hidden={index >= 3}
-									>
-										<img src={optimizeImageUrl(program.data.image, 900)} alt={program.data.imageAlt} loading="lazy" decoding="async" />
-										<div class="program-slide-copy">
-											<span class="card-index">{String(index + 1).padStart(2, '0')} / ON AIR</span>
-											<h3>{program.data.title}</h3>
-											<p>{program.data.summary}</p>
-										</div>
-										<template data-article-body><Content /></template>
-									</article>
-								))}
+									{programsWithBody.map(({ entry: program, Content }, index) => (
+										<article
+											class:list={['program-slide', { 'is-active': index < 3 }]}
+											data-program-slide
+											data-program-card
+											aria-haspopup="dialog"
+											aria-label={`Open program details: ${program.data.title}, slide ${index + 1} of ${programsWithBody.length}`}
+											role="button"
+											tabindex="0"
+											aria-roledescription="slide"
+											hidden={index >= 3}
+										>
+											<img src={optimizeImageUrl(program.data.image, 900)} alt={program.data.imageAlt} loading="lazy" decoding="async" />
+											<div class="program-slide-copy">
+												<span class="card-index">{String(index + 1).padStart(2, '0')} / ON AIR</span>
+												<h3>{program.data.title}</h3>
+											</div>
+											<template data-program-body><Content /></template>
+											<template data-program-meta>
+												<ul data-program-schedule-items>
+													{program.data.schedule.map((slot) => (
+														<li class="program-slot"><span class="program-slot-days">{slot.days}</span><span class="program-slot-time">{slot.time}</span></li>
+													))}
+												</ul>
+												<ul data-program-host-items>
+													{program.data.hosts.map((id) => hostsById.get(id)).filter((host) => host !== undefined).map((host) => (
+														<li class="program-host">
+															<img src={optimizeImageUrl(host.data.image, 160)} alt="" width="56" height="56" loading="lazy" decoding="async" />
+															<span>{host.data.name}</span>
+														</li>
+													))}
+												</ul>
+											</template>
+										</article>
+))}
 							</div>
 							<button class="carousel-chevron carousel-chevron-next" type="button" data-program-next aria-label="Next programs">
 								<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 4.5 16.5 12 9 19.5" /></svg>
@@ -670,6 +685,31 @@ const sections = [
 				<p class="article-dialog-status" data-article-status hidden></p>
 			</div>
 		</dialog>
+		<dialog class="program-dialog" data-program-dialog aria-labelledby="program-dialog-title">
+			<button class="dialog-close program-dialog-close" type="button" data-program-close aria-label="Close program details">×</button>
+			<div class="program-dialog-media" data-program-media>
+				<img data-program-image alt="" decoding="async" />
+			</div>
+			<div class="program-dialog-copy">
+				<p class="eyebrow" data-program-eyebrow></p>
+				<h2 id="program-dialog-title" data-program-title></h2>
+				<section class="program-dialog-block" aria-labelledby="program-schedule-label">
+					<h3 class="program-dialog-label" id="program-schedule-label">
+						<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+						Airing schedule
+					</h3>
+					<ul class="program-schedule" data-program-schedule></ul>
+				</section>
+				<div class="program-dialog-body" data-program-body-content hidden></div>
+				<section class="program-dialog-block program-dialog-hosts" data-program-hosts-block aria-labelledby="program-hosts-label" hidden>
+					<h3 class="program-dialog-label" id="program-hosts-label">
+						<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg>
+						Hosted by
+					</h3>
+					<ul class="program-hosts" data-program-hosts></ul>
+				</section>
+			</div>
+		</dialog>
 		<dialog class="announcer-dialog" data-announcer-dialog aria-labelledby="announcer-dialog-title">
 			<button class="dialog-close announcer-dialog-close" type="button" data-announcer-close aria-label="Close announcer profile">×</button>
 			<div class="announcer-dialog-photo">
@@ -959,6 +999,7 @@ const sections = [
 	}
 
 	const articleDialog = document.querySelector<HTMLDialogElement>('[data-article-dialog]');
+	const programDialog = document.querySelector<HTMLDialogElement>('[data-program-dialog]');
 	const newsListDialog = document.querySelector<HTMLDialogElement>('[data-news-list-dialog]');
 	const activityGrid = document.querySelector<HTMLElement>('#activity-grid');
 	const activityCards = activityGrid?.querySelectorAll<HTMLElement>('[data-activity-card]');
@@ -1149,7 +1190,7 @@ const sections = [
 		};
 		const startAutoplay = () => {
 			stopAutoplay();
-			if (pageCount < 2 || reducedMotion.matches || document.hidden || isHovered || isFocused || articleDialog?.open || newsListDialog?.open) return;
+			if (pageCount < 2 || reducedMotion.matches || document.hidden || isHovered || isFocused || articleDialog?.open || programDialog?.open || newsListDialog?.open) return;
 			autoplayTimer = window.setTimeout(() => {
 				showProgramPage(currentPageIndex + 1);
 				startAutoplay();
@@ -1188,6 +1229,7 @@ const sections = [
 		document.addEventListener('visibilitychange', startAutoplay);
 		reducedMotion.addEventListener('change', startAutoplay);
 		articleDialog?.addEventListener('close', startAutoplay);
+		programDialog?.addEventListener('close', startAutoplay);
 		newsListDialog?.addEventListener('close', startAutoplay);
 		startAutoplay();
 	}
@@ -1383,6 +1425,94 @@ const sections = [
 	articleDialog?.addEventListener('click', (event) => {
 		if (event.target === articleDialog) articleDialog.close();
 	});
+
+	const programImage = programDialog?.querySelector<HTMLImageElement>('[data-program-image]');
+	const programMedia = programDialog?.querySelector<HTMLElement>('[data-program-media]');
+	const programEyebrow = programDialog?.querySelector<HTMLElement>('[data-program-eyebrow]');
+	const programTitle = programDialog?.querySelector<HTMLElement>('[data-program-title]');
+	const programSchedule = programDialog?.querySelector<HTMLElement>('[data-program-schedule]');
+	const programBody = programDialog?.querySelector<HTMLElement>('[data-program-body-content]');
+	const programHostsBlock = programDialog?.querySelector<HTMLElement>('[data-program-hosts-block]');
+	const programHosts = programDialog?.querySelector<HTMLElement>('[data-program-hosts]');
+
+	if (programDialog && programImage && programMedia && programEyebrow && programTitle && programSchedule && programBody && programHostsBlock && programHosts) {
+		const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+		const openProgram = (card: HTMLElement) => {
+			const heading = card.querySelector<HTMLElement>('h3');
+			const image = card.querySelector<HTMLImageElement>('img');
+			if (!heading || !image) return;
+			const title = heading.textContent?.trim() ?? '';
+			const imageUrl = image.currentSrc || image.src;
+
+			// The photo is shown whole (never cropped); the same photo, blurred, fills any leftover space.
+			programImage.src = imageUrl;
+			programImage.alt = image.alt || title;
+			programMedia.style.setProperty('--program-backdrop', `url("${imageUrl}")`);
+			programEyebrow.textContent = card.querySelector('.card-index')?.textContent?.trim() ?? '';
+			programTitle.textContent = title;
+
+			const meta = card.querySelector<HTMLTemplateElement>('template[data-program-meta]')?.content;
+			const slots = Array.from(meta?.querySelectorAll('[data-program-schedule-items] > li') ?? []);
+			if (slots.length) {
+				programSchedule.replaceChildren(...slots.map((slot) => slot.cloneNode(true)));
+			} else {
+				const placeholder = document.createElement('li');
+				placeholder.className = 'program-slot program-slot-tba';
+				placeholder.textContent = 'Schedule to be announced';
+				programSchedule.replaceChildren(placeholder);
+			}
+
+			const hosts = Array.from(meta?.querySelectorAll('[data-program-host-items] > li') ?? []);
+			programHosts.replaceChildren(...hosts.map((host) => host.cloneNode(true)));
+			programHostsBlock.hidden = !hosts.length;
+
+			const bodyTemplate = card.querySelector<HTMLTemplateElement>('template[data-program-body]');
+			programBody.replaceChildren(bodyTemplate?.content.cloneNode(true) ?? document.createDocumentFragment());
+			programBody.hidden = !programBody.textContent?.trim();
+
+			programDialog.classList.remove('is-closing');
+			programDialog.showModal();
+			programDialog.querySelector<HTMLElement>('.program-dialog-copy')?.scrollTo(0, 0);
+		};
+
+		const finishProgramClose = (event: AnimationEvent) => {
+			if (event.target !== programDialog || event.pseudoElement) return;
+			programDialog.removeEventListener('animationend', finishProgramClose);
+			programDialog.close();
+		};
+		const closeProgram = () => {
+			if (!programDialog.open || programDialog.classList.contains('is-closing')) return;
+			if (reducedMotion.matches) {
+				programDialog.close();
+				return;
+			}
+			programDialog.classList.add('is-closing');
+			programDialog.addEventListener('animationend', finishProgramClose);
+		};
+
+		document.querySelectorAll<HTMLElement>('[data-program-card]').forEach((card) => {
+			card.addEventListener('click', () => openProgram(card));
+			card.addEventListener('keydown', (event) => {
+				if (event.key !== 'Enter' && event.key !== ' ') return;
+				event.preventDefault();
+				openProgram(card);
+			});
+		});
+
+		programDialog.querySelector('[data-program-close]')?.addEventListener('click', closeProgram);
+		programDialog.addEventListener('click', (event) => {
+			if (event.target === programDialog) closeProgram();
+		});
+		programDialog.addEventListener('cancel', (event) => {
+			event.preventDefault();
+			closeProgram();
+		});
+		programDialog.addEventListener('close', () => {
+			programDialog.classList.remove('is-closing');
+			programDialog.removeEventListener('animationend', finishProgramClose);
+		});
+	}
 
 	const tuneInButton = document.querySelector<HTMLButtonElement>('[data-tune-in]');
 	const tuneInLabel = tuneInButton?.querySelector<HTMLElement>('[data-tune-in-label]');
@@ -3854,6 +3984,265 @@ const sections = [
 		}
 	}
 
+	/* Program popup: the whole photo on the left (contained over a blurred copy of itself), details on the right. */
+	.program-dialog {
+		width: min(900px, calc(100% - 28px));
+		max-width: none;
+		max-height: min(90dvh, 640px);
+		padding: 0;
+		overflow: hidden;
+		border: 1px solid #D8D8CC;
+		border-radius: 4px;
+		background: #FFFFF3;
+		color: #000000;
+		box-shadow: 0 24px 80px rgb(0 0 0 / 55%);
+	}
+
+	.program-dialog[open] {
+		display: grid;
+		grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr);
+		animation: announcer-dialog-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+	}
+
+	.program-dialog::backdrop {
+		background: rgb(0 0 0 / 78%);
+		backdrop-filter: blur(3px);
+		animation: backdrop-reveal 220ms ease-out both;
+	}
+
+	.program-dialog.is-closing {
+		animation: announcer-dialog-out 180ms ease-in both;
+	}
+
+	.program-dialog.is-closing::backdrop {
+		animation: backdrop-hide 180ms ease-in both;
+	}
+
+	.program-dialog-media {
+		position: relative;
+		display: grid;
+		place-items: center;
+		min-height: 0;
+		padding: clamp(14px, 3vw, 24px);
+		overflow: hidden;
+		background: #20201D;
+	}
+
+	.program-dialog-media::before {
+		position: absolute;
+		inset: -24px;
+		background: var(--program-backdrop) center / cover no-repeat;
+		content: '';
+		filter: blur(28px) saturate(1.2);
+		opacity: 0.55;
+	}
+
+	.program-dialog-media img {
+		position: relative;
+		display: block;
+		width: 100%;
+		height: auto;
+		max-height: min(calc(90dvh - 48px), 592px);
+		object-fit: contain;
+		border-radius: 3px;
+		box-shadow: 0 12px 36px rgb(0 0 0 / 45%);
+	}
+
+	.program-dialog[open] .program-dialog-media img {
+		animation: announcer-photo-in 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+	}
+
+	.program-dialog-copy {
+		display: flex;
+		flex-direction: column;
+		max-height: min(90dvh, 640px);
+		overflow-y: auto;
+		overscroll-behavior: contain;
+		padding: clamp(24px, 4vw, 38px) clamp(20px, 4vw, 34px);
+	}
+
+	.program-dialog[open] .program-dialog-copy > * {
+		animation: announcer-copy-in 360ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+	}
+
+	.program-dialog[open] .program-dialog-copy > :nth-child(1) { animation-delay: 100ms; }
+	.program-dialog[open] .program-dialog-copy > :nth-child(2) { animation-delay: 150ms; }
+	.program-dialog[open] .program-dialog-copy > :nth-child(3) { animation-delay: 200ms; }
+	.program-dialog[open] .program-dialog-copy > :nth-child(4) { animation-delay: 250ms; }
+	.program-dialog[open] .program-dialog-copy > :nth-child(5) { animation-delay: 300ms; }
+
+	.program-dialog-copy .eyebrow {
+		margin: 0 40px 10px 0;
+		color: #77776F;
+		font-size: 9px;
+		font-weight: 700;
+		letter-spacing: 0.12em;
+	}
+
+	.program-dialog-copy h2 {
+		margin: 0 0 18px;
+		font-size: clamp(26px, 4.4vw, 40px);
+		letter-spacing: -0.03em;
+		line-height: 1.05;
+		text-wrap: balance;
+	}
+
+	.program-dialog-block {
+		margin: 0 0 18px;
+	}
+
+	.program-dialog-label {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		margin: 0 0 8px;
+		color: #77776F;
+		font-size: 9px;
+		font-weight: 700;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+	}
+
+	.program-dialog-label svg {
+		fill: none;
+		stroke: #A77823;
+		stroke-width: 2;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+
+	.program-schedule,
+	.program-hosts {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.program-slot {
+		display: inline-flex;
+		align-items: baseline;
+		gap: 8px;
+		padding: 7px 12px;
+		border: 1px solid #f2bd57;
+		border-radius: 999px;
+		background: #FFF0D1;
+		font-size: 13px;
+		line-height: 1.3;
+	}
+
+	.program-slot-days {
+		font-weight: 700;
+	}
+
+	.program-slot-time {
+		color: #44443F;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.program-slot-tba {
+		border-style: dashed;
+		background: transparent;
+		color: #44443F;
+	}
+
+	.program-dialog-body {
+		margin: 0 0 18px;
+		color: #44443F;
+		font-size: 14px;
+		line-height: 1.7;
+	}
+
+	:global(.program-dialog-body > :first-child) {
+		margin-top: 0;
+	}
+
+	:global(.program-dialog-body > :last-child) {
+		margin-bottom: 0;
+	}
+
+	:global(.program-dialog-body p),
+	:global(.program-dialog-body ul),
+	:global(.program-dialog-body ol) {
+		margin: 0 0 1em;
+	}
+
+	:global(.program-dialog-body a) {
+		color: #7C5718;
+		text-decoration: underline;
+	}
+
+	.program-dialog-hosts {
+		margin: auto 0 0;
+		padding-top: 16px;
+		border-top: 1px solid #D8D8CC;
+	}
+
+	.program-dialog-hosts[hidden] {
+		display: none;
+	}
+
+	.program-host {
+		display: inline-flex;
+		align-items: center;
+		gap: 10px;
+		padding: 5px 14px 5px 5px;
+		border: 1px solid #D8D8CC;
+		border-radius: 999px;
+		background: #FFFFFF;
+		font-size: 13px;
+		font-weight: 700;
+	}
+
+	.program-host img {
+		width: 40px;
+		height: 40px;
+		border-radius: 50%;
+		background: #20201D;
+		object-fit: cover;
+		object-position: center 15%;
+	}
+
+	.program-dialog[open] .program-slot,
+	.program-dialog[open] .program-host {
+		animation: announcer-copy-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+	}
+
+	.program-dialog[open] .program-slot:nth-child(2),
+	.program-dialog[open] .program-host:nth-child(2) { animation-delay: 60ms; }
+	.program-dialog[open] .program-slot:nth-child(3),
+	.program-dialog[open] .program-host:nth-child(3) { animation-delay: 120ms; }
+
+	.program-dialog .dialog-close {
+		position: absolute;
+		z-index: 2;
+		top: 12px;
+		right: 12px;
+	}
+
+	@media (max-width: 680px) {
+		.program-dialog {
+			max-height: 90dvh;
+			overflow-y: auto;
+			overscroll-behavior: contain;
+		}
+
+		.program-dialog[open] {
+			grid-template-columns: minmax(0, 1fr);
+		}
+
+		.program-dialog-media img {
+			max-height: 42dvh;
+		}
+
+		.program-dialog-copy {
+			max-height: none;
+			overflow: visible;
+		}
+	}
+
 	.program-slides {
 		display: grid;
 		align-items: start;
@@ -3873,13 +4262,13 @@ const sections = [
 		box-shadow: var(--box-shadow);
 	}
 
-	.program-slide[data-article-card],
+	.program-slide[data-program-card],
 	.activity-card[data-article-card],
 	.lead-story[data-article-card] {
 		cursor: pointer;
 	}
 
-	.program-slide[data-article-card]:hover,
+	.program-slide[data-program-card]:hover,
 	.activity-card[data-article-card]:hover,
 	.lead-story[data-article-card]:hover {
 		box-shadow: var(--box-shadow-hover);
@@ -3889,17 +4278,17 @@ const sections = [
 		transition: box-shadow 180ms ease;
 	}
 
-	.program-slide[data-article-card] {
+	.program-slide[data-program-card] {
 		transform: perspective(900px) rotateX(var(--card-tilt-y, 0deg)) rotateY(var(--card-tilt-x, 0deg)) scale(var(--card-scale, 1));
 		transform-style: preserve-3d;
 		transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
 	}
 
-	.program-slide[data-article-card]:hover {
+	.program-slide[data-program-card]:hover {
 		--card-scale: 1.04;
 	}
 
-	.program-slide[data-article-card]:focus-visible,
+	.program-slide[data-program-card]:focus-visible,
 	.activity-card[data-article-card]:focus-visible,
 	.lead-story[data-article-card]:focus-visible {
 		outline: 2px solid #f2bd57;
@@ -5422,6 +5811,15 @@ const sections = [
 			animation: none;
 		}
 
+		.program-dialog[open],
+		.program-dialog::backdrop,
+		.program-dialog[open] .program-dialog-media img,
+		.program-dialog[open] .program-dialog-copy > *,
+		.program-dialog[open] .program-slot,
+		.program-dialog[open] .program-host {
+			animation: none;
+		}
+
 		.announcer-dialog[open],
 		.announcer-dialog::backdrop,
 		.announcer-dialog[open] .announcer-dialog-photo img,
@@ -5455,12 +5853,12 @@ const sections = [
 			animation: none;
 		}
 
-		.program-slide[data-article-card] {
+		.program-slide[data-program-card] {
 			transform: none;
 			transition: none;
 		}
 
-		.program-slide[data-article-card]:hover {
+		.program-slide[data-program-card]:hover {
 			--card-scale: 1;
 			box-shadow: none;
 		}

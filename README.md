@@ -241,4 +241,5 @@ The `jwks-rsa` override in `package.json` keeps `firebase-admin` on `jose` 5. `j
 
 - Editorial content lives under `src/content/` and is grouped by collections such as `programs`, `announcers`, `activities`, and `news`.
 - Images uploaded through Decap are stored in `public/uploads/` and served from `/uploads`.
+- Each program (`src/content/programs/*.md`) has an **Airing schedule** (`schedule`: list of `days` + `time`) and **Hosts** (`hosts`: announcer ids, i.e. announcer file names without `.md`, picked from the Announcers collection in the CMS). The description is the markdown body. The program popup shows the full image uncropped, the schedule, the description and the hosts' photos. Programs no longer have a `summary` field.
 - The site is built with Astro for server-rendered output, using the Node adapter when self-hosted and the Vercel adapter on Vercel.
