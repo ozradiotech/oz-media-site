@@ -34,6 +34,15 @@ export default defineConfig({
 			styles: ['normal', 'italic'],
 			fallbacks: ['Arial', 'sans-serif'],
 		},
+		{
+			// Night Shift style only: frequency readouts, labels and navigation (see src/styles/themes.css).
+			provider: fontProviders.google(),
+			name: 'Space Mono',
+			cssVariable: '--font-mono',
+			weights: [400, 700],
+			styles: ['normal'],
+			fallbacks: ['ui-monospace', 'monospace'],
+		},
 	],
 	env: {
 		schema: {

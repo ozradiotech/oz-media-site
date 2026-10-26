@@ -3,6 +3,8 @@ import { Font } from 'astro:assets';
 import '../styles/typography.css';
 import '../styles/page-transitions.css';
 import '../styles/retro.css';
+import ThemeHead from '../components/ThemeHead.astro';
+import ThemeSwitch from '../components/ThemeSwitch.astro';
 const locations = [
 	{ name: 'Bandung', href: '/oz-bandung/', logo: '/images/logo-oz-bandung.png', transitionName: 'oz-bandung-logo' },
 	{ name: 'Bali', href: '/oz-bali/', logo: '/images/logo-oz-bali.png' },
@@ -13,24 +15,26 @@ const locations = [
 <html lang="en" data-page="home">
 	<head>
 		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="theme-color" content="#FFFFF3" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<ThemeHead />
 		<meta name="description" content="Location select for OZ Radio" />
 		<Font cssVariable="--font-tango" preload={[{ style: 'normal' }]} />
 		<Font cssVariable="--font-jakarta" preload={[{ style: 'normal' }]} />
+		<Font cssVariable="--font-mono" />
 		<title>OZ Radio — Choose your frequency</title>
 		<script type="speculationrules" is:inline set:html={JSON.stringify({ prefetch: [{ where: { href_matches: '/oz-bandung/' }, eagerness: 'moderate' }] })} />
 	</head>
 	<body>
+		<div class="landing-switch"><ThemeSwitch /></div>
 		<main class="landing">
 			<section class="chooser" aria-labelledby="page-title">
-				<h1 id="page-title"><img src="/images/logo-oz-media.png" alt="OZ Media" /></h1>
+				<h1 id="page-title" data-sticker><img src="/images/logo-oz-media.png" alt="OZ Media" /></h1>
 				<p class="intro">OZ MEDIA AND BEYOND</p>
 
 				<nav class="locations" aria-label="Choose a location">
 					{locations.map((location) => (
 						<div class="location-item">
-							<a class="location-link" href={location.href} aria-label={`OZ Radio ${location.name}`}>
+							<a class="location-link" data-sticker href={location.href} aria-label={`OZ Radio ${location.name}`}>
 								<img class="location-logo" src={location.logo} alt="" width="1246" height="648" style={location.transitionName && `view-transition-name: ${location.transitionName}`} />
 							</a>
 						</div>
@@ -48,8 +52,8 @@ const locations = [
 
 	:global(body) {
 		margin: 0;
-		background: var(--paper-grain), #FFFFF3;
-		color: #000000;
+		background: var(--paper-grain), var(--c-bg);
+		color: var(--c-text);
 		font-family: var(--font-jakarta);
 	}
 
@@ -82,8 +86,8 @@ const locations = [
 		height: 64px;
 		min-height: 64px;
 		padding: 0 clamp(20px, 5vw, 64px);
-		border-bottom: 1px solid #D8D8CC;
-		background: #FFFFF3;
+		border-bottom: 1px solid var(--c-line);
+		background: var(--c-surface);
 	}
 
 	.topbar-nav {
@@ -101,7 +105,7 @@ const locations = [
 		padding: 0 9px;
 		border: 1px solid transparent;
 		border-radius: 3px;
-		color: #77776F;
+		color: var(--c-muted);
 		font-size: 8px;
 		font-weight: 700;
 		letter-spacing: 0.08em;
@@ -112,8 +116,8 @@ const locations = [
 
 	.topbar-nav-link:hover,
 	.topbar-nav-link:focus-visible {
-		border-color: #D8D8CC;
-		color: #000000;
+		border-color: var(--c-line);
+		color: var(--c-text);
 		transform: translateY(-1px);
 	}
 
@@ -139,11 +143,11 @@ const locations = [
 	}
 
 	.wordmark span {
-		color: #f2bd57;
+		color: var(--c-accent);
 	}
 
 	.footer {
-		color: #77776F;
+		color: var(--c-muted);
 	}
 
 	.chooser {
@@ -169,7 +173,7 @@ const locations = [
 		width: 8px;
 		height: 8px;
 		border-radius: 50%;
-		background: #f2bd57;
+		background: var(--c-accent);
 		box-shadow: 0 0 0 4px rgb(242 189 87 / 12%);
 	}
 
@@ -186,7 +190,7 @@ const locations = [
 
 	.intro {
 		margin: 24px 0 38px;
-		color: #77776F;
+		color: var(--c-muted);
 		font-size: 20px;
 		line-height: 1.6;
 	}
@@ -210,7 +214,7 @@ const locations = [
 		right: 0;
 		width: 1px;
 		height: 120px;
-		background: #D8D8CC;
+		background: var(--c-line);
 		content: '';
 		transform: translateY(-50%);
 	}
@@ -225,7 +229,7 @@ const locations = [
 
 	.location-link:focus-visible {
 		border-radius: 3px;
-		outline: 2px solid #f2bd57;
+		outline: 2px solid var(--c-accent);
 		outline-offset: 4px;
 	}
 
@@ -245,7 +249,7 @@ const locations = [
 
 	.footer {
 		padding-top: 16px;
-		border-top: 1px solid #D8D8CC;
+		border-top: 1px solid var(--c-line);
 		font-size: 9px;
 	}
 
@@ -299,9 +303,73 @@ const locations = [
 		}
 	}
 
+	.landing-switch {
+		position: fixed;
+		z-index: 10;
+		top: 12px;
+		right: clamp(10px, 3vw, 28px);
+	}
+
+	/* Night Shift style (tokens in src/styles/themes.css). */
+	:global(:root[data-theme='night'] body) {
+		background: var(--c-bg);
+	}
+
+	:global(:root[data-theme='night']) .landing {
+		position: relative;
+		isolation: isolate;
+		background: radial-gradient(closest-side at 50% 40%, rgb(242 189 87 / 14%), transparent 80%);
+	}
+
+	/* Broadcast rings behind the chooser and monitor scanlines over the page. */
+	:global(:root[data-theme='night']) .landing::before,
+	:global(:root[data-theme='night']) .landing::after {
+		position: absolute;
+		z-index: -1;
+		pointer-events: none;
+		content: '';
+	}
+
+	:global(:root[data-theme='night']) .landing::before {
+		top: 40%;
+		left: 50%;
+		width: min(150vmin, 1200px);
+		aspect-ratio: 1;
+		background: repeating-radial-gradient(circle, transparent 0 54px, rgb(242 189 87 / 9%) 54px 55px);
+		-webkit-mask-image: radial-gradient(circle, #000 20%, transparent 68%);
+		mask-image: radial-gradient(circle, #000 20%, transparent 68%);
+		translate: -50% -50%;
+		animation: night-rings 5s ease-in-out infinite alternate;
+	}
+
+	:global(:root[data-theme='night']) .landing::after {
+		inset: 0;
+		background: repeating-linear-gradient(to bottom, rgb(255 255 255 / 2.2%) 0 1px, transparent 1px 3px);
+	}
+
+	:global(:root[data-theme='night']) .intro {
+		color: var(--c-accent);
+		font-family: var(--font-mono);
+		letter-spacing: 0.24em;
+		text-shadow: 0 0 18px rgb(242 189 87 / 40%);
+	}
+
+	:global(:root[data-theme='night']) .location-item:first-child::after {
+		background: linear-gradient(transparent, var(--c-line), transparent);
+	}
+
+	@keyframes night-rings {
+		from { opacity: 1; scale: 1; }
+		to { opacity: 0.45; scale: 1.1; }
+	}
+
 	@media (prefers-reduced-motion: reduce) {
 		.location-logo {
 			transition: none;
+		}
+
+		:global(:root[data-theme='night']) .landing::before {
+			animation: none;
 		}
 	}
 </style>

@@ -1,0 +1,114 @@
+/* Site styles. Pages use these semantic colour tokens instead of raw hex values, so a style is one block of tokens
+   plus a few structural overrides (kept in each page under :root[data-theme='night']).
+   - Retro (default, no data-theme): cream paper, heavy black outlines, hard offset shadows.
+   - Night Shift (data-theme='night'): the late-night broadcast console. Warm ink surfaces, the logo's amber as
+     valve glow, a coral ON AIR signal, monospace frequency readouts and a tuning-dial scale under each heading.
+   The choice is stored in localStorage ('oz-theme') and applied before first paint by ThemeHead.astro. */
+
+:root {
+	--c-bg: #FFFFF3;
+	--c-bg-alt: #F6EDD3;
+	--c-surface: #FFFFF3;
+	--c-surface-2: #EDEDE2;
+	--c-field: #FFFFFF;
+	--c-text: #000000;
+	--c-text-2: #44443F;
+	--c-muted: #77776F;
+	--c-line: #D8D8CC;
+	--c-outline: #000000;
+	--c-shadow: #000000;
+	--c-accent: #f2bd57;
+	--c-on-accent: #000000;
+	--c-accent-soft: #FFF0D1;
+	--c-accent-faint: #FFF9E8;
+	--c-accent-strong: #A77823;
+	--c-link: #7C5718;
+	--c-danger: #A04A1C;
+	--c-signal: #f2bd57;
+	--c-stage: #141412;
+	--c-stage-2: #20201D;
+	--c-on-stage: #FFFFF3;
+	--c-on-stage-muted: #A8A89C;
+	--c-inverse: #000000;
+	--c-on-inverse: #FFFFF3;
+	--c-footer: #000000;
+	--c-footer-muted: #B6B6AA;
+	--c-scrollbar: #B8B8AA;
+}
+
+:root[data-theme='night'] {
+	color-scheme: dark;
+
+	--c-bg: #0E0D0B;
+	--c-bg-alt: #15130F;
+	--c-surface: #1A1814;
+	--c-surface-2: #26231D;
+	--c-field: #110F0D;
+	--c-text: #F5ECDA;
+	--c-text-2: #D3C9B5;
+	--c-muted: #A89E8A;
+	--c-line: #34302A;
+	--c-outline: #3D3830;
+	--c-shadow: transparent;
+	--c-accent: #F2BD57;
+	--c-on-accent: #1A1206;
+	--c-accent-soft: rgb(242 189 87 / 14%);
+	--c-accent-faint: rgb(242 189 87 / 7%);
+	--c-accent-strong: #F2BD57;
+	--c-link: #F6CB78;
+	--c-danger: #FF8A6B;
+	--c-signal: #FF5A3C;
+	--c-stage: #080706;
+	--c-stage-2: #12100D;
+	--c-on-stage: #F5ECDA;
+	--c-on-stage-muted: #A89E8A;
+	--c-inverse: #F2BD57;
+	--c-on-inverse: #1A1206;
+	--c-footer: #070605;
+	--c-footer-muted: #A89E8A;
+	--c-scrollbar: #4A443A;
+
+	/* Boxes trade the hard black outline and offset shadow for a hairline edge and a soft amber glow. */
+	--box-border: 1px solid var(--c-line);
+	--box-radius: 12px;
+	--box-offset: 6px;
+	--box-shadow: inset 0 1px 0 rgb(255 255 255 / 4%), 0 22px 44px -26px rgb(0 0 0 / 90%);
+	--box-shadow-hover: 0 0 0 1px var(--c-accent), 0 18px 52px -16px rgb(242 189 87 / 38%);
+
+	/* Logos are gold with a black extrusion; a cream die-cut edge keeps the black parts visible on dark. */
+	--sticker-edge: #F5ECDA;
+	--sticker-width: 1.5px;
+}
+
+/* Declared where it's used, so a smaller --sticker-width (e.g. on the topbar logo) takes effect. */
+:root[data-theme='night'] .oz-sticker,
+:root[data-theme='night'] [data-sticker] {
+	filter:
+		drop-shadow(var(--sticker-width) 0 0 var(--sticker-edge))
+		drop-shadow(calc(var(--sticker-width) * -1) 0 0 var(--sticker-edge))
+		drop-shadow(0 var(--sticker-width) 0 var(--sticker-edge))
+		drop-shadow(0 calc(var(--sticker-width) * -1) 0 var(--sticker-edge));
+}
+
+:root[data-theme='night'] ::selection {
+	background: #F2BD57;
+	color: #1A1206;
+}
+
+/* Switching styles sweeps the new one in from the switch, like a dial turning. */
+:root.is-theme-switching::view-transition-old(root) {
+	animation: none;
+}
+
+:root.is-theme-switching::view-transition-new(root) {
+	animation: theme-sweep 620ms cubic-bezier(0.7, 0, 0.2, 1) both;
+}
+
+:root.is-theme-switching::view-transition-group(*) {
+	animation-duration: 0s;
+}
+
+@keyframes theme-sweep {
+	from { clip-path: circle(0 at var(--theme-x, 100%) var(--theme-y, 0)); }
+	to { clip-path: circle(var(--theme-r, 150vmax) at var(--theme-x, 100%) var(--theme-y, 0)); }
+}
