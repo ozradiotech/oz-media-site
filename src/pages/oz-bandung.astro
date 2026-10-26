@@ -687,7 +687,7 @@ const sections = [
 		</dialog>
 		<dialog class="program-dialog" data-program-dialog aria-labelledby="program-dialog-title">
 			<button class="dialog-close program-dialog-close" type="button" data-program-close aria-label="Close program details">×</button>
-			<div class="program-dialog-media" data-program-media>
+			<div class="program-dialog-media">
 				<img data-program-image alt="" decoding="async" />
 			</div>
 			<div class="program-dialog-copy">
@@ -1427,7 +1427,6 @@ const sections = [
 	});
 
 	const programImage = programDialog?.querySelector<HTMLImageElement>('[data-program-image]');
-	const programMedia = programDialog?.querySelector<HTMLElement>('[data-program-media]');
 	const programEyebrow = programDialog?.querySelector<HTMLElement>('[data-program-eyebrow]');
 	const programTitle = programDialog?.querySelector<HTMLElement>('[data-program-title]');
 	const programSchedule = programDialog?.querySelector<HTMLElement>('[data-program-schedule]');
@@ -1435,7 +1434,7 @@ const sections = [
 	const programHostsBlock = programDialog?.querySelector<HTMLElement>('[data-program-hosts-block]');
 	const programHosts = programDialog?.querySelector<HTMLElement>('[data-program-hosts]');
 
-	if (programDialog && programImage && programMedia && programEyebrow && programTitle && programSchedule && programBody && programHostsBlock && programHosts) {
+	if (programDialog && programImage && programEyebrow && programTitle && programSchedule && programBody && programHostsBlock && programHosts) {
 		const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 		const openProgram = (card: HTMLElement) => {
@@ -1445,10 +1444,11 @@ const sections = [
 			const title = heading.textContent?.trim() ?? '';
 			const imageUrl = image.currentSrc || image.src;
 
-			// The photo is shown whole (never cropped); the same photo, blurred, fills any leftover space.
+			// The photo is shown whole and the popup takes its proportions. The card photo is already loaded, so its size is known.
 			programImage.src = imageUrl;
 			programImage.alt = image.alt || title;
-			programMedia.style.setProperty('--program-backdrop', `url("${imageUrl}")`);
+			const ratio = image.naturalWidth && image.naturalHeight ? image.naturalWidth / image.naturalHeight : 5 / 4;
+			programDialog.style.setProperty('--program-ratio', String(ratio));
 			programEyebrow.textContent = card.querySelector('.card-index')?.textContent?.trim() ?? '';
 			programTitle.textContent = title;
 
@@ -3984,11 +3984,15 @@ const sections = [
 		}
 	}
 
-	/* Program popup: the whole photo on the left (contained over a blurred copy of itself), details on the right. */
+	/* Program popup: the whole photo on the left, details on the right. The box takes the photo's shape:
+	   the photo sets the height and width (via --program-ratio, set when it opens), and the details scroll beside it. */
 	.program-dialog {
-		width: min(900px, calc(100% - 28px));
-		max-width: none;
-		max-height: min(90dvh, 640px);
+		--program-ratio: 1;
+		--program-image-max-width: min(calc(100vw - 28px - clamp(320px, 32vw, 420px) - 2px), 820px);
+		--program-image-height: min(calc(90dvh - 2px), 700px, calc(var(--program-image-max-width) / var(--program-ratio)));
+		width: fit-content;
+		max-width: calc(100% - 28px);
+		max-height: none;
 		padding: 0;
 		overflow: hidden;
 		border: 1px solid #D8D8CC;
@@ -4000,7 +4004,7 @@ const sections = [
 
 	.program-dialog[open] {
 		display: grid;
-		grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr);
+		grid-template-columns: auto clamp(320px, 32vw, 420px);
 		animation: announcer-dialog-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 	}
 
@@ -4019,43 +4023,29 @@ const sections = [
 	}
 
 	.program-dialog-media {
-		position: relative;
 		display: grid;
 		place-items: center;
-		min-height: 0;
-		padding: clamp(14px, 3vw, 24px);
 		overflow: hidden;
 		background: #20201D;
 	}
 
-	.program-dialog-media::before {
-		position: absolute;
-		inset: -24px;
-		background: var(--program-backdrop) center / cover no-repeat;
-		content: '';
-		filter: blur(28px) saturate(1.2);
-		opacity: 0.55;
-	}
-
 	.program-dialog-media img {
-		position: relative;
 		display: block;
-		width: 100%;
-		height: auto;
-		max-height: min(calc(90dvh - 48px), 592px);
-		object-fit: contain;
-		border-radius: 3px;
-		box-shadow: 0 12px 36px rgb(0 0 0 / 45%);
+		width: auto;
+		height: var(--program-image-height);
+		aspect-ratio: var(--program-ratio);
 	}
 
 	.program-dialog[open] .program-dialog-media img {
 		animation: announcer-photo-in 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 	}
 
+	/* Size containment keeps the text from stretching the box; the photo decides its height. A very wide, short photo still leaves room to read. */
 	.program-dialog-copy {
+		contain: size;
 		display: flex;
 		flex-direction: column;
-		max-height: min(90dvh, 640px);
+		min-height: min(420px, calc(90dvh - 2px));
 		overflow-y: auto;
 		overscroll-behavior: contain;
 		padding: clamp(24px, 4vw, 38px) clamp(20px, 4vw, 34px);
@@ -4224,6 +4214,7 @@ const sections = [
 
 	@media (max-width: 680px) {
 		.program-dialog {
+			width: calc(100% - 28px);
 			max-height: 90dvh;
 			overflow-y: auto;
 			overscroll-behavior: contain;
@@ -4234,11 +4225,13 @@ const sections = [
 		}
 
 		.program-dialog-media img {
-			max-height: 42dvh;
+			width: 100%;
+			height: auto;
 		}
 
 		.program-dialog-copy {
-			max-height: none;
+			contain: none;
+			min-height: 0;
 			overflow: visible;
 		}
 	}
