@@ -1,8 +1,8 @@
 ---
 title: Departemen Lain-Lain
-order: 13
+order: 11
 summary: summary
-image: /uploads/dept-lainlain.webp
+image: /uploads/11.webp
 imageAlt: Departemen Lain-Lain
 ---
 deskripsi

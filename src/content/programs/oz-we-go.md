@@ -1,9 +1,9 @@
 ---
 title: OZ We Go
-order: 2
+order: 9
 summary: Duo Abel Hamdani dan Ramus Pramega siap menyegarkan waktu pulang
   kantormu lewat sajian games, musik, dan info seru di program Oz We Go.
-image: /uploads/ozwego.webp
+image: /uploads/9.webp
 imageAlt: ""
 ---
 

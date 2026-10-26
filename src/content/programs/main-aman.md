@@ -1,9 +1,9 @@
 ---
 title: Main Aman
-order: 4
+order: 7
 summary: Duo Antoni Lovendio dan Fahmi Amoy siap menyegarkan Senin malammu lewat
   sajian info terkini yang dibalut obrolan santai dan komedi khas mereka.
-image: /uploads/main-aman.webp
+image: /uploads/7.webp
 imageAlt: ""
 ---
 

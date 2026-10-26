@@ -1,9 +1,9 @@
 ---
 title: Kamus Ozzer
-order: 8
+order: 6
 summary: Program Kamus Ozzer siap menemanimu dalam segala kondisi dengan
   memutarkan lagu apa saja sesuai request-mu.
-image: /uploads/kamus-ozzer.webp
+image: /uploads/6.webp
 imageAlt: Kamus Ozzer
 ---
 Kamus Ozzer adalah program request yang siap muterin apa pun yang lo minta, dan siap nemenin lo dalam kondisi apapun!

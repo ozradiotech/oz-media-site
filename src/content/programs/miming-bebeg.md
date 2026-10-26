@@ -1,9 +1,9 @@
 ---
-title: Cerita Si Miming & Bebeg
-order: 5
+title: Carita Si Miming & Bebeg
+order: 3
 summary: Duo legendaris Kiming dan Gebeg siap mengocok perutmu di Rabu malam
   lewat obrolan seru seputar daerah, kuliner, dan budaya Kota Bandung.
-image: /uploads/mimingbebeg.webp
+image: /uploads/3.webp
 imageAlt: ""
 ---
 

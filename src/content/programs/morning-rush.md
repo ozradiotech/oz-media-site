@@ -1,9 +1,9 @@
 ---
 title: OZ Morning Rush
-order: 3
+order: 8
 summary: Prime Time Pagi dari OZ Radio hadir untuk menyemangati aktivitas pagimu
   lewat sajian musik segar, informasi terkini, dan berbagai segmen yang seru.
-image: /uploads/oz-morning-rush.webp
+image: /uploads/8.webp
 imageAlt: ""
 ---
 

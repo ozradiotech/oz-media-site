@@ -4,7 +4,7 @@ order: 1
 summary: Lewat program Ozriental, VJ dan Monica Riana siap menemanimu selama
   tiga jam nonstop dengan obrolan tren artis dan putaran deretan lagu Asia
   favorit.
-image: /uploads/ozriental.webp
+image: /uploads/1.webp
 imageAlt: ""
 ---
 

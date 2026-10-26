@@ -1,8 +1,8 @@
 ---
 title: OZCLUSIVE
-order: 11
+order: 10
 summary: summary
-image: /uploads/ozclusive.webp
+image: /uploads/10.webp
 imageAlt: OZCLUSIVE
 ---
 deskripsi

@@ -298,7 +298,7 @@ const sections = [
 
 			<section class="screen screen-sand" id="programs" aria-labelledby="programs-title">
 				<div class="screen-content">
-					<div class="section-heading" data-section-number="02">
+					<div class="section-heading">
 						<div>
 							<p class="eyebrow">ON AIR PROGRAM</p>
 							<h2 id="programs-title">Our<span> on air</span> program</h2>
@@ -350,7 +350,7 @@ const sections = [
 
 			<section class="screen screen-dark" id="announcer" aria-labelledby="announcer-title">
 				<div class="screen-content">
-					<div class="section-heading" data-section-number="03">
+					<div class="section-heading">
 						<div>
 							<p class="eyebrow">THE VOICES OF OZ</p>
 							<h2 id="announcer-title">Announcer</h2>
@@ -386,7 +386,7 @@ const sections = [
 
 			<section class="screen" id="online" aria-labelledby="online-title">
 				<div class="screen-content">
-					<div class="section-heading" data-section-number="04">
+					<div class="section-heading">
 						<div>
 							<p class="eyebrow">ONLINE</p>
 							<h2 id="online-title">Online <span>digital</span></h2>
@@ -481,7 +481,7 @@ const sections = [
 
 			<section class="screen screen-sand" id="activities" aria-labelledby="activities-title">
 				<div class="screen-content">
-					<div class="section-heading" data-section-number="05">
+					<div class="section-heading">
 						<div>
 							<p class="eyebrow">ON GROUND ACTIVITY</p>
 							<h2 id="activities-title">On ground <span>activity.</span></h2>
@@ -519,7 +519,7 @@ const sections = [
 
 			<section class="screen" id="news" aria-labelledby="news-title">
 				<div class="screen-content">
-					<div class="section-heading" data-section-number="06">
+					<div class="section-heading">
 						<div>
 							<p class="eyebrow">OZ NEWS TODAY</p>
 							<h2 id="news-title">OZ <span>News.</span></h2>
@@ -571,7 +571,7 @@ const sections = [
 
 			<section class="screen screen-sand contact-screen" id="contact" aria-labelledby="contact-title">
 				<div class="screen-content">
-					<div class="section-heading" data-section-number="07">
+					<div class="section-heading">
 						<div>
 							<p class="eyebrow">LET'S TALK BUSINESS</p>
 							<h2 id="contact-title">Contact <span>Information.</span></h2>
@@ -3431,23 +3431,6 @@ const sections = [
 		margin-bottom: clamp(16px, 3vh, 28px);
 	}
 
-	/* Oversized outlined section number, sitting in the open space beside the heading. */
-	.section-heading[data-section-number]::after {
-		position: absolute;
-		z-index: -1;
-		right: 0;
-		bottom: -0.08em;
-		color: transparent;
-		content: attr(data-section-number);
-		font-family: var(--font-tango);
-		font-size: clamp(96px, 12vw, 180px);
-		font-weight: 800;
-		letter-spacing: -0.04em;
-		line-height: 0.8;
-		pointer-events: none;
-		-webkit-text-stroke: 2px rgb(242 189 87 / 60%);
-	}
-
 	.section-heading .eyebrow {
 		margin-bottom: 8px;
 	}
@@ -4937,12 +4920,6 @@ const sections = [
 			width: 100%;
 		}
 
-		/* The heading spans the full width here, so keep the number quieter behind it. */
-		.section-heading[data-section-number]::after {
-			font-size: 76px;
-			-webkit-text-stroke-width: 1.5px;
-			-webkit-text-stroke-color: rgb(242 189 87 / 40%);
-		}
 
 		.screen-heading,
 		.section-heading {
