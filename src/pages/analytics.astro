@@ -1,0 +1,1054 @@
+---
+import { Font } from 'astro:assets';
+import '../styles/typography.css';
+import '../styles/retro.css';
+import { getCollection } from 'astro:content';
+
+// Not linked from anywhere yet; reach it by typing /analytics.
+const entries = (await getCollection('analytics'))
+	.map((entry) => entry.data)
+	.sort((a, b) => a.month.localeCompare(b.month));
+const hasPlaceholder = entries.some((entry) => entry.placeholder);
+
+const breakdownStyles = [
+	{ value: 'pie', label: 'Pie' },
+	{ value: 'doughnut', label: 'Doughnut' },
+	{ value: 'bar', label: 'Bar' },
+	{ value: 'polarArea', label: 'Polar' },
+	{ value: 'table', label: 'Table' },
+];
+const trendStyles = [
+	{ value: 'line', label: 'Line' },
+	{ value: 'area', label: 'Area' },
+	{ value: 'bar', label: 'Bar' },
+	{ value: 'table', label: 'Table' },
+];
+
+// Each card is filled in by the script below; `chart` keys into its chart definitions.
+const platforms = [
+	{
+		id: 'overview',
+		title: 'ALL PLATFORMS',
+		trends: [{ chart: 'overview-trend', title: 'Platforms over time', metrics: [['views', 'Views'], ['followers', 'Followers'], ['engagement', 'Engagement']] }],
+		breakdowns: [
+			{ chart: 'overview-views', title: 'Views by platform', style: 'pie' },
+			{ chart: 'overview-followers', title: 'Followers by platform', style: 'doughnut' },
+		],
+	},
+	{
+		id: 'youtube',
+		title: 'YOUTUBE',
+		trends: [{ chart: 'youtube-trend', title: 'Trend', metrics: [['views', 'Views'], ['watchTimeHours', 'Watch time (hours)'], ['subscribers', 'Subscribers'], ['subscribersGained', 'Subscribers gained'], ['impressions', 'Impressions'], ['impressionsCtr', 'Impressions CTR (%)'], ['averageViewDurationSeconds', 'Avg. view duration (s)'], ['likes', 'Likes'], ['comments', 'Comments'], ['shares', 'Shares']] }],
+		breakdowns: [
+			{ chart: 'youtube-traffic', title: 'Views by traffic source', style: 'pie' },
+			{ chart: 'youtube-engagement', title: 'Engagement mix', style: 'doughnut' },
+		],
+	},
+	{
+		id: 'instagram',
+		title: 'INSTAGRAM',
+		trends: [{ chart: 'instagram-trend', title: 'Trend', metrics: [['reach', 'Reach'], ['views', 'Views'], ['followers', 'Followers'], ['followersGained', 'Followers gained'], ['profileVisits', 'Profile visits'], ['accountsEngaged', 'Accounts engaged'], ['interactions', 'Interactions'], ['websiteTaps', 'Website taps']] }],
+		breakdowns: [
+			{ chart: 'instagram-content', title: 'Views by content type', style: 'pie' },
+			{ chart: 'instagram-engagement', title: 'Interaction mix', style: 'doughnut' },
+		],
+	},
+	{
+		id: 'tiktok',
+		title: 'TIKTOK',
+		trends: [{ chart: 'tiktok-trend', title: 'Trend', metrics: [['videoViews', 'Video views'], ['reach', 'Reach'], ['profileViews', 'Profile views'], ['followers', 'Followers'], ['followersGained', 'Followers gained'], ['likes', 'Likes'], ['comments', 'Comments'], ['shares', 'Shares'], ['saves', 'Saves'], ['averageWatchTimeSeconds', 'Avg. watch time (s)']] }],
+		breakdowns: [
+			{ chart: 'tiktok-traffic', title: 'Views by traffic source', style: 'pie' },
+			{ chart: 'tiktok-engagement', title: 'Engagement mix', style: 'doughnut' },
+		],
+	},
+];
+
+const monthLabel = (month: string) =>
+	new Date(`${month}-01T00:00:00Z`).toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="theme-color" content="#FFFFF3" />
+		<meta name="robots" content="noindex, nofollow" />
+		<Font cssVariable="--font-tango" preload={[{ style: 'normal' }]} />
+		<Font cssVariable="--font-jakarta" preload={[{ style: 'normal' }]} />
+		<title>OZ Analytics</title>
+	</head>
+	<body>
+		<main class="analytics-page">
+			<header class="page-header">
+				<a class="wordmark" href="/oz-bandung" aria-label="Back to OZ Radio Bandung"><img src="/images/logo-oz-bandung.png" alt="OZ Radio Bandung" width="1246" height="648" /></a>
+				<div>
+					<h1>ANALYTICS</h1>
+					<p class="page-subtitle">Live radio listeners and monthly social media numbers.</p>
+				</div>
+			</header>
+
+			<section class="panel live-panel" aria-labelledby="live-title">
+				<div class="panel-heading">
+					<h2 id="live-title">ON AIR · LISTENERS</h2>
+					<p class="live-status" data-live-status aria-live="polite"><span class="live-dot" aria-hidden="true"></span><span data-live-status-text>Connecting…</span></p>
+				</div>
+				<div class="tiles">
+					<div class="tile tile-hero">
+						<span class="tile-label">Listening now</span>
+						<strong class="tile-value" data-live-now>—</strong>
+					</div>
+					<div class="tile">
+						<span class="tile-label">Peak since stream start</span>
+						<strong class="tile-value" data-live-peak>—</strong>
+						<span class="tile-note">From Icecast; resets when the stream reconnects.</span>
+					</div>
+					<div class="tile">
+						<span class="tile-label">Peak while this page is open</span>
+						<strong class="tile-value" data-live-session-peak>—</strong>
+						<span class="tile-note" data-live-session-since></span>
+					</div>
+				</div>
+				<article class="chart-card" data-chart="live" data-style="area">
+					<header class="chart-card-header">
+						<h3>Listeners while this page is open</h3>
+						<div class="chart-controls">
+							<div class="style-switch" role="group" aria-label="Chart style">
+								{trendStyles.map((style) => <button type="button" data-style-option={style.value} aria-pressed={style.value === 'area' ? 'true' : 'false'}>{style.label}</button>)}
+							</div>
+						</div>
+					</header>
+					<div class="chart-body"><canvas aria-label="Listener count over time"></canvas><div class="chart-table" hidden></div></div>
+					<p class="chart-note">Sampled every 10 seconds. History is kept only in this tab.</p>
+				</article>
+			</section>
+
+			<section class="panel social-panel" aria-labelledby="social-title">
+				<div class="panel-heading">
+					<h2 id="social-title">SOCIAL MEDIA · MONTHLY</h2>
+					{entries.length > 0 && (
+						<div class="filters">
+							<label class="filter">Month
+								<select data-month-select>
+									{entries.map((entry, index) => <option value={entry.month} selected={index === entries.length - 1}>{monthLabel(entry.month)}</option>)}
+								</select>
+							</label>
+							<label class="filter">Trend range
+								<select data-range-select>
+									<option value="6">Last 6 months</option>
+									<option value="12" selected>Last 12 months</option>
+									<option value="all">All months</option>
+								</select>
+							</label>
+						</div>
+					)}
+				</div>
+
+				{hasPlaceholder && (
+					<p class="placeholder-banner" role="note"><strong>SAMPLE DATA</strong> Some months still hold placeholder numbers. Replace them with the real figures from each platform's insights.</p>
+				)}
+
+				{entries.length === 0 ? (
+					<p class="empty-state">No monthly numbers yet. Add a month in the CMS under “Monthly analytics”.</p>
+				) : (
+					<>
+						<nav class="platform-tabs" role="tablist" aria-label="Platform">
+							{platforms.map((platform, index) => (
+								<button type="button" role="tab" id={`tab-${platform.id}`} aria-controls={`platform-${platform.id}`} aria-selected={index === 0 ? 'true' : 'false'} tabindex={index === 0 ? 0 : -1} data-platform-tab={platform.id}>{platform.title}</button>
+							))}
+						</nav>
+						{platforms.map((platform, index) => (
+							<div class="platform" id={`platform-${platform.id}`} role="tabpanel" aria-labelledby={`tab-${platform.id}`} data-platform={platform.id} hidden={index !== 0}>
+								<div class="tiles" data-tiles={platform.id}></div>
+								<div class="chart-grid">
+									{platform.trends.map((card) => (
+										<article class="chart-card chart-card-wide" data-chart={card.chart} data-style="line">
+											<header class="chart-card-header">
+												<h3>{card.title}</h3>
+												<div class="chart-controls">
+													<label class="filter filter-compact"><span class="visually-hidden">Metric</span>
+														<select data-metric-select>
+															{card.metrics.map(([value, label]) => <option value={value}>{label}</option>)}
+														</select>
+													</label>
+													<div class="style-switch" role="group" aria-label="Chart style">
+														{trendStyles.map((style) => <button type="button" data-style-option={style.value} aria-pressed={style.value === 'line' ? 'true' : 'false'}>{style.label}</button>)}
+													</div>
+												</div>
+											</header>
+											<div class="chart-body"><canvas></canvas><div class="chart-table" hidden></div></div>
+										</article>
+									))}
+									{platform.breakdowns.map((card) => (
+										<article class="chart-card" data-chart={card.chart} data-style={card.style}>
+											<header class="chart-card-header">
+												<h3>{card.title}</h3>
+												<div class="chart-controls">
+													<div class="style-switch" role="group" aria-label="Chart style">
+														{breakdownStyles.map((style) => <button type="button" data-style-option={style.value} aria-pressed={style.value === card.style ? 'true' : 'false'}>{style.label}</button>)}
+													</div>
+												</div>
+											</header>
+											<p class="chart-total" data-chart-total></p>
+											<div class="chart-body chart-body-square"><canvas></canvas><div class="chart-table" hidden></div></div>
+										</article>
+									))}
+								</div>
+							</div>
+						))}
+					</>
+				)}
+			</section>
+		</main>
+
+		<script is:inline type="application/json" id="analytics-data" set:html={JSON.stringify(entries)} />
+	</body>
+</html>
+
+<style>
+	:root {
+		--surface: #FFFFF3;
+		--surface-raised: #FFFFFF;
+		--ink: #000000;
+		--ink-secondary: #44443F;
+		--ink-muted: #77776F;
+		--line: #D8D8CC;
+		--accent: #f2bd57;
+		--accent-soft: #FFF0D1;
+		--trend-up: #008300;
+		--trend-down: #d03b3b;
+	}
+
+	:global(body) {
+		margin: 0;
+		background: var(--surface) var(--paper-grain);
+		color: var(--ink);
+		font-family: var(--font-jakarta);
+	}
+
+	.analytics-page {
+		box-sizing: border-box;
+		max-width: 1200px;
+		margin: 0 auto;
+		padding: 32px 24px 64px;
+		display: grid;
+		gap: 32px;
+	}
+
+	.analytics-page :global(*) {
+		box-sizing: border-box;
+	}
+
+	.page-header {
+		display: flex;
+		align-items: center;
+		gap: 20px;
+	}
+
+	.wordmark img {
+		display: block;
+		width: 120px;
+		height: auto;
+	}
+
+	h1 {
+		margin: 0;
+		font-size: clamp(32px, 5vw, 48px);
+		line-height: 1;
+	}
+
+	.page-subtitle {
+		margin: 6px 0 0;
+		color: var(--ink-secondary);
+	}
+
+	.panel {
+		display: grid;
+		gap: 20px;
+		padding: clamp(16px, 3vw, 28px);
+		background: var(--surface-raised);
+		border: var(--box-border);
+		border-radius: var(--box-radius);
+		box-shadow: var(--box-shadow);
+	}
+
+	.panel-heading {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px 20px;
+	}
+
+	h2 {
+		margin: 0;
+		font-size: clamp(20px, 3vw, 26px);
+	}
+
+	h3 {
+		margin: 0;
+		font-size: 16px;
+	}
+
+	.live-status {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		margin: 0;
+		font-size: 13px;
+		color: var(--ink-secondary);
+	}
+
+	.live-dot {
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		background: var(--ink-muted);
+	}
+
+	.live-status[data-state='live'] .live-dot {
+		background: #e34948;
+		animation: pulse 1.6s ease-in-out infinite;
+	}
+
+	@keyframes pulse {
+		50% { opacity: 0.35; }
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.live-status[data-state='live'] .live-dot { animation: none; }
+	}
+
+	/* Social tiles are rendered by the script below, hence the :global tile classes. */
+	.tiles {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));
+		gap: 12px;
+	}
+
+	/* Each tile is a size container so its number scales to the tile, not the viewport. */
+	:global(.tile) {
+		container-type: inline-size;
+		min-width: 0;
+		display: grid;
+		align-content: start;
+		gap: 4px;
+		padding: 14px 16px;
+		background: var(--surface);
+		border: var(--box-border);
+		border-radius: 10px;
+	}
+
+	:global(.tile-hero) {
+		background: var(--accent-soft);
+	}
+
+	:global(.tile-label) {
+		font-size: 12px;
+		font-weight: 700;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+		color: var(--ink-secondary);
+	}
+
+	:global(.tile-value) {
+		font-family: var(--font-tango);
+		font-size: clamp(18px, 17cqi, 34px);
+		line-height: 1.1;
+		font-variant-numeric: tabular-nums;
+		overflow-wrap: anywhere;
+	}
+
+	:global(.tile-hero .tile-value) {
+		font-size: clamp(20px, 19cqi, 42px);
+	}
+
+	:global(.tile-note),
+	:global(.tile-delta) {
+		font-size: 12px;
+		color: var(--ink-muted);
+	}
+
+	:global(.tile-delta) {
+		color: var(--ink-secondary);
+		font-variant-numeric: tabular-nums;
+	}
+
+	:global(.trend-arrow) {
+		color: var(--ink-muted);
+	}
+
+	:global(.trend-arrow.is-up) {
+		color: var(--trend-up);
+	}
+
+	:global(.trend-arrow.is-down) {
+		color: var(--trend-down);
+	}
+
+	.filters {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 12px;
+	}
+
+	.filter {
+		display: grid;
+		gap: 4px;
+		font-size: 12px;
+		font-weight: 700;
+		color: var(--ink-secondary);
+	}
+
+	select {
+		min-height: 36px;
+		padding: 6px 10px;
+		font: inherit;
+		font-size: 14px;
+		font-weight: 600;
+		color: var(--ink);
+		background: var(--surface);
+		border: var(--box-border);
+		border-radius: 8px;
+		cursor: pointer;
+	}
+
+	.placeholder-banner {
+		margin: 0;
+		padding: 10px 14px;
+		font-size: 14px;
+		background: var(--accent-soft);
+		border: 2px dashed var(--ink);
+		border-radius: 10px;
+	}
+
+	.placeholder-banner strong {
+		margin-right: 8px;
+		padding: 2px 6px;
+		font-size: 11px;
+		letter-spacing: 0.06em;
+		color: var(--surface);
+		background: var(--ink);
+		border-radius: 4px;
+	}
+
+	.empty-state {
+		margin: 0;
+		color: var(--ink-secondary);
+	}
+
+	.platform-tabs {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+
+	.platform-tabs button,
+	.style-switch button {
+		font: inherit;
+		font-weight: 700;
+		color: var(--ink);
+		background: var(--surface);
+		border: var(--box-border);
+		cursor: pointer;
+	}
+
+	.platform-tabs button {
+		padding: 8px 16px;
+		font-family: var(--font-tango);
+		font-size: 15px;
+		border-radius: 999px;
+	}
+
+	.platform-tabs button[aria-selected='true'] {
+		background: var(--accent);
+		box-shadow: 3px 3px 0 var(--ink);
+	}
+
+	.platform {
+		display: grid;
+		gap: 20px;
+	}
+
+	.platform[hidden] {
+		display: none;
+	}
+
+	.chart-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 16px;
+	}
+
+	.chart-card {
+		display: grid;
+		align-content: start;
+		gap: 12px;
+		min-width: 0;
+		padding: 16px;
+		background: var(--surface-raised);
+		border: var(--box-border);
+		border-radius: 10px;
+	}
+
+	.chart-card-wide {
+		grid-column: 1 / -1;
+	}
+
+	.chart-card-header {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 10px;
+	}
+
+	.chart-controls {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.style-switch {
+		display: inline-flex;
+		flex-wrap: wrap;
+		border: var(--box-border);
+		border-radius: 8px;
+		overflow: hidden;
+	}
+
+	.style-switch button {
+		min-height: 32px;
+		padding: 4px 10px;
+		font-size: 12px;
+		border: 0;
+		border-right: 1px solid var(--line);
+	}
+
+	.style-switch button:last-child {
+		border-right: 0;
+	}
+
+	.style-switch button[aria-pressed='true'] {
+		color: var(--surface);
+		background: var(--ink);
+	}
+
+	.platform-tabs button:focus-visible,
+	.style-switch button:focus-visible,
+	select:focus-visible {
+		outline: 3px solid var(--accent);
+		outline-offset: 2px;
+	}
+
+	.chart-total {
+		margin: -4px 0 0;
+		font-size: 13px;
+		color: var(--ink-secondary);
+	}
+
+	.chart-total:empty {
+		display: none;
+	}
+
+	.chart-body {
+		position: relative;
+		height: 300px;
+	}
+
+	.chart-body-square {
+		height: 280px;
+	}
+
+	.chart-body:has(.chart-table:not([hidden])) {
+		height: auto;
+	}
+
+	.chart-body:has(.chart-table:not([hidden])) canvas {
+		display: none;
+	}
+
+	.chart-table {
+		max-height: 320px;
+		overflow: auto;
+	}
+
+	.chart-table :global(table) {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: 14px;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.chart-table :global(th),
+	.chart-table :global(td) {
+		padding: 8px 10px;
+		text-align: right;
+		border-bottom: 1px solid var(--line);
+		white-space: nowrap;
+	}
+
+	.chart-table :global(th:first-child),
+	.chart-table :global(td:first-child) {
+		text-align: left;
+	}
+
+	.chart-table :global(thead th) {
+		position: sticky;
+		top: 0;
+		font-size: 12px;
+		color: var(--ink-secondary);
+		background: var(--surface-raised);
+	}
+
+	.chart-note {
+		margin: 0;
+		font-size: 12px;
+		color: var(--ink-muted);
+	}
+
+	.visually-hidden,
+	:global(.tile .visually-hidden) {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+
+	@media (max-width: 760px) {
+		.analytics-page {
+			padding: 20px 16px 48px;
+			gap: 24px;
+		}
+
+		.page-header {
+			gap: 14px;
+		}
+
+		.wordmark img {
+			width: 84px;
+		}
+
+		.chart-grid {
+			grid-template-columns: minmax(0, 1fr);
+		}
+
+		.chart-body {
+			height: 240px;
+		}
+	}
+</style>
+
+<script>
+	import { Chart, type ChartConfiguration, type ChartDataset } from 'chart.js/auto';
+	import type { CollectionEntry } from 'astro:content';
+
+	type Month = CollectionEntry<'analytics'>['data'];
+	type Format = (value: number | null | undefined) => string;
+	type Series = { label: string; values: (number | null)[]; format?: Format };
+	type TrendStyle = 'line' | 'area' | 'bar' | 'table';
+	type BreakdownStyle = 'pie' | 'doughnut' | 'bar' | 'polarArea' | 'table';
+
+	// Validated categorical order (dataviz reference palette, light mode). Colour follows the entity:
+	// platforms always take slots 1-3, and a breakdown's slices keep their slot whatever the month.
+	const palette = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4'];
+	const platformColors = { youtube: palette[0], instagram: palette[1], tiktok: palette[2] };
+	const surface = '#FFFFFF';
+	const ink = '#000000';
+	const inkSecondary = '#44443F';
+	const gridLine = '#E6E6DC';
+
+	const bodyFont = getComputedStyle(document.body).fontFamily;
+	Chart.defaults.font.family = bodyFont;
+	Chart.defaults.font.size = 12;
+	Chart.defaults.color = inkSecondary;
+	Chart.defaults.plugins.legend.labels.usePointStyle = true;
+	Chart.defaults.plugins.legend.labels.boxWidth = 8;
+	Chart.defaults.plugins.tooltip.backgroundColor = ink;
+	Chart.defaults.plugins.tooltip.padding = 10;
+	Chart.defaults.plugins.tooltip.cornerRadius = 6;
+
+	const numberFormat = new Intl.NumberFormat('en-US');
+	const compactFormat = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
+	const formatNumber = (value: number | null | undefined) => (typeof value === 'number' ? numberFormat.format(value) : '—');
+	const formatDuration = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.round(seconds % 60)).padStart(2, '0')}`;
+	const shortMonth = (month: string) =>
+		new Date(`${month}-01T00:00:00Z`).toLocaleDateString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' });
+
+	const escapeHtml = (text: string) => text.replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[char]!);
+
+	const renderTable = (container: HTMLElement, heading: string, rows: string[], columns: Series[], format: Format = formatNumber) => {
+		const head = `<tr><th scope="col">${escapeHtml(heading)}</th>${columns.map((column) => `<th scope="col">${escapeHtml(column.label)}</th>`).join('')}</tr>`;
+		const body = rows
+			.map((row, index) => `<tr><th scope="row">${escapeHtml(row)}</th>${columns.map((column) => `<td>${(column.format ?? format)(column.values[index])}</td>`).join('')}</tr>`)
+			.join('');
+		container.innerHTML = `<table><thead>${head}</thead><tbody>${body}</tbody></table>`;
+	};
+
+	/* ---------- Chart cards ---------- */
+
+	// A card owns one canvas; switching style destroys and rebuilds its chart (or shows the table instead).
+	class ChartCard {
+		readonly root: HTMLElement;
+		readonly canvas: HTMLCanvasElement;
+		readonly table: HTMLElement;
+		chart: Chart | undefined;
+		// The style currently on the canvas, so live updates can patch the chart instead of rebuilding it.
+		drawnStyle: string | undefined;
+		style: string;
+		render: () => void = () => {};
+
+		constructor(root: HTMLElement) {
+			this.root = root;
+			this.canvas = root.querySelector('canvas')!;
+			this.table = root.querySelector('.chart-table')!;
+			this.style = root.dataset.style ?? 'line';
+			root.querySelectorAll<HTMLButtonElement>('[data-style-option]').forEach((button) => {
+				button.addEventListener('click', () => {
+					this.style = button.dataset.styleOption!;
+					root.querySelectorAll('[data-style-option]').forEach((other) => other.setAttribute('aria-pressed', String(other === button)));
+					this.render();
+				});
+			});
+		}
+
+		draw(config: ChartConfiguration | null) {
+			this.chart?.destroy();
+			this.chart = undefined;
+			this.table.hidden = config !== null;
+			if (config) this.chart = new Chart(this.canvas, config);
+			this.drawnStyle = this.style;
+		}
+
+		trend(labels: string[], series: Series[], colors: string[], format: Format = formatNumber) {
+			const style = this.style as TrendStyle;
+			if (style === 'table') {
+				renderTable(this.table, 'Month', labels, series, format);
+				this.draw(null);
+				return;
+			}
+			const datasets = series.map((item, index): ChartDataset<'line' | 'bar'> => {
+				const color = colors[index];
+				return style === 'bar'
+					? { type: 'bar', label: item.label, data: item.values, backgroundColor: color, borderRadius: { topLeft: 4, topRight: 4 }, borderSkipped: 'start', borderColor: surface, borderWidth: { left: 1, right: 1 }, maxBarThickness: 36 }
+					: {
+						type: 'line',
+						label: item.label,
+						data: item.values,
+						borderColor: color,
+						backgroundColor: style === 'area' ? `${color}33` : color,
+						fill: style === 'area' ? (series.length > 1 && index > 0 ? '-1' : 'origin') : false,
+						borderWidth: 2,
+						tension: 0.25,
+						pointRadius: labels.length > 40 ? 0 : 4,
+						pointHoverRadius: 6,
+						pointBackgroundColor: color,
+						pointBorderColor: surface,
+						pointBorderWidth: 2,
+					};
+			});
+			this.draw({
+				type: style === 'bar' ? 'bar' : 'line',
+				data: { labels, datasets: datasets as ChartDataset<'line'>[] },
+				options: {
+					responsive: true,
+					maintainAspectRatio: false,
+					animation: { duration: 300 },
+					interaction: { mode: 'index', intersect: false },
+					scales: {
+						x: { grid: { display: false }, border: { color: gridLine } },
+						y: { beginAtZero: true, stacked: style === 'area' && series.length > 1, grid: { color: gridLine }, border: { display: false }, ticks: { callback: (value) => compactFormat.format(Number(value)) } },
+					},
+					plugins: {
+						legend: { display: series.length > 1, position: 'top', align: 'start' },
+						tooltip: { callbacks: { label: (context) => ` ${context.dataset.label}: ${format(context.parsed.y)}` } },
+					},
+				},
+			});
+		}
+
+		breakdown(labels: string[], values: number[], colors: string[], valueLabel = 'Value') {
+			const style = this.style as BreakdownStyle;
+			const total = values.reduce((sum, value) => sum + value, 0);
+			const share = (value: number) => (total ? `${((value / total) * 100).toFixed(1)}%` : '—');
+			const totalLabel = this.root.querySelector<HTMLElement>('[data-chart-total]');
+			if (totalLabel) totalLabel.textContent = `Total ${formatNumber(total)}`;
+
+			if (style === 'table') {
+				renderTable(this.table, 'Category', labels, [{ label: valueLabel, values }, { label: 'Share', values, format: (value) => share(value ?? 0) }]);
+				this.draw(null);
+				return;
+			}
+
+			const isRadial = style !== 'bar';
+			this.draw({
+				type: style,
+				data: {
+					labels,
+					datasets: [{
+						label: valueLabel,
+						data: values,
+						backgroundColor: style === 'polarArea' ? colors.map((color) => `${color}CC`) : colors,
+						borderColor: surface,
+						borderWidth: 2,
+						...(style === 'bar' ? { borderRadius: { topLeft: 4, topRight: 4 }, borderSkipped: 'start' as const, maxBarThickness: 48 } : {}),
+					}],
+				},
+				options: {
+					responsive: true,
+					maintainAspectRatio: false,
+					animation: { duration: 300 },
+					...(style === 'doughnut' ? { cutout: '58%' } : {}),
+					scales: style === 'bar'
+						? { x: { grid: { display: false }, border: { color: gridLine } }, y: { beginAtZero: true, grid: { color: gridLine }, border: { display: false }, ticks: { callback: (value) => compactFormat.format(Number(value)) } } }
+						: style === 'polarArea'
+							? { r: { grid: { color: gridLine }, ticks: { display: false } } }
+							: {},
+					plugins: {
+						legend: { display: isRadial, position: window.innerWidth < 560 ? 'bottom' : 'right', labels: { generateLabels: (chart) => {
+							const base = Chart.overrides[style === 'polarArea' ? 'polarArea' : 'doughnut'].plugins.legend.labels.generateLabels(chart);
+							return base.map((item, index) => ({ ...item, text: `${item.text}  ${share(values[index])}` }));
+						} } },
+						tooltip: { callbacks: { label: (context) => ` ${formatNumber(values[context.dataIndex])} (${share(values[context.dataIndex])})` } },
+					},
+				},
+			});
+		}
+	}
+
+	/* ---------- Live listeners ---------- */
+
+	const liveCardRoot = document.querySelector<HTMLElement>('[data-chart="live"]');
+	if (liveCardRoot) {
+		const liveCard = new ChartCard(liveCardRoot);
+		const nowValue = document.querySelector<HTMLElement>('[data-live-now]')!;
+		const peakValue = document.querySelector<HTMLElement>('[data-live-peak]')!;
+		const sessionPeakValue = document.querySelector<HTMLElement>('[data-live-session-peak]')!;
+		const sessionSince = document.querySelector<HTMLElement>('[data-live-session-since]')!;
+		const status = document.querySelector<HTMLElement>('[data-live-status]')!;
+		const statusText = document.querySelector<HTMLElement>('[data-live-status-text]')!;
+		const samples: { time: string; listeners: number | null }[] = [];
+		const maxSamples = 360; // One hour at 10-second intervals.
+		const timeFormat = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+		let sessionPeak: number | null = null;
+		sessionSince.textContent = `Since ${timeFormat.format(new Date())}`;
+
+		liveCard.render = () => {
+			const labels = samples.map((sample) => sample.time);
+			const values = samples.map((sample) => sample.listeners);
+			// Update in place while the style is unchanged so the chart doesn't flash every 10 seconds.
+			const chart = liveCard.chart;
+			if (chart && liveCard.drawnStyle === liveCard.style) {
+				chart.data.labels = labels;
+				chart.data.datasets[0].data = values;
+				chart.update('none');
+				return;
+			}
+			liveCard.trend(labels, [{ label: 'Listeners', values }], [palette[0]]);
+		};
+
+		const poll = async () => {
+			const time = timeFormat.format(new Date());
+			try {
+				const response = await fetch('/api/now-playing', { cache: 'no-store' });
+				const data = (await response.json()) as { listeners?: unknown; peakListeners?: unknown };
+				if (!response.ok || typeof data.listeners !== 'number') throw new Error('Stream status unavailable.');
+				const listeners = data.listeners;
+				sessionPeak = Math.max(sessionPeak ?? 0, listeners);
+				nowValue.textContent = formatNumber(listeners);
+				peakValue.textContent = typeof data.peakListeners === 'number' ? formatNumber(data.peakListeners) : '—';
+				sessionPeakValue.textContent = formatNumber(sessionPeak);
+				status.dataset.state = 'live';
+				statusText.textContent = `Live · updated ${time}`;
+				samples.push({ time, listeners });
+			} catch {
+				status.dataset.state = 'offline';
+				statusText.textContent = `Stream offline or unreachable · ${time}`;
+				nowValue.textContent = '—';
+				samples.push({ time, listeners: null });
+			}
+			if (samples.length > maxSamples) samples.splice(0, samples.length - maxSamples);
+			liveCard.render();
+		};
+
+		poll();
+		window.setInterval(poll, 10_000);
+	}
+
+	/* ---------- Monthly social media ---------- */
+
+	const dataElement = document.getElementById('analytics-data');
+	const months = JSON.parse(dataElement?.textContent ?? '[]') as Month[];
+	const monthSelect = document.querySelector<HTMLSelectElement>('[data-month-select]');
+	const rangeSelect = document.querySelector<HTMLSelectElement>('[data-range-select]');
+
+	if (months.length && monthSelect && rangeSelect) {
+		const youtubeEngagement = (month: Month) => month.youtube.likes + month.youtube.comments + month.youtube.shares;
+		const tiktokEngagement = (month: Month) => month.tiktok.likes + month.tiktok.comments + month.tiktok.shares + month.tiktok.saves;
+
+		type Tile = { label: string; value: (month: Month) => number; format?: (value: number) => string; hero?: boolean; note?: (month: Month) => string };
+		const tiles: Record<string, Tile[]> = {
+			overview: [
+				{ label: 'Total views', value: (m) => m.youtube.views + m.instagram.views + m.tiktok.videoViews, hero: true },
+				{ label: 'Total followers', value: (m) => m.youtube.subscribers + m.instagram.followers + m.tiktok.followers },
+				{ label: 'New followers', value: (m) => m.youtube.subscribersGained + m.instagram.followersGained + m.tiktok.followersGained },
+				{ label: 'Total engagement', value: (m) => youtubeEngagement(m) + m.instagram.interactions + tiktokEngagement(m), note: () => 'Likes, comments, shares and saves' },
+			],
+			youtube: [
+				{ label: 'Views', value: (m) => m.youtube.views, hero: true },
+				{ label: 'Watch time (hours)', value: (m) => m.youtube.watchTimeHours },
+				{ label: 'Subscribers', value: (m) => m.youtube.subscribers, note: (m) => `+${formatNumber(m.youtube.subscribersGained)} gained · −${formatNumber(m.youtube.subscribersLost)} lost` },
+				{ label: 'Impressions', value: (m) => m.youtube.impressions },
+				{ label: 'Impressions CTR', value: (m) => m.youtube.impressionsCtr, format: (v) => `${v.toFixed(1)}%` },
+				{ label: 'Avg. view duration', value: (m) => m.youtube.averageViewDurationSeconds, format: formatDuration },
+				{ label: 'Likes', value: (m) => m.youtube.likes },
+				{ label: 'Comments', value: (m) => m.youtube.comments },
+				{ label: 'Shares', value: (m) => m.youtube.shares },
+			],
+			instagram: [
+				{ label: 'Views', value: (m) => m.instagram.views, hero: true },
+				{ label: 'Reach', value: (m) => m.instagram.reach },
+				{ label: 'Followers', value: (m) => m.instagram.followers, note: (m) => `+${formatNumber(m.instagram.followersGained)} this month` },
+				{ label: 'Accounts engaged', value: (m) => m.instagram.accountsEngaged },
+				{ label: 'Interactions', value: (m) => m.instagram.interactions },
+				{ label: 'Profile visits', value: (m) => m.instagram.profileVisits },
+				{ label: 'Website taps', value: (m) => m.instagram.websiteTaps },
+				{ label: 'Likes', value: (m) => m.instagram.likes },
+				{ label: 'Comments', value: (m) => m.instagram.comments },
+				{ label: 'Shares', value: (m) => m.instagram.shares },
+				{ label: 'Saves', value: (m) => m.instagram.saves },
+			],
+			tiktok: [
+				{ label: 'Video views', value: (m) => m.tiktok.videoViews, hero: true },
+				{ label: 'Reach', value: (m) => m.tiktok.reach },
+				{ label: 'Followers', value: (m) => m.tiktok.followers, note: (m) => `+${formatNumber(m.tiktok.followersGained)} this month` },
+				{ label: 'Profile views', value: (m) => m.tiktok.profileViews },
+				{ label: 'Avg. watch time', value: (m) => m.tiktok.averageWatchTimeSeconds, format: formatDuration },
+				{ label: 'Likes', value: (m) => m.tiktok.likes },
+				{ label: 'Comments', value: (m) => m.tiktok.comments },
+				{ label: 'Shares', value: (m) => m.tiktok.shares },
+				{ label: 'Saves', value: (m) => m.tiktok.saves },
+			],
+		};
+
+		const breakdowns: Record<string, { valueLabel: string; slices: [string, (m: Month) => number][] }> = {
+			'overview-views': { valueLabel: 'Views', slices: [['YouTube', (m) => m.youtube.views], ['Instagram', (m) => m.instagram.views], ['TikTok', (m) => m.tiktok.videoViews]] },
+			'overview-followers': { valueLabel: 'Followers', slices: [['YouTube', (m) => m.youtube.subscribers], ['Instagram', (m) => m.instagram.followers], ['TikTok', (m) => m.tiktok.followers]] },
+			'youtube-traffic': { valueLabel: 'Views', slices: [['Search', (m) => m.youtube.trafficSources.search], ['Suggested', (m) => m.youtube.trafficSources.suggested], ['Browse', (m) => m.youtube.trafficSources.browse], ['External', (m) => m.youtube.trafficSources.external], ['Other', (m) => m.youtube.trafficSources.other]] },
+			'youtube-engagement': { valueLabel: 'Count', slices: [['Likes', (m) => m.youtube.likes], ['Comments', (m) => m.youtube.comments], ['Shares', (m) => m.youtube.shares]] },
+			'instagram-content': { valueLabel: 'Views', slices: [['Reels', (m) => m.instagram.contentViews.reels], ['Posts', (m) => m.instagram.contentViews.posts], ['Stories', (m) => m.instagram.contentViews.stories]] },
+			'instagram-engagement': { valueLabel: 'Count', slices: [['Likes', (m) => m.instagram.likes], ['Comments', (m) => m.instagram.comments], ['Shares', (m) => m.instagram.shares], ['Saves', (m) => m.instagram.saves]] },
+			'tiktok-traffic': { valueLabel: 'Views', slices: [['For You', (m) => m.tiktok.trafficSources.forYou], ['Following', (m) => m.tiktok.trafficSources.following], ['Profile', (m) => m.tiktok.trafficSources.profile], ['Search', (m) => m.tiktok.trafficSources.search], ['Other', (m) => m.tiktok.trafficSources.other]] },
+			'tiktok-engagement': { valueLabel: 'Count', slices: [['Likes', (m) => m.tiktok.likes], ['Comments', (m) => m.tiktok.comments], ['Shares', (m) => m.tiktok.shares], ['Saves', (m) => m.tiktok.saves]] },
+		};
+
+		const platformTrendColor: Record<string, string> = { youtube: platformColors.youtube, instagram: platformColors.instagram, tiktok: platformColors.tiktok };
+		const overviewMetrics: Record<string, [string, (m: Month) => number][]> = {
+			views: [['YouTube', (m) => m.youtube.views], ['Instagram', (m) => m.instagram.views], ['TikTok', (m) => m.tiktok.videoViews]],
+			followers: [['YouTube', (m) => m.youtube.subscribers], ['Instagram', (m) => m.instagram.followers], ['TikTok', (m) => m.tiktok.followers]],
+			engagement: [['YouTube', youtubeEngagement], ['Instagram', (m) => m.instagram.interactions], ['TikTok', tiktokEngagement]],
+		};
+
+		const selectedIndex = () => Math.max(0, months.findIndex((month) => month.month === monthSelect.value));
+		const trendMonths = () => {
+			const end = selectedIndex() + 1;
+			const range = rangeSelect.value === 'all' ? end : Number(rangeSelect.value);
+			return months.slice(Math.max(0, end - range), end);
+		};
+
+		const renderTiles = () => {
+			const index = selectedIndex();
+			const current = months[index];
+			const previous = months[index - 1];
+			for (const [platform, list] of Object.entries(tiles)) {
+				const container = document.querySelector<HTMLElement>(`[data-tiles="${platform}"]`);
+				if (!container) continue;
+				container.innerHTML = list.map((tile) => {
+					const value = tile.value(current);
+					const format = tile.format ?? formatNumber;
+					let delta = '';
+					if (previous) {
+						const before = tile.value(previous);
+						if (before > 0) {
+							const change = ((value - before) / before) * 100;
+							const [arrow, direction, word] = change > 0 ? ['▲', 'is-up', 'Up'] : change < 0 ? ['▼', 'is-down', 'Down'] : ['■', '', 'No change'];
+							delta = `<span class="tile-delta"><span class="trend-arrow ${direction}" aria-hidden="true">${arrow}</span><span class="visually-hidden">${word}</span> ${Math.abs(change).toFixed(1)}% vs ${escapeHtml(shortMonth(previous.month))}</span>`;
+						}
+					}
+					const note = tile.note ? `<span class="tile-note">${escapeHtml(tile.note(current))}</span>` : '';
+					return `<div class="tile${tile.hero ? ' tile-hero' : ''}"><span class="tile-label">${escapeHtml(tile.label)}</span><strong class="tile-value">${escapeHtml(format(value))}</strong>${delta}${note}</div>`;
+				}).join('');
+			}
+		};
+
+		const cards = new Map<string, ChartCard>();
+		document.querySelectorAll<HTMLElement>('.social-panel [data-chart]').forEach((root) => {
+			const card = new ChartCard(root);
+			const id = root.dataset.chart!;
+			cards.set(id, card);
+			const metricSelect = root.querySelector<HTMLSelectElement>('[data-metric-select]');
+			metricSelect?.addEventListener('change', () => card.render());
+
+			if (id in breakdowns) {
+				const definition = breakdowns[id];
+				card.render = () => {
+					const month = months[selectedIndex()];
+					card.breakdown(definition.slices.map(([label]) => label), definition.slices.map(([, value]) => value(month)), palette, definition.valueLabel);
+				};
+			} else if (id === 'overview-trend') {
+				card.render = () => {
+					const list = trendMonths();
+					const metric = overviewMetrics[metricSelect!.value];
+					card.trend(list.map((m) => shortMonth(m.month)), metric.map(([label, value]) => ({ label, values: list.map(value) })), [palette[0], palette[1], palette[2]]);
+				};
+			} else {
+				const platform = id.replace('-trend', '') as 'youtube' | 'instagram' | 'tiktok';
+				card.render = () => {
+					const list = trendMonths();
+					const key = metricSelect!.value;
+					const label = metricSelect!.selectedOptions[0]?.textContent ?? key;
+					const values = list.map((m) => (m[platform] as Record<string, unknown>)[key] as number);
+					const format: Format = key.endsWith('Seconds') ? (v) => (typeof v === 'number' ? formatDuration(v) : '—') : formatNumber;
+					card.trend(list.map((m) => shortMonth(m.month)), [{ label, values }], [platformTrendColor[platform]], format);
+				};
+			}
+		});
+
+		// Charts in hidden tabs have no size, so only draw the visible tab and redraw tabs as they open.
+		const visibleCards = () => [...cards.values()].filter((card) => !card.root.closest<HTMLElement>('[data-platform]')?.hidden);
+		const renderAll = () => {
+			renderTiles();
+			visibleCards().forEach((card) => card.render());
+		};
+
+		monthSelect.addEventListener('change', renderAll);
+		rangeSelect.addEventListener('change', renderAll);
+
+		const tabs = [...document.querySelectorAll<HTMLButtonElement>('[data-platform-tab]')];
+		const selectTab = (tab: HTMLButtonElement) => {
+			tabs.forEach((other) => {
+				const selected = other === tab;
+				other.setAttribute('aria-selected', String(selected));
+				other.tabIndex = selected ? 0 : -1;
+				document.getElementById(`platform-${other.dataset.platformTab}`)!.hidden = !selected;
+			});
+			visibleCards().forEach((card) => card.render());
+		};
+		tabs.forEach((tab, index) => {
+			tab.addEventListener('click', () => selectTab(tab));
+			tab.addEventListener('keydown', (event) => {
+				const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+				if (!step) return;
+				const next = tabs[(index + step + tabs.length) % tabs.length];
+				next.focus();
+				selectTab(next);
+			});
+		});
+
+		renderAll();
+	}
+</script>

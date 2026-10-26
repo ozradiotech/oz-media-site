@@ -95,3 +95,92 @@ collections:
       - { label: Featured image, name: image, widget: image }
       - { label: Image alt text, name: imageAlt, widget: string, required: false }
       - { label: Article, name: body, widget: markdown }
+
+  # One entry per month, copied from YouTube Studio, Instagram Insights and TikTok Studio. Shown on /analytics.
+  - name: analytics
+    label: Monthly analytics
+    label_singular: Month
+    folder: src/content/analytics
+    create: true
+    extension: json
+    format: json
+    identifier_field: month
+    slug: "{{slug}}"
+    summary: "{{month}}{{placeholder | ternary(' (sample data)', '')}}"
+    sortable_fields: [month]
+    fields:
+      - { label: "Month (YYYY-MM)", name: month, widget: string, pattern: ['^\d{4}-(0[1-9]|1[0-2])$', "Use YYYY-MM, for example 2026-10"] }
+      - { label: Sample data, name: placeholder, widget: boolean, default: false, hint: "Leave off for real numbers." }
+      - label: YouTube
+        name: youtube
+        widget: object
+        collapsed: true
+        fields:
+          - { label: Views, name: views, widget: number, value_type: int, min: 0, default: 0 }
+          - { label: Watch time (hours), name: watchTimeHours, widget: number, value_type: int, min: 0, default: 0 }
+          - { label: Subscribers (total at month end), name: subscribers, widget: number, value_type: int, min: 0, default: 0 }
+          - { label: Subscribers gained, name: subscribersGained, widget: number, value_type: int, min: 0, default: 0 }
+          - { label: Subscribers lost, name: subscribersLost, widget: number, value_type: int, min: 0, default: 0 }
+          - { label: Impressions, name: impressions, widget: number, value_type: int, min: 0, default: 0 }
+          - { label: Impressions click-through rate (%), name: impressionsCtr, widget: number, value_type: float, min: 0, max: 100, step: 0.1, default: 0 }
+          - { label: Average view duration (seconds), name: averageViewDurationSeconds, widget: number, value_type: int, min: 0, default: 0 }
+          - { label: Likes, name: likes, widget: number, value_type: int, min: 0, default: 0 }
+          - { label: Comments, name: comments, widget: number, value_type: int, min: 0, default: 0 }
+          - { label: Shares, name: shares, widget: number, value_type: int, min: 0, default: 0 }
+          - label: Views by traffic source
+            name: trafficSources
+            widget: object
+            fields:
+              - { label: YouTube search, name: search, widget: number, value_type: int, min: 0, default: 0 }
+              - { label: Suggested videos, name: suggested, widget: number, value_type: int, min: 0, default: 0 }
+              - { label: Browse features, name: browse, widget: number, value_type: int, min: 0, default: 0 }
+              - { label: External, name: external, widget: number, value_type: int, min: 0, default: 0 }
+              - { label: Other, name: other, widget: number, value_type: int, min: 0, default: 0 }
+      - label: Instagram
+        name: instagram
+        widget: object
+        collapsed: true
+        fields:
+          - { label: Reach (accounts reached), name: reach, widget: number, value_type: int, min: 0, default: 0 }
+          - { label: Views, name: views, widget: number, value_type: int, min: 0, default: 0 }
+          - { label: Followers (total at month end), name: followers, widget: number, value_type: int, min: 0, default: 0 }
+          - { label: Followers gained, name: followersGained, widget: number, value_type: int, min: 0, default: 0 }
+          - { label: Profile visits, name: profileVisits, widget: number, value_type: int, min: 0, default: 0 }
+          - { label: Accounts engaged, name: accountsEngaged, widget: number, value_type: int, min: 0, default: 0 }
+          - { label: Interactions, name: interactions, widget: number, value_type: int, min: 0, default: 0 }
+          - { label: Likes, name: likes, widget: number, value_type: int, min: 0, default: 0 }
+          - { label: Comments, name: comments, widget: number, value_type: int, min: 0, default: 0 }
+          - { label: Shares, name: shares, widget: number, value_type: int, min: 0, default: 0 }
+          - { label: Saves, name: saves, widget: number, value_type: int, min: 0, default: 0 }
+          - { label: Website link taps, name: websiteTaps, widget: number, value_type: int, min: 0, default: 0 }
+          - label: Views by content type
+            name: contentViews
+            widget: object
+            fields:
+              - { label: Reels, name: reels, widget: number, value_type: int, min: 0, default: 0 }
+              - { label: Posts, name: posts, widget: number, value_type: int, min: 0, default: 0 }
+              - { label: Stories, name: stories, widget: number, value_type: int, min: 0, default: 0 }
+      - label: TikTok
+        name: tiktok
+        widget: object
+        collapsed: true
+        fields:
+          - { label: Video views, name: videoViews, widget: number, value_type: int, min: 0, default: 0 }
+          - { label: Profile views, name: profileViews, widget: number, value_type: int, min: 0, default: 0 }
+          - { label: Reached audience, name: reach, widget: number, value_type: int, min: 0, default: 0 }
+          - { label: Followers (total at month end), name: followers, widget: number, value_type: int, min: 0, default: 0 }
+          - { label: Followers gained, name: followersGained, widget: number, value_type: int, min: 0, default: 0 }
+          - { label: Likes, name: likes, widget: number, value_type: int, min: 0, default: 0 }
+          - { label: Comments, name: comments, widget: number, value_type: int, min: 0, default: 0 }
+          - { label: Shares, name: shares, widget: number, value_type: int, min: 0, default: 0 }
+          - { label: Saves, name: saves, widget: number, value_type: int, min: 0, default: 0 }
+          - { label: Average watch time (seconds), name: averageWatchTimeSeconds, widget: number, value_type: int, min: 0, default: 0 }
+          - label: Views by traffic source
+            name: trafficSources
+            widget: object
+            fields:
+              - { label: For You, name: forYou, widget: number, value_type: int, min: 0, default: 0 }
+              - { label: Following, name: following, widget: number, value_type: int, min: 0, default: 0 }
+              - { label: Personal profile, name: profile, widget: number, value_type: int, min: 0, default: 0 }
+              - { label: Search, name: search, widget: number, value_type: int, min: 0, default: 0 }
+              - { label: Other, name: other, widget: number, value_type: int, min: 0, default: 0 }

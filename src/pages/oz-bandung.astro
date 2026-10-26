@@ -7,7 +7,14 @@ import SectionNav from '../components/SectionNav.astro';
 import { getCollection, render } from 'astro:content';
 
 const audioStreamUrl = 'https://streaming.ozradio.id:8443/ozbandung';
-const twitchChannel = '';
+// Livestream: set videoId to embed one live broadcast, or channelId (UC…) to embed whatever that channel is
+// streaming right now. videoId wins when both are set; leave both empty to show the placeholder.
+const youtubeLive = { videoId: 'WNDcep4MWBE', channelId: '@edwintismail2020' };
+const youtubeLiveEmbedUrl = youtubeLive.videoId
+	? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(youtubeLive.videoId)}`
+	: youtubeLive.channelId
+		? `https://www.youtube-nocookie.com/embed/live_stream?channel=${encodeURIComponent(youtubeLive.channelId)}`
+		: '';
 const youtubeChannelUrl = 'https://www.youtube.com/@OZMEDIANET';
 const youtubeVideos = [
 	{ id: 'UDmfDJTzg4w', title: 'Featured video' },
@@ -218,11 +225,12 @@ const sections = [
 							</div>
 							<div class="broadcast-panel" data-broadcast-panel="video" hidden>
 								<div class="video-frame">
-									{twitchChannel ? (
+									{youtubeLiveEmbedUrl ? (
 										<iframe
-											title="OZ Bandung Twitch livestream"
-											data-twitch-channel={twitchChannel}
-											allow="autoplay; fullscreen"
+											title="OZ Bandung YouTube livestream"
+											data-youtube-live={youtubeLiveEmbedUrl}
+											allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+											referrerpolicy="strict-origin-when-cross-origin"
 											allowfullscreen
 										></iframe>
 									) : (
@@ -230,7 +238,7 @@ const sections = [
 											<img src="/images/studio-livestream.jpg" alt="" aria-hidden="true" loading="lazy" decoding="async" />
 											<span class="placeholder-play" aria-hidden="true">▶</span>
 											<p>Studio stream coming soon</p>
-											<span class="placeholder-caption">TWITCH LIVESTREAM · CHANNEL TO BE ADDED</span>
+											<span class="placeholder-caption">YOUTUBE LIVESTREAM · CHANNEL TO BE ADDED</span>
 										</div>
 									)}
 								</div>
@@ -1396,7 +1404,7 @@ const sections = [
 	const googleAvatar = googleAuth?.querySelector<HTMLImageElement>('[data-google-avatar]');
 	const googleSignOut = googleAuth?.querySelector<HTMLButtonElement>('[data-google-signout]');
 	const googleAuthNote = googleAuth?.querySelector<HTMLElement>('[data-google-auth-note]');
-	const twitchPlayer = document.querySelector<HTMLIFrameElement>('[data-twitch-channel]');
+	const livePlayer = document.querySelector<HTMLIFrameElement>('[data-youtube-live]');
 	const audioPlayerContainer = document.querySelector<HTMLElement>('[data-audio-player]');
 	const fallbackAudio = audioPlayerContainer?.querySelector<HTMLAudioElement>('audio');
 	const trackTitle = document.querySelector<HTMLElement>('[data-track-title]');
@@ -1506,7 +1514,7 @@ const sections = [
 	const stopBroadcast = () => {
 		stopNowPlayingUpdates();
 		pauseAudio();
-		twitchPlayer?.removeAttribute('src');
+		livePlayer?.removeAttribute('src');
 		broadcast?.classList.remove('is-streaming');
 		if (tuneInLabel) tuneInLabel.textContent = 'Tune in';
 		broadcastPanels.forEach((panel) => { panel.hidden = true; });
@@ -1588,13 +1596,16 @@ const sections = [
 			return;
 		}
 
-		const channel = twitchPlayer?.dataset.twitchChannel;
-		if (twitchPlayer && channel) {
-			const playerUrl = new URL('https://player.twitch.tv/');
-			playerUrl.searchParams.set('channel', channel);
-			playerUrl.searchParams.set('parent', window.location.hostname);
-			playerUrl.searchParams.set('muted', 'true');
-			twitchPlayer.src = playerUrl.toString();
+		// The iframe only gets its src here, so YouTube loads nothing until a signed-in visitor picks video.
+		const embedUrl = livePlayer?.dataset.youtubeLive;
+		if (livePlayer && embedUrl) {
+			const playerUrl = new URL(embedUrl);
+			// Sign-in is async, so the click no longer counts as a user gesture: autoplay only works muted.
+			playerUrl.searchParams.set('autoplay', '1');
+			playerUrl.searchParams.set('mute', '1');
+			playerUrl.searchParams.set('playsinline', '1');
+			playerUrl.searchParams.set('rel', '0');
+			livePlayer.src = playerUrl.toString();
 		}
 	};
 

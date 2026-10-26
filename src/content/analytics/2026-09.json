@@ -1,0 +1,62 @@
+{
+	"month": "2026-09",
+	"placeholder": true,
+	"youtube": {
+		"views": 9500,
+		"watchTimeHours": 649,
+		"subscribers": 1351,
+		"subscribersGained": 41,
+		"subscribersLost": 5,
+		"impressions": 81700,
+		"impressionsCtr": 4.8,
+		"averageViewDurationSeconds": 246,
+		"likes": 390,
+		"comments": 59,
+		"shares": 33,
+		"trafficSources": {
+			"search": 2626,
+			"suggested": 3438,
+			"browse": 1628,
+			"external": 1085,
+			"other": 723
+		}
+	},
+	"instagram": {
+		"reach": 20025,
+		"views": 44500,
+		"followers": 5980,
+		"followersGained": 205,
+		"profileVisits": 2314,
+		"accountsEngaged": 1513,
+		"interactions": 3800,
+		"likes": 3115,
+		"comments": 187,
+		"shares": 218,
+		"saves": 280,
+		"websiteTaps": 76,
+		"contentViews": {
+			"reels": 27590,
+			"posts": 9790,
+			"stories": 7120
+		}
+	},
+	"tiktok": {
+		"videoViews": 58000,
+		"profileViews": 3364,
+		"reach": 38280,
+		"followers": 4865,
+		"followersGained": 330,
+		"likes": 4814,
+		"comments": 217,
+		"shares": 289,
+		"saves": 241,
+		"averageWatchTimeSeconds": 12,
+		"trafficSources": {
+			"forYou": 40600,
+			"following": 6380,
+			"profile": 4640,
+			"search": 4060,
+			"other": 2320
+		}
+	}
+}
