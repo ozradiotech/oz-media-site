@@ -25,6 +25,20 @@ const locations = [
 		<script type="speculationrules" is:inline set:html={JSON.stringify({ prefetch: [{ where: { href_matches: '/oz-bandung/' }, eagerness: 'moderate' }] })} />
 	</head>
 	<body>
+		<div class="landing-bg" aria-hidden="true">
+			<!-- Cover-fit: on portrait screens the image is sized by height, so it needs ~1.5× the viewport height in width. -->
+			<img
+				class="landing-bg-photo"
+				src="/images/index-bg-1600.webp"
+				srcset="/images/index-bg-960.webp 960w, /images/index-bg-1600.webp 1600w, /images/index-bg-2400.webp 2400w"
+				sizes="max(100vw, 150svh)"
+				width="4918"
+				height="3281"
+				alt=""
+				fetchpriority="high"
+			/>
+			<canvas class="landing-wave" data-landing-wave></canvas>
+		</div>
 		<div class="landing-switch"><ThemeSwitch /></div>
 		<main class="landing">
 			<section class="chooser" aria-labelledby="page-title">
@@ -45,6 +59,90 @@ const locations = [
 	</body>
 </html>
 
+<script>
+	// Ribbon wave along the bottom of the page (modelled on index-bg-design-guide/wave.png). Each ribbon is the area
+	// between two curves of one continuous wave field, so ribbons pinch and swell where the lines bunch together.
+	const canvas = document.querySelector<HTMLCanvasElement>('[data-landing-wave]');
+	const ctx = canvas?.getContext('2d');
+
+	if (canvas && ctx) {
+		const RIBBONS = 24;
+		const STEP = 8; // CSS px between sampled points
+		const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+		let width = 0;
+		let height = 0;
+		let gradient: CanvasGradient | undefined;
+
+		const resize = () => {
+			const dpr = Math.min(devicePixelRatio || 1, 2);
+			width = canvas.clientWidth;
+			height = canvas.clientHeight;
+			if (!width || !height) return;
+			canvas.width = Math.round(width * dpr);
+			canvas.height = Math.round(height * dpr);
+			ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+			gradient = ctx.createLinearGradient(0, 0, width, 0);
+			gradient.addColorStop(0, '#f5b117');
+			gradient.addColorStop(1, '#fa8010');
+		};
+
+		// y of wave line u (0 = top line, RIBBONS = bottom line) at x, time t in seconds.
+		const waveY = (u: number, x: number, t: number) => {
+			const depth = u / RIBBONS;
+			const top = height * 0.3;
+			const base = top + depth * (height - top);
+			// Hills are tallest on the top lines and flatten out towards the bottom edge.
+			const amp = height * 0.2 * (1 - depth) ** 1.4 + height * 0.01;
+			const k = (Math.PI * 2) / Math.max(width, 900);
+			const shape =
+				0.62 * Math.sin(x * k * 1.15 + t * 0.22 + u * 0.09) +
+				0.38 * Math.sin(x * k * 2.3 - t * 0.17 + 1.4 + u * 0.05);
+			const bob = Math.sin(t * 0.5 + u * 0.12) * height * 0.025 * (1 - depth);
+			return base + amp * shape + bob;
+		};
+
+		const draw = (time: number) => {
+			if (!gradient) return;
+			const t = time / 1000;
+			ctx.clearRect(0, 0, width, height);
+			ctx.fillStyle = gradient;
+			ctx.beginPath();
+			for (let i = 0; i < RIBBONS; i++) {
+				const lastX = width + STEP;
+				for (let x = -STEP; x <= lastX; x += STEP) {
+					const y = waveY(i, x, t);
+					x === -STEP ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+				}
+				// Ribbons are a little thicker on the left, like the reference.
+				for (let x = lastX; x >= -STEP; x -= STEP) {
+					ctx.lineTo(x, waveY(i + 0.58 - 0.16 * (x / width), x, t));
+				}
+				ctx.closePath();
+			}
+			ctx.fill();
+		};
+
+		let frame = 0;
+		const loop = (time: number) => {
+			draw(time);
+			frame = requestAnimationFrame(loop);
+		};
+		const start = () => {
+			cancelAnimationFrame(frame);
+			if (reduceMotion.matches) draw(0);
+			else frame = requestAnimationFrame(loop);
+		};
+
+		new ResizeObserver(() => {
+			resize();
+			if (reduceMotion.matches) draw(0);
+		}).observe(canvas);
+		reduceMotion.addEventListener('change', start);
+		resize();
+		start();
+	}
+</script>
+
 <style>
 	:global(*) {
 		box-sizing: border-box;
@@ -61,7 +159,51 @@ const locations = [
 		color: inherit;
 	}
 
+	/* Fixed studio photo, a theme-tinted scrim for legibility, then the wave over the bottom of the page. */
+	.landing-bg {
+		position: fixed;
+		z-index: 0;
+		inset: 0;
+		overflow: hidden;
+		pointer-events: none;
+	}
+
+	.landing-bg-photo,
+	.landing-bg::after,
+	.landing-wave {
+		position: absolute;
+		display: block;
+	}
+
+	.landing-bg-photo {
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		object-position: 50% 55%;
+	}
+
+	.landing-bg::after {
+		z-index: 1;
+		inset: 0;
+		background:
+			var(--paper-grain),
+			radial-gradient(ellipse 70% 60% at 50% 40%, rgb(255 255 243 / 86%), rgb(255 255 243 / 64%));
+		content: '';
+	}
+
+	.landing-wave {
+		z-index: 2;
+		right: 0;
+		bottom: 0;
+		left: 0;
+		width: 100%;
+		height: 58svh;
+	}
+
 	.landing {
+		position: relative;
+		z-index: 1;
 		min-height: 100svh;
 		display: flex;
 		overflow: clip;
@@ -190,7 +332,7 @@ const locations = [
 
 	.intro {
 		margin: 24px 0 38px;
-		color: var(--c-muted);
+		color: var(--c-text-2);
 		font-size: 20px;
 		line-height: 1.6;
 	}
@@ -219,12 +361,21 @@ const locations = [
 		transform: translateY(-50%);
 	}
 
+	/* White die-cut edge so the gold logos stand off the matching wave (also feeds the night [data-sticker] rule). */
 	.location-link {
+		--sticker-edge: #fff;
+		--sticker-width: 3px;
+
 		display: flex;
 		min-height: 150px;
 		align-items: center;
 		justify-content: center;
 		text-decoration: none;
+		filter:
+			drop-shadow(var(--sticker-width) 0 0 var(--sticker-edge))
+			drop-shadow(calc(var(--sticker-width) * -1) 0 0 var(--sticker-edge))
+			drop-shadow(0 var(--sticker-width) 0 var(--sticker-edge))
+			drop-shadow(0 calc(var(--sticker-width) * -1) 0 var(--sticker-edge));
 	}
 
 	.location-link:focus-visible {
@@ -315,8 +466,11 @@ const locations = [
 		background: var(--c-bg);
 	}
 
+	:global(:root[data-theme='night']) .landing-bg::after {
+		background: radial-gradient(ellipse 70% 60% at 50% 40%, rgb(14 13 11 / 82%), rgb(14 13 11 / 55%));
+	}
+
 	:global(:root[data-theme='night']) .landing {
-		position: relative;
 		isolation: isolate;
 		background: radial-gradient(closest-side at 50% 40%, rgb(242 189 87 / 14%), transparent 80%);
 	}
