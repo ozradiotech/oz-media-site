@@ -4,7 +4,9 @@ order: 12
 image: /uploads/12.webp
 imageAlt: Siniar Diluar
 schedule: []
-hosts: []
+hosts:
+  - antoni-lovendio
+  - mochamad-fahmi
 ---
 
 deskripsi

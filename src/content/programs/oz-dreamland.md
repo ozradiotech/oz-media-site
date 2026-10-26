@@ -6,7 +6,9 @@ imageAlt: OZ Dreamland
 schedule:
   - days: Senin & Jumat
     time: 21.00 - 00.00
-hosts: []
+hosts:
+  - alma-zoraya
+  - nur-aretha-zabarina
 ---
 
 Program yang bakal nemenin malem kamu yang lagi overthink dan susah tidur, kamu juga bakal ditemenin sama lagu yang chill dan santai.
