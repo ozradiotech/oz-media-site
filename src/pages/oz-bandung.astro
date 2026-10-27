@@ -8,6 +8,7 @@ import ThemeHead from '../components/ThemeHead.astro';
 import ThemeSwitch from '../components/ThemeSwitch.astro';
 import BandungRibbon from '../components/BandungRibbon.astro';
 import { getCollection, render } from 'astro:content';
+import { ageRanges } from '../lib/listener';
 
 const audioStreamUrl = 'https://streaming.ozradio.id:8443/ozbandung';
 // Livestream: set videoId to embed one live broadcast, or channelId (UC…) to embed whatever that channel is
@@ -265,13 +266,32 @@ const sections = [
 							</div>
 							<div data-listener-fields hidden>
 								<label class="listener-field">Name<input name="name" autocomplete="name" required maxlength="80" /></label>
-								<label class="listener-field">Age<input name="age" type="number" inputmode="numeric" min="1" max="120" step="1" required /></label>
+								<label class="listener-field">Age<select name="age" required>
+									<option value="" selected disabled>Select age range</option>
+									{ageRanges.map((range) => <option value={range}>{range}</option>)}
+								</select></label>
 								<label class="listener-field">Gender<select name="gender" required>
 									<option value="" selected disabled>Select gender</option>
 									<option value="Female">Female</option>
 									<option value="Male">Male</option>
 								</select></label>
-								<label class="listener-field">Location<input name="location" autocomplete="address-level2" required maxlength="100" /></label>
+								<div class="listener-field location-field">
+									<label for="listener-location">Location</label>
+									<input
+										id="listener-location"
+										name="location"
+										autocomplete="off"
+										required
+										maxlength="100"
+										placeholder="Start typing your city"
+										role="combobox"
+										aria-autocomplete="list"
+										aria-expanded="false"
+										aria-controls="listener-location-options"
+										data-location-input
+									/>
+									<ul class="location-options" id="listener-location-options" role="listbox" aria-label="Location suggestions" data-location-options hidden></ul>
+								</div>
 							</div>
 							<div class="google-auth" data-google-auth hidden>
 								<button class="google-signin" type="button" data-google-signin>
@@ -288,7 +308,7 @@ const sections = [
 									<span>Signed in as <strong data-google-name></strong></span>
 									<button class="google-signout" type="button" data-google-signout>Sign out</button>
 								</div>
-								<p class="google-auth-note" data-google-auth-note aria-live="polite">Sign in with Google to access the live stream and chat.</p>
+								<p class="google-auth-note" data-google-auth-note aria-live="polite">Sign in with Google to save your details.</p>
 							</div>
 							<div class="listener-confirmation" data-listener-confirmation hidden aria-live="polite"></div>
 							<button class="listener-submit" type="submit" data-listener-submit hidden>Continue</button>
@@ -1594,10 +1614,16 @@ const sections = [
 	const trackTitle = document.querySelector<HTMLElement>('[data-track-title]');
 	const trackArtist = document.querySelector<HTMLElement>('[data-track-artist]');
 	const listenerCount = document.querySelector<HTMLElement>('[data-listener-count]');
+	const locationInput = listenerForm?.querySelector<HTMLInputElement>('[data-location-input]');
+	const locationOptions = listenerForm?.querySelector<HTMLElement>('[data-location-options]');
 	const listenerSessionKey = 'oz-listener-details-saved';
+	// The form asks once per session: saving or dismissing it both count.
+	const listenerPromptKey = 'oz-listener-form-shown';
 	let listenerDetailsSaved = false;
+	let listenerPromptShown = false;
 	try {
 		listenerDetailsSaved = sessionStorage.getItem(listenerSessionKey) === 'true';
+		listenerPromptShown = sessionStorage.getItem(listenerPromptKey) === 'true';
 	} catch {}
 	let selectedBroadcast: 'audio' | 'video' | null = null;
 	let nowPlayingTimer: number | undefined;
@@ -1705,8 +1731,8 @@ const sections = [
 		if (broadcastEmpty) broadcastEmpty.hidden = false;
 	};
 
-	// Google sign-in (Firebase, see src/scripts/oz-auth.ts) unlocks playback. Like the player, the SDK is only
-	// downloaded once a visitor heads for the tune-in button.
+	// Google sign-in (Firebase, see src/scripts/oz-auth.ts) is needed to send the listener form and to chat, not
+	// to tune in. The SDK is only downloaded once a visitor heads for the tune-in button or the form opens.
 	type OzAuth = import('../scripts/oz-auth').OzAuth;
 	type OzUser = import('../scripts/oz-auth').OzUser;
 	let ozAuth: OzAuth | undefined;
@@ -1719,7 +1745,7 @@ const sections = [
 		googleName.textContent = user?.displayName || user?.email || '';
 		googleAvatar.hidden = !user?.photoURL;
 		if (user?.photoURL) googleAvatar.src = user.photoURL;
-		googleAuthNote.textContent = user ? '' : 'Sign in with Google to access the live stream and chat.';
+		googleAuthNote.textContent = user ? '' : 'Sign in with Google to save your details.';
 		googleAuthNote.hidden = Boolean(user);
 	};
 
@@ -1733,22 +1759,15 @@ const sections = [
 		authRequest ??= import('../scripts/oz-auth')
 			.then(({ createOzAuth }) => {
 				ozAuth = createOzAuth();
-				ozAuth.onChange((user) => {
-					renderAuth(user);
-					// Signing out ends playback.
-					if (!user && broadcast?.classList.contains('is-streaming')) stopBroadcast();
-				});
+				ozAuth.onChange(renderAuth);
 				return ozAuth;
 			})
 			.catch(() => undefined);
 		return authRequest;
 	};
 
-	tuneInButton?.addEventListener('pointerenter', () => { void loadAuth(); }, { once: true });
-	tuneInButton?.addEventListener('focus', () => { void loadAuth(); }, { once: true });
-
 	// Live chat (src/scripts/oz-chat.ts) and the Firebase SDKs it needs load as the chat comes into view.
-	// Anyone can read it; sending needs the same Google sign-in as playback.
+	// Anyone can read it; sending needs the same Google sign-in as the listener form.
 	const liveChat = document.querySelector<HTMLElement>('[data-live-chat]');
 	if (liveChat?.dataset.chatRoom) {
 		const chatRoom = liveChat.dataset.chatRoom;
@@ -1766,7 +1785,7 @@ const sections = [
 	}
 
 	const startBroadcast = () => {
-		if (!selectedBroadcast || !ozAuth?.currentUser()) return;
+		if (!selectedBroadcast) return;
 		broadcast?.classList.add('is-streaming');
 		if (tuneInLabel) tuneInLabel.textContent = 'Change stream';
 		broadcastPanels.forEach((panel) => {
@@ -1780,72 +1799,105 @@ const sections = [
 			return;
 		}
 
-		// The iframe only gets its src here, so YouTube loads nothing until a signed-in visitor picks video.
+		// The iframe only gets its src here, so YouTube loads nothing until a visitor picks video.
 		const embedUrl = livePlayer?.dataset.youtubeLive;
 		if (livePlayer && embedUrl) {
 			const playerUrl = new URL(embedUrl);
-			// Sign-in is async, so the click no longer counts as a user gesture: autoplay only works muted.
 			playerUrl.searchParams.set('autoplay', '1');
-			playerUrl.searchParams.set('mute', '1');
 			playerUrl.searchParams.set('playsinline', '1');
 			playerUrl.searchParams.set('rel', '0');
 			livePlayer.src = playerUrl.toString();
 		}
 	};
 
-	tuneInButton?.addEventListener('click', () => {
-		if (!listenerDialog || !listenerForm || !listenerFields || !listenerConfirmation || !listenerSubmit || !dialogTitle || !broadcastSelection || !googleAuth) return;
-		stopBroadcast();
-		selectedBroadcast = null;
-		void loadAudioPlayer();
-		void loadAuth();
+	// The dialog has two uses: picking a stream when tuning in, and the listener form, which opens by itself
+	// once a visitor scrolls past the Online section. Each shows only its own parts.
+	const showDialogPart = (part: 'broadcast' | 'details') => {
+		if (!listenerForm || !listenerFields || !listenerConfirmation || !listenerSubmit || !broadcastSelection || !googleAuth) return;
 		listenerForm.reset();
-		listenerFields.hidden = true;
-		googleAuth.hidden = true;
+		broadcastSelection.hidden = part !== 'broadcast';
+		listenerFields.hidden = part !== 'details';
+		listenerFields.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select').forEach((field) => { field.disabled = part !== 'details'; });
+		googleAuth.hidden = part !== 'details';
 		if (googleSignIn) googleSignIn.disabled = false;
 		listenerConfirmation.hidden = true;
 		listenerConfirmation.replaceChildren();
-		listenerSubmit.hidden = true;
+		listenerSubmit.hidden = part !== 'details';
 		listenerSubmit.disabled = false;
-		broadcastSelection.hidden = false;
+		listenerSubmit.textContent = 'Save details';
+	};
+
+	tuneInButton?.addEventListener('click', () => {
+		if (!listenerDialog || !dialogTitle) return;
+		stopBroadcast();
+		selectedBroadcast = null;
+		void loadAudioPlayer();
+		showDialogPart('broadcast');
 		dialogTitle.textContent = 'Choose how to tune in';
 		listenerDialog.showModal();
 		broadcastModeButtons[0]?.focus();
 	});
 
 	broadcastModeButtons.forEach((button) => {
-		button.addEventListener('click', async () => {
-			if (!listenerDialog || !listenerFields || !listenerConfirmation || !listenerSubmit || !dialogTitle || !broadcastSelection || !googleAuth) return;
+		button.addEventListener('click', () => {
 			selectedBroadcast = button.dataset.selectBroadcast === 'video' ? 'video' : 'audio';
-			broadcastSelection.hidden = true;
-			dialogTitle.textContent = 'Checking sign-in...';
-			const auth = await loadAuth();
-			const user = await auth?.ready().catch(() => null) ?? null;
-			// The visitor may have closed the dialog while sign-in was loading.
-			if (!listenerDialog.open) return;
-			if (listenerDetailsSaved && user) {
-				listenerDialog.close();
-				startBroadcast();
-				return;
-			}
+			listenerDialog?.close();
+			// Still inside the click, so the browser lets the stream start with sound.
+			startBroadcast();
+		});
+	});
 
-			renderAuth(user);
+	let locationAutocomplete: Promise<unknown> | undefined;
+	const loadLocationAutocomplete = () => {
+		if (!locationInput || !locationOptions) return;
+		locationAutocomplete ??= import('../scripts/oz-location-autocomplete')
+			.then(({ mountLocationAutocomplete }) => mountLocationAutocomplete(locationInput, locationOptions))
+			.catch(() => undefined);
+	};
+
+	const fillNameFromGoogle = (user: OzUser | null) => {
+		const nameField = listenerForm?.elements.namedItem('name');
+		if (nameField instanceof HTMLInputElement && !nameField.value && user?.displayName) nameField.value = user.displayName;
+	};
+
+	const openListenerForm = () => {
+		if (!listenerDialog || !dialogTitle || listenerDetailsSaved || listenerPromptShown) return;
+		// Wait for whatever the visitor has open (an article, a program) rather than stacking on top of it.
+		const openDialog = document.querySelector<HTMLDialogElement>('dialog[open]');
+		if (openDialog) {
+			openDialog.addEventListener('close', openListenerForm, { once: true });
+			return;
+		}
+		listenerPromptShown = true;
+		try {
+			sessionStorage.setItem(listenerPromptKey, 'true');
+		} catch {}
+		showDialogPart('details');
+		dialogTitle.textContent = 'Tell us about you';
+		loadLocationAutocomplete();
+		void loadAuth().then(async (auth) => {
 			if (!auth) {
 				showAuthError('Google sign-in is unavailable right now. Please try again later.');
 				if (googleSignIn) googleSignIn.disabled = true;
+				return;
 			}
-			googleAuth.hidden = false;
-			// Returning listeners only need to sign in; first-timers also fill in their details.
-			listenerFields.hidden = listenerDetailsSaved;
-			listenerFields.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select').forEach((field) => { field.disabled = listenerDetailsSaved; });
-			listenerConfirmation.hidden = true;
-			listenerSubmit.hidden = listenerDetailsSaved;
-			listenerSubmit.textContent = 'Continue';
-			dialogTitle.textContent = listenerDetailsSaved ? 'Sign in to tune in' : 'Before you tune in';
-			if (listenerDetailsSaved) googleSignIn?.focus();
-			else listenerFields.querySelector<HTMLInputElement>('input')?.focus();
+			const user = await auth.ready().catch(() => null);
+			renderAuth(user);
+			fillNameFromGoogle(user);
 		});
-	});
+		listenerDialog.showModal();
+	};
+
+	if (onlineSection && !listenerDetailsSaved && !listenerPromptShown) {
+		const listenerPromptObserver = new IntersectionObserver((entries) => {
+			// Past means the section's bottom has gone above the viewport, not just out of view below it.
+			const scrolledPast = entries.some((entry) => !entry.isIntersecting && entry.boundingClientRect.bottom <= 0);
+			if (!scrolledPast) return;
+			listenerPromptObserver.disconnect();
+			openListenerForm();
+		});
+		listenerPromptObserver.observe(onlineSection);
+	}
 
 	googleSignIn?.addEventListener('click', async () => {
 		const auth = ozAuth ?? await loadAuth();
@@ -1857,12 +1909,7 @@ const sections = [
 		try {
 			const user = await auth.signIn();
 			renderAuth(user);
-			const nameField = listenerForm?.elements.namedItem('name');
-			if (nameField instanceof HTMLInputElement && !nameField.value && user.displayName) nameField.value = user.displayName;
-			if (listenerDetailsSaved) {
-				listenerDialog?.close();
-				startBroadcast();
-			}
+			fillNameFromGoogle(user);
 		} catch (error) {
 			const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
 			if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') return;
@@ -1882,15 +1929,20 @@ const sections = [
 		event.preventDefault();
 		if (!listenerFields || !listenerConfirmation || !listenerSubmit || !dialogTitle) return;
 
-		if (!listenerFields.hidden) {
-			if (!listenerForm.reportValidity()) return;
-			const user = ozAuth?.currentUser();
-			if (!user) {
-				showAuthError('Please sign in with Google to continue.');
-				googleSignIn?.focus();
-				return;
-			}
-			const listener = new FormData(listenerForm);
+		// Once the details are saved, the button just closes the dialog.
+		if (listenerFields.hidden) {
+			listenerDialog?.close();
+			return;
+		}
+
+		if (!listenerForm.reportValidity()) return;
+		const user = ozAuth?.currentUser();
+		if (!user) {
+			showAuthError('Please sign in with Google to continue.');
+			googleSignIn?.focus();
+			return;
+		}
+		const listener = new FormData(listenerForm);
 		listenerSubmit.disabled = true;
 		listenerSubmit.textContent = 'Saving...';
 		try {
@@ -1899,10 +1951,10 @@ const sections = [
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					name: String(listener.get('name')).trim(),
-					age: Number(listener.get('age')),
+					age: listener.get('age'),
 					gender: listener.get('gender'),
 					location: String(listener.get('location')).trim(),
-					broadcast: selectedBroadcast,
+					broadcast: broadcast?.classList.contains('is-streaming') ? selectedBroadcast : null,
 					uid: user.uid,
 					email: user.email,
 				}),
@@ -1918,38 +1970,33 @@ const sections = [
 			listenerConfirmation.replaceChildren(message);
 			listenerConfirmation.hidden = false;
 			listenerSubmit.disabled = false;
-			listenerSubmit.textContent = 'Continue';
+			listenerSubmit.textContent = 'Save details';
 			return;
 		}
 		listenerSubmit.disabled = false;
-			const details = [
-				['Name', listener.get('name')],
-				['Age', listener.get('age')],
-				['Gender', listener.get('gender')],
-				['Location', listener.get('location')],
-			] as const;
-			const message = document.createElement('p');
-			message.textContent = `You are ready to ${selectedBroadcast === 'video' ? 'watch' : 'listen'}.`;
-			const summary = document.createElement('dl');
-			details.forEach(([label, value]) => {
-				const term = document.createElement('dt');
-				term.textContent = label;
-				const description = document.createElement('dd');
-				description.textContent = String(value ?? '');
-				summary.append(term, description);
-			});
-			listenerConfirmation.replaceChildren(message, summary);
-			listenerFields.hidden = true;
-			listenerFields.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select').forEach((field) => { field.disabled = true; });
-			if (googleAuth) googleAuth.hidden = true;
-			listenerConfirmation.hidden = false;
-			listenerSubmit.textContent = selectedBroadcast === 'video' ? 'Start watching' : 'Start listening';
-			dialogTitle.textContent = 'You’re all set';
-			return;
-		}
-
-		listenerDialog?.close();
-		startBroadcast();
+		const details = [
+			['Name', listener.get('name')],
+			['Age', listener.get('age')],
+			['Gender', listener.get('gender')],
+			['Location', listener.get('location')],
+		] as const;
+		const message = document.createElement('p');
+		message.textContent = 'Thanks for listening to OZ Radio Bandung.';
+		const summary = document.createElement('dl');
+		details.forEach(([label, value]) => {
+			const term = document.createElement('dt');
+			term.textContent = label;
+			const description = document.createElement('dd');
+			description.textContent = String(value ?? '');
+			summary.append(term, description);
+		});
+		listenerConfirmation.replaceChildren(message, summary);
+		listenerFields.hidden = true;
+		listenerFields.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select').forEach((field) => { field.disabled = true; });
+		if (googleAuth) googleAuth.hidden = true;
+		listenerConfirmation.hidden = false;
+		listenerSubmit.textContent = 'Done';
+		dialogTitle.textContent = 'You’re all set';
 	});
 </script>
 
@@ -3373,6 +3420,32 @@ const sections = [
 	.listener-field select:focus {
 		border-color: var(--c-accent);
 		outline: 1px solid var(--c-accent);
+	}
+
+	/* Sits in the flow rather than floating, so the dialog's own scrolling never clips it. */
+	.location-options {
+		max-height: 220px;
+		margin: -2px 0 0;
+		padding: 4px 0;
+		overflow-y: auto;
+		list-style: none;
+		border: 1px solid var(--c-line);
+		border-radius: 2px;
+		background: var(--c-surface);
+	}
+
+	.location-options li {
+		padding: 9px 10px;
+		color: var(--c-text);
+		font-size: 12px;
+		font-weight: 500;
+		line-height: 1.35;
+		cursor: pointer;
+	}
+
+	.location-options li:hover,
+	.location-options li[aria-selected='true'] {
+		background: var(--c-accent-soft);
 	}
 
 	.listener-submit {
@@ -6945,6 +7018,7 @@ const sections = [
 
 	:global(:root[data-theme='night']) .listener-field input,
 	:global(:root[data-theme='night']) .listener-field select,
+	:global(:root[data-theme='night']) .location-options,
 	:global(:root[data-theme='night']) .news-list-sort {
 		border-radius: 8px;
 		background: var(--c-field);

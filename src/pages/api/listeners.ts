@@ -1,8 +1,10 @@
 import type { APIRoute } from 'astro';
 import { appendFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
+import { ageRanges } from '../../lib/listener';
 
 const genders = new Set(['Female', 'Male']);
+const ages = new Set<string>(ageRanges);
 
 export const prerender = false;
 
@@ -20,20 +22,21 @@ export const POST: APIRoute = async ({ request }) => {
 
 	const { name, age, gender, location, broadcast, uid, email } = input as Record<string, unknown>;
 	const trimmedName = typeof name === 'string' ? name.trim() : '';
-	const parsedAge = typeof age === 'number' ? age : typeof age === 'string' ? Number(age) : NaN;
+	const trimmedAge = typeof age === 'string' ? age.trim() : '';
 	const trimmedGender = typeof gender === 'string' ? gender.trim() : '';
 	const trimmedLocation = typeof location === 'string' ? location.trim() : '';
-	const normalizedBroadcast = typeof broadcast === 'string' ? broadcast.trim().toLowerCase() : '';
+	// The stream playing when the form was sent, if any: tuning in no longer waits for the form.
+	const normalizedBroadcast = typeof broadcast === 'string' ? broadcast.trim().toLowerCase() : null;
 	// The Google account the listener signed in with. Sent by the browser, so treat it as unverified.
 	const googleUid = typeof uid === 'string' ? uid.trim() : '';
 	const googleEmail = typeof email === 'string' ? email.trim() : '';
 
 	if (
 		!trimmedName || trimmedName.length > 80 ||
-		!Number.isInteger(parsedAge) || parsedAge < 1 || parsedAge > 120 ||
+		!ages.has(trimmedAge) ||
 		!genders.has(trimmedGender) ||
 		!trimmedLocation || trimmedLocation.length > 100 ||
-		(normalizedBroadcast !== 'audio' && normalizedBroadcast !== 'video') ||
+		(normalizedBroadcast !== null && normalizedBroadcast !== 'audio' && normalizedBroadcast !== 'video') ||
 		!googleUid || googleUid.length > 128 ||
 		googleEmail.length > 254
 	) {
@@ -42,7 +45,7 @@ export const POST: APIRoute = async ({ request }) => {
 
 	const record = {
 		name: trimmedName,
-		age: parsedAge,
+		age: trimmedAge,
 		gender: trimmedGender,
 		location: trimmedLocation,
 		broadcast: normalizedBroadcast,
