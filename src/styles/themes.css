@@ -108,6 +108,12 @@
 	animation-duration: 0s;
 }
 
+/* Named elements (the shared Bandung logo) would be lifted out of the page and lose the die-cut edge
+   their parent's filter draws, so the stroke flickered; keep them in the swept snapshot instead. */
+:root.is-theme-switching body * {
+	view-transition-name: none !important;
+}
+
 @keyframes theme-sweep {
 	from { clip-path: circle(0 at var(--theme-x, 100%) var(--theme-y, 0)); }
 	to { clip-path: circle(var(--theme-r, 150vmax) at var(--theme-x, 100%) var(--theme-y, 0)); }
