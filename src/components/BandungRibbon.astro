@@ -1,0 +1,77 @@
+---
+// A "YOUR FRIENDLY STATION" ribbon that winds across the seam between two OZ Bandung sections (retro style only).
+// Each seam's ribbon is drawn twice with identical geometry: once at the bottom of the upper section (edge="bottom")
+// and once at the top of the lower one (edge="top"). Sections clip their own half, so band and lettering meet exactly.
+//
+// Coordinates: a 4000 x 840 strip centred on the seam (y = 0, negative = upper section). x 0-1600 is the frame that
+// .bg-ribbon scales to the viewport; the rest lets the ribbon run off the sides on wide screens. Keep dips into a
+// lower section shallow on the left (x < 1000), where section headings sit.
+interface Props {
+	seam: keyof typeof seams;
+	edge: 'top' | 'bottom';
+}
+
+const seams = {
+	// On Air -> Programs: arches rise out of Programs into the bottom of On Air.
+	air: [[-1300, 60], [-560, -160], [-60, 90], [420, -230], [800, 80], [1180, -300], [1520, 140], [1850, -200], [2300, 60], [2900, -100]],
+	// Programs -> Announcer: the ribbon dips through the top of the dark Announcer band.
+	announcer: [[-1300, -120], [-500, 160], [140, -210], [520, 70], [860, -150], [1250, 260], [1650, -180], [2200, 200], [2900, -60]],
+};
+
+const { seam, edge } = Astro.props;
+
+// Catmull-Rom through the points, as cubic Béziers, so the band bends smoothly through every one.
+const points = seams[seam];
+const round = (value: number) => Math.round(value * 10) / 10;
+let d = `M${points[0][0]} ${points[0][1]}`;
+for (let i = 0; i < points.length - 1; i++) {
+	const p0 = points[i - 1] ?? points[i];
+	const [p1, p2] = [points[i], points[i + 1]];
+	const p3 = points[i + 2] ?? p2;
+	d += `C${round(p1[0] + (p2[0] - p0[0]) / 6)} ${round(p1[1] + (p2[1] - p0[1]) / 6)} ${round(p2[0] - (p3[0] - p1[0]) / 6)} ${round(p2[1] - (p3[1] - p1[1]) / 6)} ${p2[0]} ${p2[1]}`;
+}
+
+const id = `oz-ribbon-${seam}-${edge}`;
+const lettering = 'YOUR FRIENDLY STATION  ·  '.repeat(24);
+---
+
+<svg class={`bg-ribbon bg-ribbon-${edge}`} viewBox="-1200 -420 4000 840" aria-hidden="true" focusable="false">
+	<path id={id} d={d} />
+	<text><textPath href={`#${id}`}>{lettering}</textPath></text>
+</svg>
+
+<style>
+	/* Sized from --art-w (set on the page) rather than %, so every section scales the strip identically. */
+	.bg-ribbon {
+		position: absolute;
+		left: 50%;
+		width: calc(var(--art-w) * 2.5);
+		height: calc(var(--art-w) * 0.525);
+		overflow: hidden;
+		translate: -50% 0;
+	}
+
+	.bg-ribbon-top {
+		top: calc(var(--art-w) * -0.2625);
+	}
+
+	.bg-ribbon-bottom {
+		bottom: calc(var(--art-w) * -0.2625);
+	}
+
+	path {
+		fill: none;
+		stroke: var(--c-accent);
+		stroke-width: 58;
+		stroke-linecap: round;
+	}
+
+	text {
+		fill: var(--c-bg);
+		font-family: var(--font-jakarta);
+		font-size: 17px;
+		font-weight: 500;
+		letter-spacing: 0.14em;
+		dominant-baseline: central;
+	}
+</style>

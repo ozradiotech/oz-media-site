@@ -6,6 +6,7 @@ import '../styles/retro.css';
 import SectionNav from '../components/SectionNav.astro';
 import ThemeHead from '../components/ThemeHead.astro';
 import ThemeSwitch from '../components/ThemeSwitch.astro';
+import BandungRibbon from '../components/BandungRibbon.astro';
 import { getCollection, render } from 'astro:content';
 
 const audioStreamUrl = 'https://streaming.ozradio.id:8443/ozbandung';
@@ -128,6 +129,7 @@ const sections = [
 			</header>
 
 			<section class="hero-screen" id="top" aria-labelledby="hero-title" data-hero>
+				<div class="bg-art" aria-hidden="true"></div>
 				<h1 class="hero-title" id="hero-title" data-sticker>
 					<img class="hero-logo" src="/images/logo-oz-bandung.png" alt="OZ Radio Bandung" width="1246" height="648" fetchpriority="high" data-hero-logo />
 				</h1>
@@ -145,6 +147,7 @@ const sections = [
 			</section>
 
 			<section class="screen listen-screen" id="listen" aria-label="On air">
+				<div class="bg-art" aria-hidden="true"><BandungRibbon seam="air" edge="bottom" /></div>
 				<div class="screen-content listen-content">
 					<div class="broadcast-layout">
 						<section class="live-chat" aria-labelledby="live-chat-title" data-live-chat data-chat-room="bandung">
@@ -302,6 +305,7 @@ const sections = [
 			</section>
 
 			<section class="screen screen-sand" id="programs" aria-labelledby="programs-title">
+				<div class="bg-art" aria-hidden="true"><BandungRibbon seam="air" edge="top" /><BandungRibbon seam="announcer" edge="bottom" /></div>
 				<div class="screen-content">
 					<div class="section-heading">
 						<div>
@@ -368,6 +372,7 @@ const sections = [
 			</section>
 
 			<section class="screen screen-dark" id="announcer" aria-labelledby="announcer-title">
+				<div class="bg-art" aria-hidden="true"><BandungRibbon seam="announcer" edge="top" /></div>
 				<div class="screen-content">
 					<div class="section-heading">
 						<div>
@@ -499,6 +504,7 @@ const sections = [
 			</section>
 
 			<section class="screen screen-sand" id="activities" aria-labelledby="activities-title">
+				<div class="bg-art" aria-hidden="true"></div>
 				<div class="screen-content">
 					<div class="section-heading">
 						<div>
@@ -537,6 +543,7 @@ const sections = [
 			</section>
 
 			<section class="screen" id="news" aria-labelledby="news-title">
+				<div class="bg-art" aria-hidden="true"></div>
 				<div class="screen-content">
 					<div class="section-heading">
 						<div>
@@ -6028,6 +6035,159 @@ const sections = [
 			transform-origin: bottom;
 		}
 	}
+
+	/* ---------- Retro backgrounds ----------
+	   Art is drawn by scripts/bandung-bg.mjs (public/images/bandung-bg/) and src/components/BandungRibbon.astro,
+	   after the reference in bandung-bg-design-guide/. Sections lose their dividing rules and meet on matching colours,
+	   and the ribbons and the halftone flower between On Ground and OZ News are drawn across the seam in both
+	   sections, so the page reads as one continuous poster. Nothing animates and nothing is fixed-position, so
+	   scrolling stays cheap. */
+	.bandung-page {
+		/* One frame for all seam-crossing art: the viewport width, but never narrower than 900px (phones see its
+		   middle) or wider than 1.7 screens tall (so ultra-wide monitors don't blow it up). Made of vw/svh rather
+		   than %, so it means the same thing in every section and on both axes. */
+		--art-w: max(900px, min(100vw, 170svh));
+		--art-dot: #F5D99A;
+		--art-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.16'/%3E%3C/svg%3E");
+	}
+
+	.bg-art {
+		position: absolute;
+		inset: 0;
+		z-index: -1;
+		overflow: hidden;
+		pointer-events: none;
+	}
+
+	.bg-art::before,
+	.bg-art::after {
+		position: absolute;
+		aspect-ratio: 1;
+		-webkit-mask: var(--mask) center / contain no-repeat;
+		mask: var(--mask) center / contain no-repeat;
+	}
+
+	:global(:root:not([data-theme='night'])) .hero-screen,
+	:global(:root:not([data-theme='night'])) .screen {
+		position: relative;
+		isolation: isolate;
+		border-bottom: 0;
+	}
+
+	/* Past the 2200px content cap, sections still run edge to edge; the padding keeps content where it was. */
+	@media (min-width: 2201px) {
+		:global(:root:not([data-theme='night'])) .screen {
+			width: 100%;
+			padding-inline: calc((100% - 2200px) / 2 + 96px);
+		}
+	}
+
+	/* Hero and On Air share one sunlit glow, split across the two screens, settling to cream before Programs. */
+	:global(:root:not([data-theme='night'])) .hero-screen {
+		background: var(--art-grain), url('/images/bandung-bg/glow-broadcast.webp') center top / 100% 200svh no-repeat, #F9E6B4;
+	}
+
+	:global(:root:not([data-theme='night'])) .listen-screen {
+		background: var(--art-grain), url('/images/bandung-bg/glow-broadcast.webp') center bottom / 100% 200svh no-repeat, var(--c-bg);
+	}
+
+	.hero-screen .bg-art::before,
+	.hero-screen .bg-art::after {
+		background: #FFFCEE;
+		content: '';
+	}
+
+	.hero-screen .bg-art::before {
+		--mask: url('/images/bandung-bg/halftone-flower.svg');
+		bottom: 4%;
+		left: -7%;
+		width: clamp(240px, 34vw, 640px);
+		opacity: 0.85;
+	}
+
+	.hero-screen .bg-art::after {
+		--mask: url('/images/bandung-bg/halftone-spark.svg');
+		top: 12%;
+		right: 7%;
+		width: clamp(84px, 11vw, 200px);
+	}
+
+	:global(:root:not([data-theme='night'])) #programs {
+		background: var(--paper-grain), var(--c-bg);
+	}
+
+	/* Announcer: crumpled film on black. A mustard halftone flower sits on its seam with Online, half in each. */
+	:global(:root:not([data-theme='night'])) .screen-dark {
+		--seam-flower: url('/images/bandung-bg/halftone-flower-accent.svg') calc(50% + var(--art-w) * 0.22) calc(100% + var(--art-w) * 0.1) / calc(var(--art-w) * 0.2) auto no-repeat;
+		background: var(--seam-flower), url('/images/bandung-bg/crinkle-1600.webp') center / cover, #0A0A09;
+	}
+
+	@media (max-width: 900px) {
+		:global(:root:not([data-theme='night'])) .screen-dark {
+			background: var(--seam-flower), url('/images/bandung-bg/crinkle-900.webp') center / cover, #0A0A09;
+		}
+	}
+
+	@media (min-width: 1800px) {
+		:global(:root:not([data-theme='night'])) .screen-dark {
+			background: var(--seam-flower), url('/images/bandung-bg/crinkle-2400.webp') center / cover, #0A0A09;
+		}
+	}
+
+	/* Online scrolls inside itself on short screens, so its ribbon is a background (backgrounds stay put while
+	   positioned children would scroll away). The same strip tops On Ground; see BandungRibbon.astro for the frame. */
+	:global(:root:not([data-theme='night'])) #online {
+		background:
+			url('/images/bandung-bg/halftone-flower-accent.svg') calc(50% + var(--art-w) * 0.22) calc(var(--art-w) * -0.1) / calc(var(--art-w) * 0.2) auto no-repeat,
+			url('/images/bandung-bg/ribbon-ground.svg') 50% calc(100% + var(--art-w) * 0.2625) / calc(var(--art-w) * 2.5) auto no-repeat,
+			var(--paper-grain),
+			linear-gradient(var(--c-bg-alt) 45%, var(--c-bg));
+	}
+
+	:global(:root:not([data-theme='night'])) #activities {
+		background:
+			url('/images/bandung-bg/ribbon-ground.svg') 50% calc(var(--art-w) * -0.2625) / calc(var(--art-w) * 2.5) auto no-repeat,
+			var(--paper-grain),
+			var(--c-bg);
+	}
+
+	:global(:root:not([data-theme='night'])) #news {
+		background: var(--paper-grain), var(--c-bg);
+	}
+
+	/* A halftone flower sits on the On Ground / OZ News seam, each section drawing its half. */
+	#activities .bg-art::before,
+	#news .bg-art::before {
+		--mask: url('/images/bandung-bg/halftone-flower.svg');
+		left: calc(50% + var(--art-w) * 0.08 - var(--art-w) * 0.13);
+		width: calc(var(--art-w) * 0.26);
+		background: var(--art-dot);
+		content: '';
+	}
+
+	#activities .bg-art::before {
+		bottom: calc(var(--art-w) * -0.13);
+	}
+
+	#news .bg-art::before {
+		top: calc(var(--art-w) * -0.13);
+	}
+
+	#news .bg-art::after {
+		inset: 0;
+		aspect-ratio: auto;
+		background: var(--art-dot);
+		-webkit-mask: url('/images/bandung-bg/halftone-flower.svg') calc(50% - var(--art-w) * 0.44) calc(100% - var(--art-w) * 0.03) / calc(var(--art-w) * 0.22) auto no-repeat,
+			url('/images/bandung-bg/halftone-spark.svg') calc(50% + var(--art-w) * 0.42) calc(100% - var(--art-w) * 0.05) / calc(var(--art-w) * 0.075) auto no-repeat;
+		mask: url('/images/bandung-bg/halftone-flower.svg') calc(50% - var(--art-w) * 0.44) calc(100% - var(--art-w) * 0.03) / calc(var(--art-w) * 0.22) auto no-repeat,
+			url('/images/bandung-bg/halftone-spark.svg') calc(50% + var(--art-w) * 0.42) calc(100% - var(--art-w) * 0.05) / calc(var(--art-w) * 0.075) auto no-repeat;
+		content: '';
+	}
+
+	/* Contact: blurred sparks over warm sand, cream along the top to meet OZ News. */
+	:global(:root:not([data-theme='night'])) .contact-screen {
+		background: var(--art-grain), url('/images/bandung-bg/glow-contact.webp') center / 100% 100% no-repeat, #FBEDC6;
+	}
 </style>
 
 <style>
@@ -6041,6 +6201,10 @@ const sections = [
 
 	:global(:root[data-theme='night']) .bandung-page {
 		counter-reset: oz-band;
+	}
+
+	:global(:root[data-theme='night']) .bg-art {
+		display: none;
 	}
 
 	:global(:root[data-theme='night']) .screen {
