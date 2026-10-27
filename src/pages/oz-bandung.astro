@@ -695,11 +695,19 @@ const sections = [
 			</div>
 		</dialog>
 		<dialog class="article-dialog" data-article-dialog aria-labelledby="article-dialog-title">
-			<button class="dialog-close article-dialog-close" type="button" data-article-close aria-label="Close article">×</button>
+			<!-- Zero-height bar pinned to the top while reading: holds the close button and the reading progress line. -->
+			<div class="article-dialog-bar">
+				<span class="article-dialog-progress" data-article-progress aria-hidden="true"></span>
+				<button class="dialog-close article-dialog-close" type="button" data-article-close aria-label="Close article">×</button>
+			</div>
 			<img class="article-dialog-image" data-article-image alt="Article image" />
 			<div class="article-dialog-copy">
 				<p class="eyebrow" data-article-category></p>
 				<h2 id="article-dialog-title" data-article-title></h2>
+				<p class="article-dialog-meta" data-article-meta hidden>
+					<time data-article-date hidden></time>
+					<span data-article-reading-time></span>
+				</p>
 				<p class="article-dialog-description" data-article-description></p>
 				<div class="article-dialog-body" data-article-body-content hidden></div>
 				<p class="article-dialog-status" data-article-status hidden></p>
@@ -1387,9 +1395,20 @@ const sections = [
 	const articleDescription = articleDialog?.querySelector<HTMLElement>('[data-article-description]');
 	const articleBody = articleDialog?.querySelector<HTMLElement>('[data-article-body-content]');
 	const articleStatus = articleDialog?.querySelector<HTMLElement>('[data-article-status]');
+	const articleMeta = articleDialog?.querySelector<HTMLElement>('[data-article-meta]');
+	const articleDate = articleDialog?.querySelector<HTMLTimeElement>('[data-article-date]');
+	const articleReadingTime = articleDialog?.querySelector<HTMLElement>('[data-article-reading-time]');
+	const articleProgress = articleDialog?.querySelector<HTMLElement>('[data-article-progress]');
+
+	const updateArticleProgress = () => {
+		if (!articleDialog || !articleProgress) return;
+		const scrollable = articleDialog.scrollHeight - articleDialog.clientHeight;
+		articleProgress.hidden = scrollable < 40;
+		articleProgress.style.setProperty('--article-progress', String(scrollable > 0 ? Math.min(1, articleDialog.scrollTop / scrollable) : 0));
+	};
 
 	const openArticle = (card: HTMLElement) => {
-		if (!articleDialog || !articleImage || !articleCategory || !articleTitle || !articleDescription || !articleBody || !articleStatus) return;
+		if (!articleDialog || !articleImage || !articleCategory || !articleTitle || !articleDescription || !articleBody || !articleStatus || !articleMeta || !articleDate || !articleReadingTime) return;
 		const heading = card.querySelector<HTMLElement>('h3');
 		const image = card.querySelector<HTMLImageElement>('img');
 		if (!heading || !image) return;
@@ -1407,7 +1426,20 @@ const sections = [
 		const status = card.querySelector<HTMLElement>('.card-status');
 		articleStatus.textContent = status?.textContent?.trim() ?? '';
 		articleStatus.hidden = !articleStatus.textContent;
+
+		// Date comes from the card (news only); reading time is counted from the summary and body at ~200 words a minute.
+		const date = card.querySelector<HTMLTimeElement>('time[datetime]');
+		articleDate.textContent = date?.textContent?.trim() ?? '';
+		articleDate.dateTime = date?.dateTime ?? '';
+		articleDate.hidden = !articleDate.textContent;
+		const words = `${articleDescription.textContent} ${articleBody.textContent ?? ''}`.trim().split(/\s+/).filter(Boolean).length;
+		articleReadingTime.textContent = words ? `${Math.max(1, Math.round(words / 200))} min read` : '';
+		articleMeta.hidden = articleDate.hidden && !articleReadingTime.textContent;
+
 		articleDialog.showModal();
+		// The dialog is reused, so start each article from its top.
+		articleDialog.scrollTop = 0;
+		updateArticleProgress();
 	};
 
 	document.querySelectorAll<HTMLElement>('[data-article-card]').forEach((card) => {
@@ -1445,6 +1477,8 @@ const sections = [
 	articleDialog?.addEventListener('click', (event) => {
 		if (event.target === articleDialog) articleDialog.close();
 	});
+	articleDialog?.addEventListener('scroll', updateArticleProgress, { passive: true });
+	articleImage?.addEventListener('load', updateArticleProgress);
 
 	const programImage = programDialog?.querySelector<HTMLImageElement>('[data-program-image]');
 	const programEyebrow = programDialog?.querySelector<HTMLElement>('[data-program-eyebrow]');
@@ -2898,8 +2932,10 @@ const sections = [
 	.article-dialog {
 		width: min(820px, calc(100% - 28px));
 		max-width: none;
-		max-height: min(90dvh, 820px);
+		max-height: min(92dvh, 960px);
 		overflow: auto;
+		overscroll-behavior: contain;
+		scroll-padding-top: 64px;
 		padding: 0;
 		border: 1px solid var(--c-line);
 		border-radius: 4px;
@@ -3053,64 +3089,200 @@ const sections = [
 		animation: backdrop-reveal 220ms ease-out both;
 	}
 
+	/* Sticky but zero-height, so it overlays the photo instead of pushing it down, and stays put while reading. */
+	.article-dialog-bar {
+		position: sticky;
+		z-index: 2;
+		top: 0;
+		height: 0;
+	}
+
+	.article-dialog-progress {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 3px;
+		background: var(--c-accent);
+		transform: scaleX(var(--article-progress, 0));
+		transform-origin: left;
+		pointer-events: none;
+	}
+
+	.article-dialog-close {
+		box-shadow: 0 4px 14px rgb(0 0 0 / 22%);
+	}
+
 	.article-dialog-image {
 		display: block;
 		width: 100%;
-		max-height: min(48dvh, 420px);
+		max-height: min(46dvh, 440px);
+		aspect-ratio: 16 / 9;
 		object-fit: cover;
 	}
 
+	/* Reading column: ~65 characters a line, larger text and roomier leading than the rest of the site. */
 	.article-dialog-copy {
-		padding: clamp(20px, 5vw, 38px);
+		max-width: calc(66ch + 2 * clamp(20px, 5vw, 48px));
+		margin: 0 auto;
+		padding: clamp(22px, 5vw, 44px) clamp(20px, 5vw, 48px) clamp(32px, 6vw, 56px);
+		font-size: clamp(16px, 1.1vw + 12px, 18px);
 	}
 
 	.article-dialog-copy .eyebrow {
-		margin: 0 40px 10px 0;
-		color: var(--c-muted);
-		font-size: 9px;
+		margin: 0 0 12px;
+		color: var(--c-accent-strong);
+		font-size: 10px;
 		font-weight: 700;
-		letter-spacing: 0.12em;
+		letter-spacing: 0.14em;
 	}
 
 	.article-dialog-copy h2 {
-		margin: 0 30px 14px 0;
-		font-size: clamp(24px, 5vw, 42px);
-		letter-spacing: -0.03em;
-		line-height: 1.05;
+		margin: 0 0 14px;
+		font-size: clamp(26px, 4.6vw, 42px);
+		letter-spacing: -0.025em;
+		line-height: 1.1;
+		text-wrap: balance;
 	}
 
+	.article-dialog-meta {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px 14px;
+		margin: 0 0 22px;
+		padding-bottom: 18px;
+		border-bottom: 1px solid var(--c-line);
+		color: var(--c-muted);
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+	}
+
+	.article-dialog-meta time:not([hidden]) + span:not(:empty)::before {
+		content: '·';
+		margin-right: 14px;
+	}
+
+	/* The summary reads as the standfirst. */
 	.article-dialog-description {
 		margin: 0;
-		color: var(--c-text-2);
-		font-size: 14px;
-		line-height: 1.7;
+		color: var(--c-text);
+		font-size: 1.12em;
+		font-weight: 500;
+		line-height: 1.6;
 		white-space: pre-wrap;
+		text-wrap: pretty;
 	}
 
 	.article-dialog-body {
-		margin-top: 20px;
-		color: var(--c-text-2);
-		font-size: 14px;
-		line-height: 1.7;
+		margin-top: 1.6em;
+		color: var(--c-text);
+		font-size: 1em;
+		line-height: 1.75;
+		overflow-wrap: break-word;
+		text-wrap: pretty;
 	}
 
 	:global(.article-dialog-body > :first-child) {
 		margin-top: 0;
 	}
 
+	:global(.article-dialog-body > :last-child) {
+		margin-bottom: 0;
+	}
+
 	:global(.article-dialog-body p),
 	:global(.article-dialog-body ul),
 	:global(.article-dialog-body ol) {
-		margin: 0 0 1em;
+		margin: 0 0 1.25em;
 	}
+
+	:global(.article-dialog-body ul),
+	:global(.article-dialog-body ol) {
+		padding-left: 1.4em;
+	}
+
+	:global(.article-dialog-body li + li) {
+		margin-top: 0.4em;
+	}
+
+	:global(.article-dialog-body h2),
+	:global(.article-dialog-body h3),
+	:global(.article-dialog-body h4) {
+		margin: 1.8em 0 0.6em;
+		color: var(--c-text);
+		line-height: 1.25;
+		letter-spacing: -0.01em;
+		text-wrap: balance;
+	}
+
+	:global(.article-dialog-body h2) { font-size: 1.4em; }
+	:global(.article-dialog-body h3) { font-size: 1.2em; }
+	:global(.article-dialog-body h4) { font-size: 1.05em; }
 
 	:global(.article-dialog-body a) {
 		color: var(--c-link);
 		text-decoration: underline;
+		text-underline-offset: 0.18em;
+	}
+
+	:global(.article-dialog-body strong) {
+		color: var(--c-text);
+	}
+
+	:global(.article-dialog-body img) {
+		display: block;
+		max-width: 100%;
+		height: auto;
+		margin: 1.6em auto;
+		border-radius: 3px;
+	}
+
+	:global(.article-dialog-body blockquote) {
+		margin: 1.6em 0;
+		padding: 0.2em 0 0.2em 1.1em;
+		border-left: 3px solid var(--c-accent);
+		color: var(--c-text-2);
+		font-size: 1.08em;
+		font-style: italic;
+	}
+
+	:global(.article-dialog-body blockquote p:last-child) {
+		margin-bottom: 0;
+	}
+
+	:global(.article-dialog-body hr) {
+		margin: 2em 0;
+		border: 0;
+		border-top: 1px solid var(--c-line);
+	}
+
+	:global(.article-dialog-body code) {
+		padding: 0.1em 0.35em;
+		border-radius: 3px;
+		background: var(--c-accent-faint);
+		font-size: 0.9em;
+	}
+
+	:global(.article-dialog-body table) {
+		display: block;
+		max-width: 100%;
+		margin: 1.6em 0;
+		overflow-x: auto;
+		border-collapse: collapse;
+		font-size: 0.9em;
+	}
+
+	:global(.article-dialog-body th),
+	:global(.article-dialog-body td) {
+		padding: 0.5em 0.75em;
+		border: 1px solid var(--c-line);
+		text-align: left;
 	}
 
 	.article-dialog-status {
-		margin: 20px 0 0;
+		margin: 2em 0 0;
 		padding-top: 14px;
 		border-top: 1px solid var(--c-line);
 		color: var(--c-muted);
@@ -5649,6 +5821,19 @@ const sections = [
 			padding: 18px 14px;
 		}
 
+		/* On phones the article opens as a full-screen reader. */
+		.article-dialog {
+			width: 100%;
+			height: 100dvh;
+			max-height: 100dvh;
+			border: 0;
+			border-radius: 0;
+		}
+
+		.article-dialog-image {
+			max-height: 38dvh;
+		}
+
 		.news-list-item {
 			grid-template-columns: 82px minmax(0, 1fr);
 			gap: 10px;
@@ -6798,6 +6983,11 @@ const sections = [
 	/* ---------- Phones ---------- */
 
 	@media (max-width: 650px) {
+		:global(:root[data-theme='night']) .article-dialog {
+			border-radius: 0;
+			box-shadow: none;
+		}
+
 		:global(:root[data-theme='night']) .screen {
 			padding-inline: 18px;
 			padding-block: 92px 64px;
