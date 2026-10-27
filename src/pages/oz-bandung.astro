@@ -3113,12 +3113,14 @@ const sections = [
 		box-shadow: 0 4px 14px rgb(0 0 0 / 22%);
 	}
 
+	/* The whole photo is shown at its own proportions: full width when landscape, centred when it is tall. */
 	.article-dialog-image {
 		display: block;
-		width: 100%;
-		max-height: min(46dvh, 440px);
-		aspect-ratio: 16 / 9;
-		object-fit: cover;
+		width: auto;
+		max-width: 100%;
+		height: auto;
+		max-height: min(70dvh, 640px);
+		margin: 0 auto;
 	}
 
 	/* Reading column: ~65 characters a line, larger text and roomier leading than the rest of the site. */
@@ -5831,7 +5833,7 @@ const sections = [
 		}
 
 		.article-dialog-image {
-			max-height: 38dvh;
+			max-height: 55dvh;
 		}
 
 		.news-list-item {
