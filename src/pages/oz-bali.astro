@@ -4,8 +4,10 @@ import '../styles/typography.css';
 import '../styles/page-transitions.css';
 import '../styles/oz-audio-player-bali.css';
 
-// OZ Bali is audio-only for now. The station's Icecast mount; /api/now-playing?station=bali reads the same mount.
+// OZ Bali is audio-only for now. The title, artist and listener count are read from the same Icecast mount,
+// so they always follow whichever stream this points at.
 const audioStreamUrl = 'https://streaming.ozradio.id:8443/ozbandung';
+const nowPlayingUrl = `/api/now-playing?mount=${encodeURIComponent(new URL(audioStreamUrl).pathname.split('/').pop() ?? '')}`;
 ---
 
 <!doctype html>
@@ -51,7 +53,7 @@ const audioStreamUrl = 'https://streaming.ozradio.id:8443/ozbandung';
 					<img src="/images/logo-oz-bali.png" alt="ozradio bali 101.2 fm" width="1054" height="577" data-bali-logo fetchpriority="high" />
 				</h1>
 
-				<div class="bali-player" data-audio-player data-stream-url={audioStreamUrl}>
+				<div class="bali-player" data-audio-player data-stream-url={audioStreamUrl} data-now-playing-url={nowPlayingUrl}>
 					<div class="arcs" aria-hidden="true"></div>
 					<div class="sea" aria-hidden="true">
 						<div class="reflection">
@@ -516,7 +518,7 @@ const audioStreamUrl = 'https://streaming.ozradio.id:8443/ozbandung';
 
 	const updateNowPlaying = async () => {
 		try {
-			const response = await fetch('/api/now-playing?station=bali', { cache: 'no-store' });
+			const response = await fetch(container?.dataset.nowPlayingUrl ?? '/api/now-playing', { cache: 'no-store' });
 			if (!response.ok) throw new Error('Now playing unavailable.');
 			const data = (await response.json()) as { online?: unknown; title?: unknown; listeners?: unknown };
 			const metadata = typeof data.title === 'string' ? data.title.trim() : '';
@@ -540,8 +542,9 @@ const audioStreamUrl = 'https://streaming.ozradio.id:8443/ozbandung';
 		showTrack();
 	};
 
+	// The track shows before anyone presses play, so it refreshes the whole time the page is in view.
 	const startNowPlayingUpdates = () => {
-		if (nowPlayingTimer !== undefined) return;
+		if (nowPlayingTimer !== undefined || document.hidden) return;
 		void updateNowPlaying();
 		nowPlayingTimer = window.setInterval(() => { void updateNowPlaying(); }, 30_000);
 	};
@@ -577,10 +580,14 @@ const audioStreamUrl = 'https://streaming.ozradio.id:8443/ozbandung';
 		});
 	});
 
-	// These stay attached after the upgrade: Video.js plays through this same element.
-	fallbackAudio?.addEventListener('play', startNowPlayingUpdates);
-	fallbackAudio?.addEventListener('pause', stopNowPlayingUpdates);
-	fallbackAudio?.addEventListener('ended', stopNowPlayingUpdates);
+	// Pause the updates while the tab is hidden; catch up straight away when it's back.
+	document.addEventListener('visibilitychange', () => {
+		if (document.hidden) stopNowPlayingUpdates();
+		else startNowPlayingUpdates();
+	});
+	// Pressing play refreshes the track right away, in case it changed since the last update.
+	// This stays attached after the upgrade: Video.js plays through this same element.
+	fallbackAudio?.addEventListener('play', () => { void updateNowPlaying(); });
 
 	// The player takes over once the sun has risen, so its canvas fades in over a disk that has stopped moving.
 	// A visitor who presses play sooner doesn't wait for it.
@@ -588,5 +595,5 @@ const audioStreamUrl = 'https://streaming.ozradio.id:8443/ozbandung';
 	void Promise.race([sunrise, new Promise((resolve) => window.setTimeout(resolve, 1400))]).then(() => {
 		void loadAudioPlayer();
 	});
-	void updateNowPlaying();
+	startNowPlayingUpdates();
 </script>

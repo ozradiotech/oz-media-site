@@ -13,14 +13,13 @@ type IcecastStatus = {
 	};
 };
 
-// Icecast mount for each station; `?station=bali` picks Bali, anything else falls back to Bandung.
-const stationMounts: Record<string, string> = {
-	bandung: '/ozbandung',
-	bali: '/ozbali',
-};
+// `?mount=ozbali` reads that Icecast mount, so a page can ask for whichever stream it plays.
+// Without one (or with an invalid name) it falls back to OZ Bandung.
+const defaultMount = 'ozbandung';
 
 export const GET: APIRoute = async ({ url }) => {
-	const mount = stationMounts[url.searchParams.get('station') ?? ''] ?? stationMounts.bandung;
+	const requestedMount = url.searchParams.get('mount') ?? '';
+	const mount = `/${/^[\w-]{1,64}$/.test(requestedMount) ? requestedMount : defaultMount}`;
 	try {
 		const response = await fetch('https://streaming.ozradio.id:8443/status-json.xsl', {
 			signal: AbortSignal.timeout(5000),
