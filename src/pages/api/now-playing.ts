@@ -13,7 +13,14 @@ type IcecastStatus = {
 	};
 };
 
-export const GET: APIRoute = async () => {
+// Icecast mount for each station; `?station=bali` picks Bali, anything else falls back to Bandung.
+const stationMounts: Record<string, string> = {
+	bandung: '/ozbandung',
+	bali: '/ozbali',
+};
+
+export const GET: APIRoute = async ({ url }) => {
+	const mount = stationMounts[url.searchParams.get('station') ?? ''] ?? stationMounts.bandung;
 	try {
 		const response = await fetch('https://streaming.ozradio.id:8443/status-json.xsl', {
 			signal: AbortSignal.timeout(5000),
@@ -24,10 +31,12 @@ export const GET: APIRoute = async () => {
 		const sources = Array.isArray(status.icestats?.source)
 			? status.icestats.source
 			: [status.icestats?.source];
-		const source = sources.find((item) => item?.listenurl?.endsWith('/ozbandung'));
+		const source = sources.find((item) => item?.listenurl?.endsWith(mount));
 
 		return Response.json(
 			{
+				// False while the station isn't sending to the server, i.e. off air.
+				online: Boolean(source),
 				title: source?.title?.trim() ?? '',
 				listeners: source?.listeners ?? null,
 				peakListeners: source?.listener_peak ?? null,
@@ -36,7 +45,7 @@ export const GET: APIRoute = async () => {
 		);
 	} catch {
 		return Response.json(
-			{ title: '', listeners: null, peakListeners: null },
+			{ online: false, title: '', listeners: null, peakListeners: null },
 			{ status: 502, headers: { 'Cache-Control': 'no-store' } },
 		);
 	}

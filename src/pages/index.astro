@@ -7,7 +7,7 @@ import ThemeHead from '../components/ThemeHead.astro';
 import ThemeSwitch from '../components/ThemeSwitch.astro';
 const locations = [
 	{ name: 'Bandung', href: '/oz-bandung/', logo: '/images/logo-oz-bandung.png', transitionName: 'oz-bandung-logo' },
-	{ name: 'Bali', href: '/oz-bali/', logo: '/images/logo-oz-bali.png' },
+	{ name: 'Bali', href: '/oz-bali/', logo: '/images/logo-oz-bali.png', transitionName: 'oz-bali-logo' },
 ];
 ---
 
@@ -22,7 +22,7 @@ const locations = [
 		<Font cssVariable="--font-jakarta" preload={[{ style: 'normal' }]} />
 		<Font cssVariable="--font-mono" />
 		<title>OZ Radio — Choose your frequency</title>
-		<script type="speculationrules" is:inline set:html={JSON.stringify({ prefetch: [{ where: { href_matches: '/oz-bandung/' }, eagerness: 'moderate' }] })} />
+		<script type="speculationrules" is:inline set:html={JSON.stringify({ prefetch: [{ where: { href_matches: ['/oz-bandung/', '/oz-bali/'] }, eagerness: 'moderate' }] })} />
 	</head>
 	<body>
 		<div class="landing-bg" aria-hidden="true">

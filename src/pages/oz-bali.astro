@@ -1,149 +1,592 @@
 ---
 import { Font } from 'astro:assets';
 import '../styles/typography.css';
+import '../styles/page-transitions.css';
+import '../styles/oz-audio-player-bali.css';
+
+// OZ Bali is audio-only for now. The station's Icecast mount; /api/now-playing?station=bali reads the same mount.
+const audioStreamUrl = 'https://streaming.ozradio.id:8443/ozbandung';
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-page="bali">
 	<head>
 		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="theme-color" content="#FFFFF3" />
-		<meta name="description" content="O.Z. Radio Bali — coming soon." />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="theme-color" content="#4A1835" />
+		<meta name="description" content="Listen live to ozradio bali 101.2 fm, your friendly station from the island." />
 		<Font cssVariable="--font-tango" preload={[{ style: 'normal' }]} />
 		<Font cssVariable="--font-jakarta" preload={[{ style: 'normal' }]} />
-		<title>O.Z. Bali — O.Z. Radio</title>
+		<title>ozradio bali 101.2 fm — listen live</title>
+		<link rel="preload" as="image" href="/images/logo-oz-bali.png" fetchpriority="high" />
+		<script type="speculationrules" is:inline set:html={JSON.stringify({ prefetch: [{ where: { href_matches: '/' }, eagerness: 'moderate' }, { where: { href_matches: '/oz-bandung/' }, eagerness: 'moderate' }] })} />
+		<script is:inline>
+			document.documentElement.classList.add('js');
+			// Arriving from the home page, the logo glides in through the view transition (see page-transitions.css),
+			// so its own entrance is skipped.
+			addEventListener('pagereveal', (event) => {
+				if (event.viewTransition) document.documentElement.classList.add('vt-arrived');
+			});
+			// Leaving for the home page: only hand the logo over if it's on screen, or it would fly in from off-page.
+			addEventListener('pageswap', (event) => {
+				const logo = document.querySelector('[data-bali-logo]');
+				if (!event.viewTransition || !logo) return;
+				const box = logo.getBoundingClientRect();
+				if (box.bottom < 0 || box.top > innerHeight) logo.style.viewTransitionName = 'none';
+			});
+		</script>
 	</head>
 	<body>
-		<main class="bali-page">
+		<main class="bali">
 			<header class="topbar">
-				<a class="wordmark" href="/" aria-label="O.Z. Radio home">O<span>.</span>Z.</a>
-				<a class="back-link" href="/">← ALL LOCATIONS</a>
-				<span class="location-tag">LOCATION 02 · BALI</span>
+				<a class="back-link" href="/">
+					<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+					All stations
+				</a>
+				<p class="listeners" data-listeners hidden><span data-listener-count></span> listening now</p>
 			</header>
-			<section class="message">
-				<p class="eyebrow"><span class="live-dot"></span> THE ISLAND FREQUENCY</p>
-				<h1>O.Z. Bali<span>.</span></h1>
-				<p>Something good is tuning in.<br />Check back soon.</p>
-				<a class="back-button" href="/">← BACK TO LOCATIONS</a>
+
+			<section class="stage" aria-labelledby="bali-title">
+				<h1 id="bali-title" class="logo">
+					<img src="/images/logo-oz-bali.png" alt="ozradio bali 101.2 fm" width="1054" height="577" data-bali-logo fetchpriority="high" />
+				</h1>
+
+				<div class="bali-player" data-audio-player data-stream-url={audioStreamUrl}>
+					<div class="arcs" aria-hidden="true"></div>
+					<div class="sea" aria-hidden="true">
+						<div class="reflection">
+							<span></span><span></span><span></span><span></span><span></span>
+						</div>
+					</div>
+					<div class="sun-slot" data-sun-slot>
+						<div class="sun" data-sun></div>
+						<button class="sun-play" type="button" data-sun-play aria-label="Play ozradio bali live">
+							<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.6-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z" fill="currentColor" /></svg>
+						</button>
+					</div>
+					<audio controls preload="none" crossorigin="anonymous" src={audioStreamUrl} aria-label="ozradio bali live stream">
+						Your browser can't play this stream. Try another browser.
+					</audio>
+				</div>
 			</section>
-			<footer class="footer"><span>GOOD MUSIC TRAVELS.</span><span>BALI · INDONESIA</span></footer>
+
+			<footer class="shore">
+				<p class="tagline">Your friendly station, live from the island.</p>
+				<nav class="shore-links" aria-label="More from OZ Radio">
+					<a href="/oz-bandung/">Listen to OZ Bandung</a>
+					<a href="/">All stations</a>
+				</nav>
+				<p class="fine">ozradio bali, 101.2 fm. Kuta, Bali.</p>
+			</footer>
 		</main>
 	</body>
 </html>
 
 <style>
+	:root {
+		--bali-plum: #4A1835;
+		--bali-plum-deep: #33102A;
+		--bali-gold: #F6B42C;
+		--bali-tangerine: #F0862A;
+		--bali-hibiscus: #D8432E;
+		--bali-berry: #9C2848;
+		--bali-lagoon: #0D5A5F;
+		--bali-lagoon-deep: #08393D;
+		--bali-sand: #FCE8C8;
+		--bali-ink: #000000;
+		--ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+
+		/* The sun dial's size drives the whole composition: arcs, horizon and reflection all key off it. */
+		--bali-dial: min(84vw, 40svh, 400px);
+		--bali-play: clamp(56px, calc(var(--bali-dial) * 0.2), 76px);
+		--bali-reflection: clamp(36px, 7svh, 64px);
+	}
+
 	:global(*) {
 		box-sizing: border-box;
 	}
 
 	:global(body) {
 		margin: 0;
-		background: #FFFFF3;
-		color: #000000;
+		background: var(--bali-lagoon);
+		color: var(--bali-sand);
 		font-family: var(--font-jakarta);
 	}
 
-	:global(a) {
-		color: inherit;
-	}
-
-	.bali-page {
+	.bali {
 		min-height: 100svh;
 		display: flex;
 		flex-direction: column;
-		padding: 26px clamp(20px, 5vw, 64px) 20px;
+		/* The full-bleed sea is wider than the content box; clip it without making the page scroll sideways. */
+		overflow-x: clip;
+		background: linear-gradient(var(--bali-plum-deep), var(--bali-plum) 40%);
 	}
 
-	.topbar,
-	.footer {
+	a {
+		color: inherit;
+	}
+
+	a:focus-visible,
+	button:focus-visible {
+		outline: 3px solid var(--bali-gold);
+		outline-offset: 3px;
+	}
+
+	/* Top bar */
+	.topbar {
+		position: relative;
+		z-index: 3;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 20px;
+		gap: 16px;
+		padding: 12px clamp(16px, 4vw, 40px);
 	}
 
-	.wordmark {
-		font-size: 25px;
-		font-weight: 900;
-		letter-spacing: -0.06em;
+	.back-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		min-height: 44px;
+		padding: 0 14px 0 10px;
+		border-radius: 999px;
+		font-size: 14px;
+		font-weight: 600;
 		text-decoration: none;
+		transition: background-color 160ms ease, color 160ms ease;
 	}
 
-	.wordmark span,
-	h1 span {
-		color: #F2BD57;
+	@media (hover: hover) and (pointer: fine) {
+		.back-link:hover {
+			background: var(--bali-sand);
+			color: var(--bali-ink);
+		}
 	}
 
-	.back-link,
-	.location-tag,
-	.footer {
-		color: #77776F;
-		font-size: 9px;
-		font-weight: 700;
-		letter-spacing: 0.12em;
-		text-decoration: none;
+	.listeners {
+		margin: 0;
+		color: var(--bali-gold);
+		font-size: 14px;
+		font-weight: 600;
+		font-variant-numeric: tabular-nums;
 	}
 
-	.message {
-		margin: auto;
-		padding: 90px 0;
+	/* Stage: logo, then the sun over the horizon */
+	.stage {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 0 16px;
+	}
+
+	.logo {
+		position: relative;
+		z-index: 3;
+		width: min(78vw, 380px, calc(25svh * 1.83));
+		margin: 0 0 clamp(-36px, -3svh, -12px);
+		line-height: 0;
+	}
+
+	.logo img {
+		display: block;
+		width: 100%;
+		height: auto;
+		view-transition-name: oz-bali-logo;
+	}
+
+	.bali-player {
+		position: relative;
+		/* Narrower than the stage by the panel's offset shadow, so the shadow never touches the screen edge. */
+		width: min(100% - 8px, 460px);
+		/* Room for the dial, the water below it and the panel, so nothing jumps when Video.js takes over. */
+		min-height: calc(var(--bali-dial) + var(--bali-reflection) + 150px);
+		margin-bottom: 40px;
+		--bali-dial-center: calc(var(--bali-dial) / 2);
+	}
+
+	/* 70s sunset arcs radiating from behind the sun. */
+	.arcs {
+		position: absolute;
+		top: var(--bali-dial-center);
+		left: 50%;
+		z-index: 0;
+		width: calc(var(--bali-dial) + 560px);
+		aspect-ratio: 1;
+		translate: -50% -50%;
+		pointer-events: none;
+		--r: calc(var(--bali-dial) / 2);
+		background: radial-gradient(
+			circle closest-side,
+			transparent calc(var(--r) + 12px),
+			var(--bali-tangerine) 0 calc(var(--r) + 40px),
+			transparent 0 calc(var(--r) + 52px),
+			var(--bali-hibiscus) 0 calc(var(--r) + 80px),
+			transparent 0 calc(var(--r) + 92px),
+			var(--bali-berry) 0 calc(var(--r) + 120px),
+			transparent 0 calc(var(--r) + 132px),
+			#6A1E44 0 calc(var(--r) + 160px),
+			transparent 0
+		);
+	}
+
+	/* The sea starts at the bottom of the dial and runs the full width of the page down to the shore. */
+	.sea {
+		position: absolute;
+		top: var(--bali-dial);
+		bottom: -41px;
+		left: 50%;
+		z-index: 1;
+		width: 100vw;
+		translate: -50% 0;
+		border-top: 3px solid var(--bali-gold);
+		background:
+			repeating-linear-gradient(to bottom, transparent 0 14px, rgb(252 232 200 / 6%) 14px 16px),
+			linear-gradient(var(--bali-lagoon-deep), var(--bali-lagoon) 70%);
+		pointer-events: none;
+	}
+
+	/* The sun's reflection on the water. It shimmers only while the stream is live. */
+	.reflection {
+		display: grid;
+		justify-items: center;
+		gap: 7px;
+		padding-top: 9px;
+	}
+
+	.reflection span {
+		display: block;
+		width: calc(var(--bali-dial) * var(--w));
+		height: 4px;
+		border-radius: 999px;
+		background: var(--bali-gold);
+		opacity: var(--o);
+		animation: shimmer 2.4s ease-in-out infinite alternate paused;
+		animation-delay: var(--d);
+	}
+
+	.reflection span:nth-child(1) { --w: 0.5; --o: 0.9; --d: 0ms; }
+	.reflection span:nth-child(2) { --w: 0.38; --o: 0.7; --d: -400ms; }
+	.reflection span:nth-child(3) { --w: 0.28; --o: 0.55; --d: -800ms; }
+	.reflection span:nth-child(4) { --w: 0.18; --o: 0.4; --d: -1200ms; }
+	.reflection span:nth-child(5) { --w: 0.1; --o: 0.3; --d: -1600ms; }
+
+	.bali-player:has([data-oz-state='live']) .reflection span {
+		animation-play-state: running;
+	}
+
+	/* Stand-in sun shown until the Video.js player takes over; the canvas draws the same disk in the same place. */
+	.sun-slot {
+		position: absolute;
+		top: 0;
+		left: 50%;
+		z-index: 2;
+		width: var(--bali-dial);
+		aspect-ratio: 1;
+		translate: -50% 0;
+		/* The sun rises from behind the horizon. */
+		overflow: hidden;
+		transition: opacity 300ms ease, visibility 0s 300ms;
+	}
+
+	.sun {
+		position: absolute;
+		inset: 21%;
+		border-radius: 50%;
+		/* The 70s slices through the lower half, matching the canvas. */
+		background: linear-gradient(
+			var(--bali-gold) 0 60%,
+			transparent 0 60.9%,
+			var(--bali-gold) 0 68%,
+			transparent 0 69.4%,
+			var(--bali-gold) 0 76%,
+			transparent 0 77.9%,
+			var(--bali-gold) 0 84%,
+			transparent 0 86.4%,
+			var(--bali-gold) 0 92%,
+			transparent 0 94.9%,
+			var(--bali-gold) 0
+		);
+	}
+
+	.sun-play {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		display: grid;
+		place-items: center;
+		width: var(--bali-play);
+		height: var(--bali-play);
+		margin: calc(var(--bali-play) / -2) 0 0 calc(var(--bali-play) / -2);
+		padding: 0;
+		border: 0;
+		border-radius: 50%;
+		background: var(--bali-ink);
+		color: var(--bali-sand);
+		cursor: pointer;
+		transition: transform 160ms var(--ease-out), background-color 160ms ease, color 160ms ease;
+	}
+
+	.sun-play svg {
+		width: 40%;
+		height: 40%;
+		margin-left: 6%;
+	}
+
+	.sun-play:active {
+		transform: scale(0.94);
+	}
+
+	@media (hover: hover) and (pointer: fine) {
+		.sun-play:hover {
+			background: var(--bali-sand);
+			color: var(--bali-ink);
+		}
+	}
+
+	.bali-player.has-videojs .sun-slot {
+		opacity: 0;
+		visibility: hidden;
+		pointer-events: none;
+	}
+
+	/* With scripts on, the native player stays out of sight until Video.js upgrades it. Without them it's the player. */
+	.bali-player > audio {
+		position: relative;
+		z-index: 2;
+		display: block;
+		width: 100%;
+		margin-top: calc(var(--bali-dial) + var(--bali-reflection));
+	}
+
+	:global(.js) .bali-player > audio {
+		visibility: hidden;
+	}
+
+	.bali-player :global(.vjs-oz-bali) {
+		position: relative;
+		z-index: 2;
+	}
+
+	/* Shore */
+	.shore {
+		position: relative;
+		z-index: 1;
+		margin-top: auto;
+		display: grid;
+		justify-items: center;
+		gap: 18px;
+		padding: 24px 16px 32px;
+		background: var(--bali-lagoon);
 		text-align: center;
 	}
 
-	.eyebrow {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 9px;
-		margin: 0 0 22px;
-		color: #77776F;
-		font-size: 9px;
-		font-weight: 700;
-		letter-spacing: 0.16em;
-	}
-
-	.live-dot {
-		width: 7px;
-		height: 7px;
-		border-radius: 50%;
-		background: #F2BD57;
-	}
-
-	h1 {
+	.tagline {
+		max-width: 22ch;
 		margin: 0;
-		font-size: clamp(54px, 10vw, 96px);
-		font-weight: 800;
-		letter-spacing: -0.055em;
-		line-height: 1;
+		font-family: var(--font-tango);
+		font-size: clamp(24px, 4vw, 34px);
+		line-height: 1.15;
+		text-wrap: balance;
 	}
 
-	.message > p:not(.eyebrow) {
-		margin: 20px 0 28px;
-		color: #77776F;
+	.shore-links {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 8px 12px;
+	}
+
+	.shore-links a {
+		display: inline-flex;
+		align-items: center;
+		min-height: 44px;
+		padding: 0 18px;
+		border: 2px solid var(--bali-sand);
+		border-radius: 999px;
 		font-size: 14px;
-		line-height: 1.7;
-	}
-
-	.back-button {
-		display: inline-block;
-		padding: 14px 18px;
-		border: 1px solid #D8D8CC;
-		border-radius: 2px;
-		font-size: 9px;
 		font-weight: 700;
-		letter-spacing: 0.12em;
 		text-decoration: none;
-		transition: background 180ms ease, color 180ms ease;
+		transition: background-color 160ms ease, color 160ms ease;
 	}
 
-	.back-button:hover {
-		background: #000000;
-		color: #FFFFF3;
+	.shore-links a:first-child {
+		border-color: var(--bali-gold);
+		background: var(--bali-gold);
+		color: var(--bali-ink);
+		box-shadow: 4px 4px 0 var(--bali-ink);
 	}
 
-	.footer {
-		padding-top: 16px;
-		border-top: 1px solid #D8D8CC;
+	@media (hover: hover) and (pointer: fine) {
+		.shore-links a:hover {
+			background: var(--bali-sand);
+			color: var(--bali-ink);
+		}
+	}
+
+	.fine {
+		margin: 0;
+		color: rgb(252 232 200 / 72%);
+		font-size: 13px;
+	}
+
+	/* Page-load sequence: the arcs open, the sun rises from the horizon, then the logo lands. */
+	@media (prefers-reduced-motion: no-preference) {
+		.arcs {
+			animation: arcs-open 1100ms var(--ease-out) both;
+		}
+
+		.sun,
+		.sun-play {
+			animation: sunrise 1000ms 120ms var(--ease-out) both;
+		}
+
+		.logo img {
+			animation: logo-land 760ms 420ms var(--ease-out) both;
+		}
+
+		:global(.vt-arrived) .logo img {
+			animation: none;
+		}
+
+		.shore {
+			animation: fade-in 600ms 600ms ease-out both;
+		}
+	}
+
+	@keyframes arcs-open {
+		from {
+			opacity: 0;
+			transform: scale(0.82);
+		}
+	}
+
+	/* Animates `translate`, so the play button's press scale still applies. */
+	@keyframes sunrise {
+		from {
+			translate: 0 78%;
+		}
+	}
+
+	@keyframes logo-land {
+		from {
+			opacity: 0;
+			transform: translateY(-28px) scale(0.96);
+		}
+	}
+
+	@keyframes fade-in {
+		from {
+			opacity: 0;
+		}
+	}
+
+	@keyframes shimmer {
+		from {
+			transform: scaleX(0.82);
+		}
+		to {
+			transform: scaleX(1.08);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.reflection span {
+			animation: none;
+		}
 	}
 </style>
+
+<script>
+	type OzAudioPlayer = import('../scripts/oz-audio-player').OzAudioPlayer;
+
+	const container = document.querySelector<HTMLElement>('[data-audio-player]');
+	const fallbackAudio = container?.querySelector<HTMLAudioElement>('audio');
+	const sunPlay = container?.querySelector<HTMLButtonElement>('[data-sun-play]');
+	const sun = container?.querySelector<HTMLElement>('[data-sun]');
+	const listeners = document.querySelector<HTMLElement>('[data-listeners]');
+	const listenerCount = document.querySelector<HTMLElement>('[data-listener-count]');
+
+	let audioPlayer: OzAudioPlayer | undefined;
+	let audioPlayerRequest: Promise<OzAudioPlayer | undefined> | undefined;
+	let track = { title: '', artist: '' };
+	let nowPlayingTimer: number | undefined;
+
+	const showTrack = () => audioPlayer?.setTrack(track.title, track.artist);
+
+	const updateNowPlaying = async () => {
+		try {
+			const response = await fetch('/api/now-playing?station=bali', { cache: 'no-store' });
+			if (!response.ok) throw new Error('Now playing unavailable.');
+			const data = (await response.json()) as { online?: unknown; title?: unknown; listeners?: unknown };
+			const metadata = typeof data.title === 'string' ? data.title.trim() : '';
+			const separatorIndex = metadata.lastIndexOf(' - ');
+			if (data.online === false) {
+				track = { title: 'Off air right now', artist: 'Check back soon.' };
+			} else if (separatorIndex > 0 && separatorIndex < metadata.length - 3) {
+				track = { title: metadata.slice(0, separatorIndex).trim(), artist: metadata.slice(separatorIndex + 3).trim() };
+			} else {
+				track = { title: metadata || 'ozradio bali 101.2 fm', artist: '' };
+			}
+			const count = typeof data.listeners === 'number' && data.online !== false ? data.listeners : null;
+			if (listeners && listenerCount) {
+				listeners.hidden = count === null;
+				listenerCount.textContent = count?.toLocaleString() ?? '';
+			}
+		} catch {
+			track = { title: 'ozradio bali 101.2 fm', artist: '' };
+			if (listeners) listeners.hidden = true;
+		}
+		showTrack();
+	};
+
+	const startNowPlayingUpdates = () => {
+		if (nowPlayingTimer !== undefined) return;
+		void updateNowPlaying();
+		nowPlayingTimer = window.setInterval(() => { void updateNowPlaying(); }, 30_000);
+	};
+
+	const stopNowPlayingUpdates = () => {
+		window.clearInterval(nowPlayingTimer);
+		nowPlayingTimer = undefined;
+	};
+
+	// Video.js drives the stream (see src/scripts/oz-audio-player.ts). If it fails to load, the native <audio> plays instead.
+	const loadAudioPlayer = () => {
+		const streamUrl = container?.dataset.streamUrl;
+		if (!container || !fallbackAudio || !streamUrl) return Promise.resolve(undefined);
+		audioPlayerRequest ??= import('../scripts/oz-audio-player')
+			.then(({ createOzAudioPlayer }) => {
+				audioPlayer = createOzAudioPlayer(fallbackAudio, streamUrl, { visualizer: 'sun', className: 'vjs-oz-bali' });
+				container.classList.add('has-videojs');
+				showTrack();
+				return audioPlayer;
+			})
+			.catch(() => {
+				// Show the native controls so the stream stays playable.
+				document.documentElement.classList.remove('js');
+				return undefined;
+			});
+		return audioPlayerRequest;
+	};
+
+	sunPlay?.addEventListener('click', () => {
+		void loadAudioPlayer().then((player) => {
+			if (player) player.play();
+			else void fallbackAudio?.play().catch(() => {});
+		});
+	});
+
+	// These stay attached after the upgrade: Video.js plays through this same element.
+	fallbackAudio?.addEventListener('play', startNowPlayingUpdates);
+	fallbackAudio?.addEventListener('pause', stopNowPlayingUpdates);
+	fallbackAudio?.addEventListener('ended', stopNowPlayingUpdates);
+
+	// The player takes over once the sun has risen, so its canvas fades in over a disk that has stopped moving.
+	// A visitor who presses play sooner doesn't wait for it.
+	const sunrise = sun?.getAnimations()[0]?.finished.catch(() => {}) ?? Promise.resolve();
+	void Promise.race([sunrise, new Promise((resolve) => window.setTimeout(resolve, 1400))]).then(() => {
+		void loadAudioPlayer();
+	});
+	void updateNowPlaying();
+</script>

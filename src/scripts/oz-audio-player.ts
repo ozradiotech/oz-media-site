@@ -131,8 +131,14 @@ const BAR_WIDTH = 3;
 const BAR_GAP = 3;
 const MAX_BARS = 96;
 const REDUCED_MOTION_FRAME_MS = 120;
+// The sun visualizer: rays roughly this many pixels apart, and one full turn every 90 seconds while live.
+const RAY_SPACING = 10;
+const SUN_TURN_MS = 90_000;
 
-// Bars mirror outwards from the centre: bass in the middle, treble at both edges.
+export type OzVisualizer = 'bars' | 'sun';
+
+// 'bars' mirror outwards from the centre: bass in the middle, treble at both edges.
+// 'sun' radiates rays around a sliced sun disk: bass at the top, treble at the bottom, mirrored left and right.
 class OzWaveform extends Component {
 	private readonly canvas: HTMLCanvasElement;
 	private readonly context: CanvasRenderingContext2D | null;
@@ -151,9 +157,14 @@ class OzWaveform extends Component {
 	private idleColor: Rgb = [216, 216, 204];
 	private accentColor: Rgb = [242, 189, 87];
 	private tipColor: Rgb = [248, 217, 156];
+	private sunColor: Rgb = [242, 189, 87];
+	private readonly shape: OzVisualizer;
+	private rotation = 0;
 
 	constructor(player: Player, options?: Record<string, unknown>) {
 		super(player, options);
+		this.shape = options?.shape === 'sun' ? 'sun' : 'bars';
+		this.el().classList.add(`oz-waveform-${this.shape}`);
 		this.canvas = document.createElement('canvas');
 		this.canvas.setAttribute('aria-hidden', 'true');
 		this.el().append(this.canvas);
@@ -247,8 +258,14 @@ class OzWaveform extends Component {
 		this.canvas.width = Math.max(1, Math.round(width * pixelRatio));
 		this.canvas.height = Math.max(1, Math.round(height * pixelRatio));
 
-		const fit = Math.floor((width + BAR_GAP) / (BAR_WIDTH + BAR_GAP));
-		const barCount = Math.max(8, Math.min(MAX_BARS, fit - (fit % 2)));
+		let barCount: number;
+		if (this.shape === 'sun') {
+			const rays = Math.round((Math.PI * Math.min(width, height) * 0.67) / RAY_SPACING);
+			barCount = Math.max(24, Math.min(MAX_BARS, rays - (rays % 2)));
+		} else {
+			const fit = Math.floor((width + BAR_GAP) / (BAR_WIDTH + BAR_GAP));
+			barCount = Math.max(8, Math.min(MAX_BARS, fit - (fit % 2)));
+		}
 		if (barCount !== this.levels.length) {
 			this.levels = new Float32Array(barCount);
 			this.updateBinEdges();
@@ -258,6 +275,7 @@ class OzWaveform extends Component {
 		this.idleColor = parseHexColor(styles.getPropertyValue('--oz-line'), this.idleColor);
 		this.accentColor = parseHexColor(styles.getPropertyValue('--oz-accent'), this.accentColor);
 		this.tipColor = parseHexColor(styles.getPropertyValue('--oz-wave-tip'), this.tipColor);
+		this.sunColor = parseHexColor(styles.getPropertyValue('--oz-sun'), this.accentColor);
 		this.draw();
 		this.requestFrame();
 	}
@@ -272,6 +290,11 @@ class OzWaveform extends Component {
 		if (reducedMotion.matches && now - this.lastFrame < REDUCED_MOTION_FRAME_MS) {
 			this.requestFrame();
 			return;
+		}
+		// The sun turns slowly while live; the step is capped so a frame after a long pause doesn't jump.
+		if (this.shape === 'sun' && this.isActive && !reducedMotion.matches && this.lastFrame) {
+			const step = (Math.min(now - this.lastFrame, 64) / SUN_TURN_MS) * Math.PI * 2;
+			this.rotation = (this.rotation + step) % (Math.PI * 2);
 		}
 		this.lastFrame = now;
 
@@ -312,6 +335,11 @@ class OzWaveform extends Component {
 	};
 
 	private draw() {
+		if (this.shape === 'sun') this.drawSun();
+		else this.drawBars();
+	}
+
+	private drawBars() {
 		const context = this.context;
 		if (!context) return;
 		const { width, height } = this.canvas;
@@ -353,6 +381,70 @@ class OzWaveform extends Component {
 		}
 	}
 
+	private drawSun() {
+		const context = this.context;
+		if (!context) return;
+		const { width, height } = this.canvas;
+		const rayCount = this.levels.length;
+		const half = rayCount / 2;
+		context.clearRect(0, 0, width, height);
+		if (!rayCount || width < 2 || height < 2) return;
+
+		const pixelRatio = width / Math.max(1, this.el().clientWidth);
+		const size = Math.min(width, height);
+		const centerX = width / 2;
+		const centerY = height / 2;
+		// The lowest bands swell the disk a little, like the sun breathing with the bass.
+		const bass = (this.levels[0] + this.levels[1] + this.levels[2]) / 3;
+		const sunRadius = size * 0.29 * (1 + bass * 0.045 * this.activeMix);
+		const rayStart = size * 0.335;
+		const rayReach = size * 0.5 - rayStart - 3 * pixelRatio;
+		const restLength = Math.max(3 * pixelRatio, rayReach * 0.1);
+		const rayWidth = Math.max(1.5 * pixelRatio, ((Math.PI * 2 * rayStart) / rayCount) * 0.42);
+
+		// Sun disk, with the 70s horizontal slices cut through its lower half, widening towards the bottom.
+		context.fillStyle = `rgb(${this.sunColor.join(' ')})`;
+		context.beginPath();
+		context.arc(centerX, centerY, sunRadius, 0, Math.PI * 2);
+		context.fill();
+		context.globalCompositeOperation = 'destination-out';
+		for (let slice = 0; slice < 5; slice += 1) {
+			const y = centerY + sunRadius * (0.2 + slice * 0.16);
+			context.fillRect(centerX - sunRadius, y, sunRadius * 2, sunRadius * (0.03 + slice * 0.018));
+		}
+		context.globalCompositeOperation = 'source-over';
+
+		context.save();
+		context.translate(centerX, centerY);
+		context.rotate(this.rotation);
+		context.lineCap = 'round';
+		context.lineWidth = rayWidth;
+		context.beginPath();
+		for (let ray = 0; ray < rayCount; ray += 1) {
+			const level = this.levels[Math.min(half - 1, Math.min(ray, rayCount - ray))];
+			const length = restLength + level * (rayReach - restLength);
+			const angle = (ray / rayCount) * Math.PI * 2 - Math.PI / 2;
+			const cos = Math.cos(angle);
+			const sin = Math.sin(angle);
+			context.moveTo(cos * rayStart, sin * rayStart);
+			context.lineTo(cos * (rayStart + length), sin * (rayStart + length));
+		}
+
+		// Muted at rest, crossfading to sun-coloured rays (lighter at the tips) while live.
+		context.strokeStyle = `rgb(${this.idleColor.join(' ')})`;
+		context.stroke();
+		if (this.activeMix > 0) {
+			const gradient = context.createRadialGradient(0, 0, rayStart, 0, 0, rayStart + rayReach);
+			gradient.addColorStop(0, `rgb(${this.accentColor.join(' ')})`);
+			gradient.addColorStop(1, `rgb(${this.tipColor.join(' ')})`);
+			context.globalAlpha = this.activeMix;
+			context.strokeStyle = gradient;
+			context.stroke();
+			context.globalAlpha = 1;
+		}
+		context.restore();
+	}
+
 	dispose() {
 		window.cancelAnimationFrame(this.frameRequest);
 		this.resizeObserver.disconnect();
@@ -382,13 +474,24 @@ export type OzAudioPlayer = {
 
 const MAX_RECONNECT_ATTEMPTS = 3;
 
+export type OzAudioPlayerOptions = {
+	// The visualizer's shape. A station theme class (e.g. 'vjs-oz-bali') restyles the rest of the player.
+	visualizer?: OzVisualizer;
+	className?: string;
+};
+
 // Upgrades an <audio> element into the OZ player. Its native events keep firing, so listeners
 // attached to the element before the upgrade continue to work.
-export const createOzAudioPlayer = (media: HTMLAudioElement, streamUrl: string): OzAudioPlayer => {
+export const createOzAudioPlayer = (
+	media: HTMLAudioElement,
+	streamUrl: string,
+	{ visualizer = 'bars', className }: OzAudioPlayerOptions = {},
+): OzAudioPlayer => {
 	// The stream is served with CORS headers, which the waveform's audio analysis needs.
 	media.crossOrigin = 'anonymous';
 	// Video.js carries the tag's classes over to the player it builds.
 	media.classList.add('video-js', 'vjs-oz');
+	if (className) media.classList.add(className);
 	const source = { src: streamUrl, type: 'audio/aac' };
 	const player = videojs(media, {
 		controls: true,
@@ -402,7 +505,8 @@ export const createOzAudioPlayer = (media: HTMLAudioElement, streamUrl: string):
 			volumePanel: { inline: true },
 		},
 	});
-	const waveform = (player as Player & { ozWaveform: () => OzWaveform }).ozWaveform();
+	const waveform = (player as Player & { ozWaveform: (options: Record<string, unknown>) => OzWaveform })
+		.ozWaveform({ shape: visualizer });
 	const trackInfo = player.getChild('OzTrackInfo') as OzTrackInfo | undefined;
 	const liveBadge = player.getChild('ControlBar')?.getChild('OzLiveBadge') as OzLiveBadge | undefined;
 	const showState = (state: PlayerState) => liveBadge?.showState(state);

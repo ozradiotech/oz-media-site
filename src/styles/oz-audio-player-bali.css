@@ -1,0 +1,163 @@
+/*
+ * OZ Bali theme for the Video.js audio player (see src/scripts/oz-audio-player.ts, created with
+ * { visualizer: 'sun', className: 'vjs-oz-bali' }). It layers over the shared OZ skin, which loads
+ * later with the player script, so every rule here carries the extra .vjs-oz-bali class to win.
+ *
+ * Layout: the sun visualizer on top, with the play button at its centre, then a black "ticket"
+ * panel for the track, volume and live state. The panel is the player's ::before, a grid item
+ * spanning the bottom two rows, so the children sit on it without extra wrappers.
+ */
+.video-js.vjs-oz.vjs-oz-bali {
+	--oz-surface: #000000;
+	--oz-ink: #FCE8C8;
+	--oz-muted: #C9B094;
+	--oz-line: #7E3B5C;
+	--oz-accent: #F6B42C;
+	--oz-accent-soft: #3A2808;
+	--oz-wave-tip: #FFE6A8;
+	--oz-sun: #F6B42C;
+
+	height: auto;
+	grid-template-columns: minmax(0, 1fr) auto;
+	grid-template-rows: auto auto auto;
+	grid-template-areas:
+		'wave wave'
+		'info info'
+		'volume live';
+	gap: 0;
+	overflow: visible;
+	font-size: 13px;
+}
+
+.vjs-oz.vjs-oz-bali::before {
+	content: '';
+	grid-row: 2 / 4;
+	grid-column: 1 / -1;
+	align-self: stretch;
+	z-index: 0;
+	border-radius: 22px;
+	background: var(--oz-surface);
+	box-shadow: 7px 7px 0 #D8432E;
+	animation: oz-rise 520ms var(--oz-ease-out) both;
+}
+
+.vjs-oz.vjs-oz-bali > *,
+.vjs-oz.vjs-oz-bali .vjs-control-bar > * {
+	z-index: 1;
+}
+
+/* The sun: a square canvas the width of the dial, with clear water underneath for the reflection. */
+.vjs-oz.vjs-oz-bali .oz-waveform {
+	justify-self: center;
+	width: var(--bali-dial, 100%);
+	aspect-ratio: 1;
+	min-height: 0;
+	margin-bottom: var(--bali-reflection, 48px);
+	animation: oz-bali-fade 700ms ease-out both;
+}
+
+.vjs-oz.vjs-oz-bali .vjs-play-control {
+	grid-area: wave;
+	place-self: center;
+	/* Centred on the dial, which sits above the reflection gap. */
+	translate: 0 calc(var(--bali-reflection, 48px) / -2);
+	width: var(--bali-play, 64px);
+	height: var(--bali-play, 64px);
+	z-index: 2;
+	background: #000000;
+	color: #FCE8C8;
+	animation: oz-bali-fade 400ms ease-out both;
+}
+
+.vjs-oz.vjs-oz-bali .vjs-play-control::before,
+.vjs-oz.vjs-oz-bali .vjs-play-control::after {
+	width: 34%;
+	height: 38%;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.vjs-oz.vjs-oz-bali .vjs-play-control:hover {
+		background: #FCE8C8;
+		color: #000000;
+	}
+}
+
+.vjs-oz.vjs-oz-bali[data-oz-state='live'] .vjs-play-control {
+	box-shadow: 0 0 0 5px rgb(0 0 0 / 22%);
+}
+
+.vjs-oz.vjs-oz-bali[data-oz-state='connecting'] .vjs-play-control {
+	animation: oz-connecting 1.2s ease-in-out infinite;
+}
+
+/* Track metadata: lowercase like the logo. */
+.vjs-oz.vjs-oz-bali .oz-track-info {
+	gap: 8px;
+	margin: 22px 24px 0;
+}
+
+.vjs-oz.vjs-oz-bali .oz-track-label {
+	color: var(--oz-accent);
+	font-size: 12px;
+	letter-spacing: 0.02em;
+	text-transform: lowercase;
+}
+
+.vjs-oz.vjs-oz-bali .oz-track-title {
+	font-family: var(--font-tango, Arial, sans-serif);
+	font-size: 22px;
+	line-height: 1.2;
+}
+
+.vjs-oz.vjs-oz-bali .oz-track-artist {
+	font-size: 14px;
+}
+
+/* Volume and live state share the panel's bottom row. */
+.vjs-oz.vjs-oz-bali .vjs-volume-panel {
+	margin: 16px 0 18px 16px;
+}
+
+.vjs-oz.vjs-oz-bali .vjs-volume-bar {
+	background: rgb(252 232 200 / 20%);
+}
+
+.vjs-oz.vjs-oz-bali .vjs-volume-level::after {
+	border-color: #000000;
+	background: #FCE8C8;
+}
+
+.vjs-oz.vjs-oz-bali .oz-live-badge {
+	height: 28px;
+	margin: 16px 20px 18px 12px;
+	border-color: rgb(252 232 200 / 24%);
+	font-size: 12px;
+	letter-spacing: 0.02em;
+	text-transform: lowercase;
+}
+
+.vjs-oz.vjs-oz-bali[data-oz-state='live'] .oz-live-badge {
+	border-color: var(--oz-accent);
+	background: var(--oz-accent);
+	color: #000000;
+}
+
+.vjs-oz.vjs-oz-bali[data-oz-state='live'] .oz-live-dot {
+	background: #000000;
+}
+
+.vjs-oz.vjs-oz-bali[data-oz-state='live'] .oz-live-dot::after {
+	background: #000000;
+}
+
+@container (max-width: 360px) {
+	.vjs-oz.vjs-oz-bali .oz-track-title {
+		font-size: 18px;
+	}
+}
+
+@keyframes oz-bali-fade {
+	from {
+		opacity: 0;
+	}
+}

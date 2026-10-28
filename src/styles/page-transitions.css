@@ -1,7 +1,7 @@
-/* Cross-document view transition between the home page and OZ Bandung.
-   Both pages opt in here; pages that don't import this file (e.g. OZ Bali) navigate normally.
-   The Bandung logo carries the `oz-bandung-logo` name on both pages, so it glides between them
-   while the rest of the page crossfades. The animations below run in the page being opened. */
+/* Cross-document view transitions between the home page and the station pages (OZ Bandung, OZ Bali).
+   Each page opts in here; pages that don't import this file navigate normally.
+   A station's logo carries the same name on both pages (`oz-bandung-logo`, `oz-bali-logo`), so it glides
+   between them while the rest of the page crossfades. The animations below run in the page being opened. */
 
 @media (prefers-reduced-motion: no-preference) {
 	@view-transition {
@@ -11,30 +11,35 @@
 
 /* Shared logo: the same image on both sides, so show only the live new one instead of
    crossfading two copies, and let the group carry it from the old box to the new one. */
-::view-transition-group(oz-bandung-logo) {
+::view-transition-group(oz-bandung-logo),
+::view-transition-group(oz-bali-logo) {
 	animation-duration: 720ms;
 	animation-timing-function: cubic-bezier(0.7, 0, 0.2, 1);
 }
 
-::view-transition-old(oz-bandung-logo) {
+::view-transition-old(oz-bandung-logo),
+::view-transition-old(oz-bali-logo) {
 	animation: none;
 	opacity: 0;
 }
 
-::view-transition-new(oz-bandung-logo) {
+::view-transition-new(oz-bandung-logo),
+::view-transition-new(oz-bali-logo) {
 	animation: none;
 }
 
-/* Home → Bandung: the chooser recedes, Bandung rises in behind the arriving logo. */
-html[data-page='bandung']::view-transition-old(root) {
+/* Home → station: the chooser recedes, the station rises in behind the arriving logo. */
+html[data-page='bandung']::view-transition-old(root),
+html[data-page='bali']::view-transition-old(root) {
 	animation: vt-recede 320ms cubic-bezier(0.4, 0, 1, 1) both;
 }
 
-html[data-page='bandung']::view-transition-new(root) {
+html[data-page='bandung']::view-transition-new(root),
+html[data-page='bali']::view-transition-new(root) {
 	animation: vt-rise 520ms 200ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
-/* Bandung → home: the reverse. */
+/* Station → home: the reverse. */
 html[data-page='home']::view-transition-old(root) {
 	animation: vt-sink 320ms cubic-bezier(0.4, 0, 1, 1) both;
 }
