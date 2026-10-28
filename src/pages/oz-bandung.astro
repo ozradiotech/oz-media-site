@@ -71,6 +71,24 @@ const optimizeImageUrl = (src: string, width: number) => {
 	return url.toString();
 };
 
+// Ozubathon: the anniversary livestream marathon, shown by the night style only. `start` drives the countdown, the
+// live hour counter and the wrap-up message; `dateLabel` is what the page prints, so it can stay vague until the date is set.
+const ozubathon = {
+	start: '2026-12-23T19:00:00+07:00',
+	hours: 55,
+	dateLabel: '23 DECEMBER 2026',
+};
+const ozubathonStartMs = Date.parse(ozubathon.start);
+const ozubathonUntil = Math.max(0, ozubathonStartMs - Date.now());
+const ozubathonInitial = {
+	days: Math.floor(ozubathonUntil / 86400000),
+	hours: Math.floor(ozubathonUntil / 3600000) % 24,
+	minutes: Math.floor(ozubathonUntil / 60000) % 60,
+	seconds: Math.floor(ozubathonUntil / 1000) % 60,
+};
+const pad2 = (value: number) => String(value).padStart(2, '0');
+const tickerPhrases = ['55 LOUD AND LIVE', 'OZUBATHON', `${ozubathon.hours} HOURS NONSTOP`, 'OZ RADIO BANDUNG ANNIVERSARY'];
+
 const sections = [
 	{ id: 'listen', label: 'ON AIR' },
 	{ id: 'programs', label: 'PROGRAMS' },
@@ -110,6 +128,13 @@ const sections = [
 					topbarLogo?.style.setProperty('view-transition-name', 'oz-bandung-logo');
 				}
 			});
+			// The Ozubathon lockup is lazy (retro never shows it); in the night style it's above the fold, so fetch it now.
+			if (document.documentElement.dataset.theme === 'night') {
+				const preload = Object.assign(document.createElement('link'), { rel: 'preload', as: 'image', type: 'image/webp', fetchPriority: 'high' });
+				preload.setAttribute('imagesrcset', '/images/ozubathon-420.webp 420w, /images/ozubathon-838.webp 838w');
+				preload.setAttribute('imagesizes', '(max-width: 650px) 84vw, 560px');
+				document.head.append(preload);
+			}
 			addEventListener('pageswap', (event) => {
 				if (event.viewTransition) document.querySelector('[data-topbar-logo]')?.style.setProperty('view-transition-name', 'oz-bandung-logo');
 			});
@@ -126,7 +151,7 @@ const sections = [
 						</a>
 					))}
 				</nav>
-				<ThemeSwitch class="topbar-theme-switch" />
+				<ThemeSwitch class="topbar-theme-switch" nightLabel="55 LIVE" nightName="Ozubathon" />
 			</header>
 
 			<section class="hero-screen" id="top" aria-labelledby="hero-title" data-hero>
@@ -134,6 +159,27 @@ const sections = [
 				<h1 class="hero-title" id="hero-title" data-sticker>
 					<img class="hero-logo" src="/images/logo-oz-bandung.png" alt="OZ Radio Bandung" width="1246" height="648" fetchpriority="high" data-hero-logo />
 				</h1>
+				<div class="ozb-event" role="group" aria-label="Ozubathon" data-ozb data-ozb-start={ozubathonStartMs} data-ozb-hours={ozubathon.hours} data-ozb-state="soon">
+					<span class="ozb-presents" aria-hidden="true">PRESENTS</span>
+					<img class="ozb-logo" data-src="/images/ozubathon-838.webp" data-srcset="/images/ozubathon-420.webp 420w, /images/ozubathon-838.webp 838w" sizes="(max-width: 650px) 84vw, 560px" alt="55 Ozubathon: loud and live" width="838" height="497" decoding="async" data-ozb-logo />
+					<p class="ozb-deck">{ozubathon.hours} hours of nonstop live radio for our anniversary. <span>{ozubathon.dateLabel}</span></p>
+					<div class="ozb-status">
+						<p class="ozb-chip">
+							<span class="ozb-eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+							<span data-ozb-label>STARTS IN</span>
+						</p>
+						<div class="ozb-countdown" role="timer" aria-live="off" data-ozb-countdown>
+							<span class="ozb-unit"><b data-ozb-unit="days">{pad2(ozubathonInitial.days)}</b><small>DAYS</small></span>
+							<span class="ozb-unit"><b data-ozb-unit="hours">{pad2(ozubathonInitial.hours)}</b><small>HRS</small></span>
+							<span class="ozb-unit"><b data-ozb-unit="minutes">{pad2(ozubathonInitial.minutes)}</b><small>MIN</small></span>
+							<span class="ozb-unit"><b data-ozb-unit="seconds">{pad2(ozubathonInitial.seconds)}</b><small>SEC</small></span>
+						</div>
+						<div class="ozb-progress" hidden data-ozb-progress>
+							<p><b data-ozb-hour>01</b> / {ozubathon.hours} <small>HOURS ON AIR</small></p>
+							<span class="ozb-progress-track" aria-hidden="true"><span data-ozb-bar></span></span>
+						</div>
+					</div>
+				</div>
 				<nav class="hero-nav" aria-label="Page sections" data-hero-nav>
 					{sections.map((section) => (
 						<a class="hero-nav-link" href={`#${section.id}`} data-hero-section-id={section.id}>
@@ -146,6 +192,16 @@ const sections = [
 					<span class="hero-scroll-line" aria-hidden="true"></span>
 				</a>
 			</section>
+
+			<div class="ozb-ticker" aria-hidden="true" data-ozb-ticker>
+				<div class="ozb-ticker-track">
+					{[0, 1].map(() => (
+						<span class="ozb-ticker-run">
+							{tickerPhrases.concat(tickerPhrases).map((phrase) => <span>{phrase}</span>)}
+						</span>
+					))}
+				</div>
+			</div>
 
 			<section class="screen listen-screen" id="listen" aria-label="On air">
 				<div class="bg-art" aria-hidden="true"><BandungRibbon seam="air" edge="bottom" /></div>
@@ -876,10 +932,98 @@ const sections = [
 		});
 		window.addEventListener('load', remeasure);
 		document.fonts?.ready.then(remeasure);
+		// The two styles lay the hero out differently (night adds the Ozubathon lockup), so the slots move with the style.
+		new MutationObserver(() => {
+			window.cancelAnimationFrame(frame);
+			frame = window.requestAnimationFrame(remeasure);
+		}).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 		[heroLogo, topbarLogo.querySelector('img')].forEach((image) => {
 			if (image instanceof HTMLImageElement && !image.complete) image.addEventListener('load', remeasure, { once: true });
 		});
 	}
+
+	// Ozubathon (night style only): count down to the start, then count the hours on air, then sign off.
+	// The lockup is display:none in the retro style, so the observer only runs the clock while it's actually on screen.
+	const ozbEvent = document.querySelector<HTMLElement>('[data-ozb]');
+	if (ozbEvent) {
+		const start = Number(ozbEvent.dataset.ozbStart);
+		const totalMs = Number(ozbEvent.dataset.ozbHours) * 3600000;
+		const label = ozbEvent.querySelector<HTMLElement>('[data-ozb-label]');
+		const countdown = ozbEvent.querySelector<HTMLElement>('[data-ozb-countdown]');
+		const progress = ozbEvent.querySelector<HTMLElement>('[data-ozb-progress]');
+		const hourOutput = ozbEvent.querySelector<HTMLElement>('[data-ozb-hour]');
+		const bar = ozbEvent.querySelector<HTMLElement>('[data-ozb-bar]');
+		const units = Array.from(ozbEvent.querySelectorAll<HTMLElement>('[data-ozb-unit]'));
+		const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+		const pad = (value: number) => String(value).padStart(2, '0');
+		let timer = 0;
+
+		const setText = (element: HTMLElement | null | undefined, text: string, flip = false) => {
+			if (!element || element.textContent === text) return;
+			element.textContent = text;
+			if (flip && !reducedMotion.matches) {
+				element.animate([{ transform: 'translateY(-40%)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 260, easing: 'cubic-bezier(0.2, 0.9, 0.3, 1.2)' });
+			}
+		};
+
+		const update = () => {
+			const now = Date.now();
+			const state = now < start ? 'soon' : now < start + totalMs ? 'live' : 'done';
+			ozbEvent.dataset.ozbState = state;
+			if (countdown) countdown.hidden = state !== 'soon';
+			if (progress) progress.hidden = state !== 'live';
+			if (state === 'soon') {
+				const left = start - now;
+				const values: Record<string, number> = {
+					days: Math.floor(left / 86400000),
+					hours: Math.floor(left / 3600000) % 24,
+					minutes: Math.floor(left / 60000) % 60,
+					seconds: Math.floor(left / 1000) % 60,
+				};
+				units.forEach((unit) => setText(unit, pad(values[unit.dataset.ozbUnit ?? ''] ?? 0), true));
+				setText(label, 'STARTS IN');
+				countdown?.setAttribute('aria-label', `Starts in ${values.days} days, ${values.hours} hours and ${values.minutes} minutes`);
+			} else if (state === 'live') {
+				const elapsed = now - start;
+				setText(label, 'LIVE NOW');
+				setText(hourOutput, pad(Math.min(totalMs / 3600000, Math.floor(elapsed / 3600000) + 1)), true);
+				bar?.style.setProperty('transform', `scaleX(${(elapsed / totalMs).toFixed(4)})`);
+			} else {
+				setText(label, 'THANK YOU FOR TUNING IN');
+			}
+		};
+
+		const run = (visible: boolean) => {
+			window.clearInterval(timer);
+			timer = 0;
+			if (!visible) return;
+			update();
+			// Align ticks to the second, so the seconds digit never lags behind the clock.
+			timer = window.setTimeout(() => {
+				update();
+				timer = window.setInterval(update, 1000);
+			}, 1000 - (Date.now() % 1000));
+		};
+
+		// The logo has no src in the markup, so the retro style (where the lockup is display:none) never downloads it.
+		const logo = ozbEvent.querySelector<HTMLImageElement>('[data-ozb-logo]');
+		let onScreen = false;
+		new IntersectionObserver((entries) => {
+			onScreen = entries.some((entry) => entry.isIntersecting);
+			if (onScreen && logo && !logo.getAttribute('src')) {
+				logo.srcset = logo.dataset.srcset ?? '';
+				logo.src = logo.dataset.src ?? '';
+			}
+			run(onScreen && !document.hidden);
+		}).observe(ozbEvent);
+		document.addEventListener('visibilitychange', () => run(onScreen && !document.hidden));
+	}
+
+	// Looping decoration (the hero sunburst, the ticker) only runs while it's on screen.
+	const loopObserver = new IntersectionObserver((entries) => {
+		entries.forEach((entry) => entry.target.classList.toggle('is-offscreen', !entry.isIntersecting));
+	});
+	document.querySelectorAll('[data-hero], [data-ozb-ticker]').forEach((element) => loopObserver.observe(element));
 
 	const topbarNavLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-topbar-section-id]'));
 	if (topbarNavLinks.length) {
@@ -6451,7 +6595,58 @@ const sections = [
 </style>
 
 <style>
-	/* Night Shift style: structural overrides on top of the tokens in src/styles/themes.css. Retro (the block above) is the default. */
+	/* Ozubathon style: on this page the night style is the "55 Loud and Live" anniversary marathon. Everything is drawn
+	   from the event logo: ink black, a hot marigold, a cream face with a marigold drop (the "55"), and the marigold
+	   pinstripe that rings the logo's black lozenge. Retro (the block above) is the default; other pages keep Night Shift. */
+
+	/* ---------- Tokens: override themes.css's night tokens for this page only ---------- */
+
+	:global(:root[data-theme='night'][data-page='bandung']) {
+		--ozb-ink: #0F0F10;
+		--ozb-marigold: #FBB31E;
+		--ozb-cream: #FFFEF9;
+		--ozb-glow: 251 179 30;
+
+		--c-bg: var(--ozb-ink);
+		--c-bg-alt: #151514;
+		--c-surface: #1B1B1A;
+		--c-surface-2: #252523;
+		--c-field: #0B0B0C;
+		--c-text: var(--ozb-cream);
+		--c-text-2: #E4DFD2;
+		--c-muted: #ABA697;
+		--c-line: #31302C;
+		--c-outline: #403E39;
+		--c-accent: var(--ozb-marigold);
+		--c-on-accent: var(--ozb-ink);
+		--c-accent-soft: rgb(var(--ozb-glow) / 14%);
+		--c-accent-faint: rgb(var(--ozb-glow) / 7%);
+		--c-accent-strong: var(--ozb-marigold);
+		--c-link: #FDC655;
+		--c-signal: #FF4F2E;
+		--c-stage: #080809;
+		--c-stage-2: #131313;
+		--c-on-stage: var(--ozb-cream);
+		--c-inverse: var(--ozb-marigold);
+		--c-on-inverse: var(--ozb-ink);
+		--c-footer: #080809;
+
+		/* Cards are black lozenges like the logo's: round corners, a hairline edge, and on hover the logo's
+		   marigold ring with a gap of ink inside it. */
+		--box-radius: 18px;
+		--box-shadow: inset 0 1px 0 rgb(255 255 255 / 4%), 0 24px 44px -26px rgb(0 0 0 / 90%);
+		--box-shadow-hover: 0 0 0 1.5px var(--c-accent), 0 0 0 5px var(--c-bg), 0 0 0 6px rgb(var(--ozb-glow) / 55%), 0 22px 54px -18px rgb(var(--ozb-glow) / 32%);
+		--sticker-edge: var(--ozb-cream);
+
+		/* One motion vocabulary for the whole style. */
+		--ozb-pop: cubic-bezier(0.2, 0.9, 0.3, 1.18);
+		--ozb-out: cubic-bezier(0.16, 1, 0.3, 1);
+	}
+
+	:global(:root[data-theme='night'][data-page='bandung'] ::selection) {
+		background: #FBB31E;
+		color: #0F0F10;
+	}
 
 	/* ---------- Page rhythm: sections grow with their content instead of clipping to one screen ---------- */
 
@@ -6500,25 +6695,30 @@ const sections = [
 		scrollbar-gutter: auto;
 	}
 
-	/* ---------- Topbar and hero ---------- */
+	/* ---------- Topbar ---------- */
 
 	:global(:root[data-theme='night']) .topbar {
-		background: color-mix(in srgb, var(--c-bg) 86%, transparent);
+		background: color-mix(in srgb, var(--c-bg) 88%, transparent);
+		box-shadow: inset 0 -1px 0 rgb(var(--ozb-glow) / 18%);
+	}
+
+	/* Blur only once docked: while morphing it sits over the spinning sunburst and would re-blur every frame. */
+	:global(:root[data-theme='night']) .topbar:not(.is-morphing) {
 		-webkit-backdrop-filter: blur(14px) saturate(1.2);
 		backdrop-filter: blur(14px) saturate(1.2);
 	}
 
 	:global(:root[data-theme='night']) .topbar.is-morphing {
-		background: color-mix(in srgb, var(--c-bg) calc(var(--hero-progress, 1) * 86%), transparent);
+		background: color-mix(in srgb, var(--c-bg) calc(var(--hero-progress, 1) * 88%), transparent);
+		box-shadow: none;
 	}
 
 	/* Hero links stay exactly 1.5x the topbar links, so the scroll morph scales one into the other without distortion. */
 	:global(:root[data-theme='night']) .topbar-nav-link,
 	:global(:root[data-theme='night']) .hero-nav-link {
 		border-radius: 999px;
-		font-family: var(--font-mono);
-		font-weight: 400;
-		letter-spacing: 0.06em;
+		font-weight: 800;
+		letter-spacing: 0.09em;
 	}
 
 	:global(:root[data-theme='night']) .hero-nav-link {
@@ -6526,7 +6726,23 @@ const sections = [
 		border-color: var(--c-line);
 	}
 
-	/* Sand and amber bands run edge to edge on very wide screens, past the 2200px content cap. */
+	:global(:root[data-theme='night']) .topbar-nav-link[aria-current='location'] {
+		border-color: var(--c-accent);
+		background-color: var(--c-accent);
+		color: var(--c-on-accent);
+	}
+
+	:global(:root[data-theme='night']) .wordmark {
+		--sticker-width: 1px;
+	}
+
+	/* The switch says "55 LIVE" in the event's caps rather than Night Shift's monospace. */
+	:global(:root[data-theme='night'][data-page='bandung'] .topbar .theme-switch-label) {
+		font-family: inherit;
+		font-weight: 800;
+	}
+
+	/* Sand and marigold bands run edge to edge on very wide screens, past the 2200px content cap. */
 	:global(:root[data-theme='night']) .screen-sand {
 		border-image: linear-gradient(var(--c-bg-alt) 0 0) fill 0 / 0 / 0 100vmax;
 	}
@@ -6535,7 +6751,7 @@ const sections = [
 		border-image: linear-gradient(var(--c-accent) 0 0) fill 0 / 0 / 0 100vmax;
 	}
 
-	/* Tablets: the mono links are wider than retro's, so the nav scrolls and the switch shows its knob only. */
+	/* Tablets: the nav scrolls and the switch shows its knob only. */
 	@media (max-width: 1100px) {
 		:global(:root[data-theme='night']) .topbar-nav {
 			flex: 0 1 auto;
@@ -6554,24 +6770,28 @@ const sections = [
 		}
 	}
 
-	:global(:root[data-theme='night']) .topbar-nav-link[aria-current='location'] {
-		border-color: rgb(242 189 87 / 55%);
-		background-color: rgb(242 189 87 / 10%);
-		color: var(--c-accent);
-		box-shadow: 0 0 18px -6px rgb(242 189 87 / 60%);
-	}
+	/* ---------- Hero: OZ Radio Bandung presents the Ozubathon ---------- */
 
-	:global(:root[data-theme='night']) .wordmark {
-		--sticker-width: 1px;
+	.ozb-event,
+	.ozb-ticker {
+		display: none;
 	}
 
 	:global(:root[data-theme='night']) .hero-screen {
 		isolation: isolate;
-		border-bottom-color: var(--c-line);
-		background: radial-gradient(closest-side at 50% 44%, rgb(242 189 87 / 16%), transparent 78%), var(--c-bg);
+		height: auto;
+		min-height: 100svh;
+		gap: clamp(14px, 2.6vh, 26px);
+		padding-block: 84px clamp(72px, 10vh, 104px);
+		border-bottom: 0;
+		background: radial-gradient(closest-side at 50% 54%, rgb(var(--ozb-glow) / 18%), transparent 80%), var(--c-bg);
 	}
 
-	/* Broadcast rings radiate from the logo; scanlines sit over the whole hero like a monitor. */
+	:global(:root[data-theme='night']) .hero-logo {
+		width: min(42vw, 220px);
+	}
+
+	/* A marigold sunburst turns slowly behind the lockup; a halftone print fades up from the bottom edge. */
 	:global(:root[data-theme='night']) .hero-screen::before,
 	:global(:root[data-theme='night']) .hero-screen::after {
 		position: absolute;
@@ -6581,32 +6801,283 @@ const sections = [
 	}
 
 	:global(:root[data-theme='night']) .hero-screen::before {
-		top: 44%;
+		top: 56%;
 		left: 50%;
-		width: min(150vmin, 1200px);
+		width: min(170vmax, 1600px);
 		aspect-ratio: 1;
-		background: repeating-radial-gradient(circle, transparent 0 54px, rgb(242 189 87 / 10%) 54px 55px);
-		-webkit-mask-image: radial-gradient(circle, #000 20%, transparent 68%);
-		mask-image: radial-gradient(circle, #000 20%, transparent 68%);
+		background: repeating-conic-gradient(rgb(var(--ozb-glow) / 11%) 0 4.5deg, transparent 4.5deg 15deg);
+		-webkit-mask-image: radial-gradient(circle, transparent 9%, #000 24%, transparent 66%);
+		mask-image: radial-gradient(circle, transparent 9%, #000 24%, transparent 66%);
 		translate: -50% -50%;
-		animation: night-rings 5s ease-in-out infinite alternate;
+		animation: ozb-spin 160s linear infinite;
+	}
+
+	:global(:root[data-theme='night']) .hero-screen.is-offscreen::before {
+		animation-play-state: paused;
 	}
 
 	:global(:root[data-theme='night']) .hero-screen::after {
-		inset: 0;
-		background: repeating-linear-gradient(to bottom, rgb(255 255 255 / 2.2%) 0 1px, transparent 1px 3px);
+		inset: auto 0 0;
+		height: 38%;
+		background: radial-gradient(rgb(var(--ozb-glow) / 22%) 1.1px, transparent 1.7px) 0 0 / 13px 13px;
+		-webkit-mask-image: linear-gradient(to top, #000, transparent);
+		mask-image: linear-gradient(to top, #000, transparent);
+	}
+
+	:global(:root[data-theme='night']) .ozb-event {
+		position: relative;
+		display: grid;
+		justify-items: center;
+		gap: clamp(8px, 1.6vh, 14px);
+		text-align: center;
+	}
+
+	.ozb-presents {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		color: var(--c-muted);
+		font-size: 10px;
+		font-weight: 700;
+		letter-spacing: 0.42em;
+		animation: ozb-rise 600ms 150ms var(--ozb-out) backwards;
+	}
+
+	.ozb-presents::before,
+	.ozb-presents::after {
+		width: 28px;
+		height: 1px;
+		background: currentColor;
+		content: '';
+	}
+
+	.ozb-logo {
+		display: block;
+		width: min(84vw, 560px);
+		height: auto;
+		filter: drop-shadow(0 0 42px rgb(var(--ozb-glow) / 20%)) drop-shadow(0 22px 30px rgb(0 0 0 / 65%));
+		animation: ozb-stamp 900ms 250ms var(--ozb-pop) backwards;
+	}
+
+	.ozb-deck {
+		max-width: 40ch;
+		margin: 0;
+		color: var(--c-text-2);
+		font-size: 15px;
+		line-height: 1.55;
+		text-wrap: balance;
+		animation: ozb-rise 600ms 650ms var(--ozb-out) backwards;
+	}
+
+	.ozb-deck span {
+		display: block;
+		margin-top: 2px;
+		color: var(--c-accent);
+		font-size: 12px;
+		font-weight: 800;
+		letter-spacing: 0.22em;
+	}
+
+	.ozb-status {
+		display: grid;
+		justify-items: center;
+		gap: 10px;
+		animation: ozb-rise 600ms 780ms var(--ozb-out) backwards;
+	}
+
+	.ozb-status [hidden] {
+		display: none !important;
+	}
+
+	.ozb-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		margin: 0;
+		padding: 5px 12px;
+		border: 1px solid rgb(var(--ozb-glow) / 45%);
+		border-radius: 999px;
+		color: var(--c-accent);
+		font-size: 11px;
+		font-weight: 800;
+		letter-spacing: 0.16em;
+	}
+
+	[data-ozb-state='live'] .ozb-chip {
+		border-color: rgb(255 79 46 / 60%);
+		color: var(--c-signal);
+	}
+
+	/* "Loud": four level-meter bars. They bounce faster once the marathon is live. */
+	.ozb-eq {
+		height: 12px;
+		display: inline-flex;
+		align-items: flex-end;
+		gap: 2px;
+	}
+
+	.ozb-eq i {
+		width: 3px;
+		height: 100%;
+		border-radius: 1px;
+		background: currentColor;
+		transform-origin: bottom;
+		animation: ozb-eq 1100ms ease-in-out infinite alternate;
+	}
+
+	.ozb-eq i:nth-child(2) { animation-delay: -420ms; animation-duration: 900ms; }
+	.ozb-eq i:nth-child(3) { animation-delay: -760ms; animation-duration: 1300ms; }
+	.ozb-eq i:nth-child(4) { animation-delay: -210ms; animation-duration: 1000ms; }
+
+	[data-ozb-state='live'] .ozb-eq i {
+		animation-duration: 420ms;
+	}
+
+	[data-ozb-state='done'] .ozb-eq i {
+		animation: none;
+		transform: scaleY(0.35);
+	}
+
+	.ozb-countdown {
+		display: flex;
+		gap: clamp(6px, 1.2vw, 10px);
+	}
+
+	.ozb-unit {
+		min-width: clamp(58px, 15vw, 76px);
+		display: grid;
+		justify-items: center;
+		gap: 4px;
+		overflow: hidden;
+		padding: 10px 6px 8px;
+		border-radius: 14px;
+		background: var(--c-surface);
+		box-shadow: inset 0 0 0 1px var(--c-line), inset 0 -3px 0 rgb(var(--ozb-glow) / 70%);
+	}
+
+	.ozb-unit b {
+		display: block;
+		color: var(--c-text);
+		font-family: var(--font-tango);
+		font-size: clamp(28px, 4.2vw, 42px);
+		font-style: italic;
+		font-variant-numeric: tabular-nums;
+		font-weight: 700;
+		line-height: 1;
+		text-shadow: -0.06em 0.06em 0 var(--c-accent);
+	}
+
+	.ozb-unit small {
+		color: var(--c-muted);
+		font-size: 9px;
+		font-weight: 700;
+		letter-spacing: 0.2em;
+	}
+
+	.ozb-progress {
+		display: grid;
+		justify-items: center;
+		gap: 8px;
+	}
+
+	.ozb-progress p {
+		margin: 0;
+		color: var(--c-text-2);
+		font-weight: 700;
+	}
+
+	.ozb-progress b {
+		color: var(--c-text);
+		font-family: var(--font-tango);
+		font-size: 34px;
+		font-style: italic;
+		font-variant-numeric: tabular-nums;
+		text-shadow: -0.06em 0.06em 0 var(--c-accent);
+	}
+
+	.ozb-progress small {
+		margin-left: 6px;
+		color: var(--c-muted);
+		font-size: 10px;
+		letter-spacing: 0.2em;
+	}
+
+	.ozb-progress-track {
+		width: min(80vw, 420px);
+		height: 8px;
+		overflow: hidden;
+		border-radius: 999px;
+		background: var(--c-surface-2);
+	}
+
+	.ozb-progress-track span {
+		display: block;
+		height: 100%;
+		background: linear-gradient(90deg, var(--c-accent), var(--c-signal));
+		transform: scaleX(0);
+		transform-origin: left;
+		transition: transform 1s linear;
 	}
 
 	:global(:root[data-theme='night']) .hero-scroll-cue {
 		color: var(--c-muted);
-		font-family: var(--font-mono);
-		font-weight: 400;
 	}
 
-	/* ---------- Section headings: a channel number and a tuning-dial scale with a live needle ---------- */
+	/* ---------- Ticker: the tagline on a marigold band, ruled like the logo's outline ---------- */
+
+	:global(:root[data-theme='night']) .ozb-ticker {
+		position: relative;
+		z-index: 1;
+		display: block;
+		overflow: hidden;
+		padding-block: 13px;
+		background:
+			linear-gradient(var(--ozb-ink) 0 0) 0 4px / 100% 1.5px no-repeat,
+			linear-gradient(var(--ozb-ink) 0 0) 0 calc(100% - 4px) / 100% 1.5px no-repeat,
+			var(--c-accent);
+		color: var(--c-on-accent);
+		contain: layout paint;
+	}
+
+	.ozb-ticker-track {
+		width: max-content;
+		display: flex;
+		animation: ozb-marquee 48s linear infinite;
+	}
+
+	.ozb-ticker.is-offscreen .ozb-ticker-track {
+		animation-play-state: paused;
+	}
+
+	.ozb-ticker-run {
+		display: flex;
+		flex: none;
+	}
+
+	.ozb-ticker-run > span {
+		display: inline-flex;
+		align-items: center;
+		font-family: var(--font-tango);
+		font-size: clamp(17px, 2.2vw, 26px);
+		font-style: italic;
+		font-weight: 700;
+		line-height: 1.1;
+		white-space: nowrap;
+	}
+
+	.ozb-ticker-run > span::after {
+		width: 0.3em;
+		height: 0.3em;
+		margin-inline: 0.9em;
+		background: currentColor;
+		rotate: 45deg;
+		content: '';
+	}
+
+	/* ---------- Section headings: a numbered leg chip, a cream title with the "55" drop, and the logo's pinstripe ---------- */
 
 	:global(:root[data-theme='night']) .section-heading {
-		padding-bottom: 28px;
+		padding-bottom: 22px;
 		margin-bottom: clamp(20px, 3.5vh, 40px);
 	}
 
@@ -6615,71 +7086,76 @@ const sections = [
 		right: 0;
 		bottom: 0;
 		left: 0;
-		height: 14px;
+		height: 6px;
 		background:
-			linear-gradient(var(--c-line), var(--c-line)) left bottom / 100% 1px no-repeat,
-			repeating-linear-gradient(90deg, var(--c-muted) 0 1px, transparent 1px 80px) left bottom / 100% 14px no-repeat,
-			repeating-linear-gradient(90deg, var(--c-outline) 0 1px, transparent 1px 10px) left bottom / 100% 7px no-repeat;
+			linear-gradient(var(--c-accent) 0 0) left top / 100% 2px no-repeat,
+			linear-gradient(var(--c-accent) 0 0) left bottom / 100% 1px no-repeat;
+		opacity: 0.85;
 		pointer-events: none;
+		transform-origin: left;
 		content: '';
-	}
-
-	:global(:root[data-theme='night']) .section-heading::before {
-		position: absolute;
-		z-index: 1;
-		bottom: -5px;
-		left: var(--dial, 50%);
-		width: 2px;
-		height: 26px;
-		border-radius: 2px;
-		background: var(--c-signal);
-		box-shadow: 0 0 12px var(--c-signal), 0 0 3px var(--c-signal);
-		pointer-events: none;
-		content: '';
-	}
-
-	:global(:root[data-theme='night']) #programs { --dial: 14%; }
-	:global(:root[data-theme='night']) #announcer { --dial: 29%; }
-	:global(:root[data-theme='night']) #online { --dial: 45%; }
-	:global(:root[data-theme='night']) #activities { --dial: 60%; }
-	:global(:root[data-theme='night']) #news { --dial: 76%; }
-	:global(:root[data-theme='night']) #contact { --dial: 91%; }
-
-	/* Where supported, the needle sweeps to its frequency as the section scrolls in. */
-	@supports (animation-timeline: view()) {
-		@media (prefers-reduced-motion: no-preference) {
-			:global(:root[data-theme='night']) .section-heading::before {
-				animation: night-needle linear both;
-				animation-timeline: view();
-				animation-range: entry 10% cover 45%;
-			}
-		}
 	}
 
 	:global(:root[data-theme='night']) .eyebrow {
 		color: var(--c-muted);
-		font-family: var(--font-mono);
-		font-weight: 400;
-		letter-spacing: 0.1em;
+		font-weight: 800;
+		letter-spacing: 0.16em;
+	}
+
+	:global(:root[data-theme='night']) .section-heading .eyebrow {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		margin-bottom: 12px;
 	}
 
 	:global(:root[data-theme='night']) .section-heading .eyebrow::before {
-		color: var(--c-accent);
-		content: 'CH ' counter(oz-band, decimal-leading-zero) ' / ';
+		padding: 3px 9px 2px 7px;
+		border-radius: 999px;
+		background: var(--c-accent);
+		color: var(--c-on-accent);
+		font-family: var(--font-tango);
+		font-size: 1.15em;
+		font-style: italic;
+		font-weight: 700;
+		letter-spacing: 0;
+		content: counter(oz-band, decimal-leading-zero);
 	}
 
 	:global(:root[data-theme='night']) .section-heading h2 {
 		max-width: 960px;
-		letter-spacing: -0.03em;
-		line-height: 0.95;
+		color: var(--c-text);
+		font-family: var(--font-tango);
+		font-style: italic;
+		font-weight: 700;
+		letter-spacing: -0.01em;
+		line-height: 1;
 		text-wrap: balance;
 	}
 
 	:global(:root[data-theme='night']) .section-heading h2 span {
-		text-shadow: 0 0 32px rgb(242 189 87 / 35%);
+		color: var(--c-text);
+		text-shadow: -0.055em 0.055em 0 var(--c-accent);
 	}
 
-	/* ---------- Shared readouts: every small label becomes a monospace frequency readout ---------- */
+	/* Where supported, headings rise in and the pinstripe draws across as each section scrolls into view. */
+	@supports (animation-timeline: view()) {
+		@media (prefers-reduced-motion: no-preference) {
+			:global(:root[data-theme='night']) .section-heading > div {
+				animation: ozb-rise linear both;
+				animation-timeline: view();
+				animation-range: entry 5% entry 70%;
+			}
+
+			:global(:root[data-theme='night']) .section-heading::after {
+				animation: ozb-draw linear both;
+				animation-timeline: view();
+				animation-range: entry 15% cover 40%;
+			}
+		}
+	}
+
+	/* ---------- Small labels: bold tracked caps instead of retro's mixed case ---------- */
 
 	:global(:root[data-theme='night']) .card-index,
 	:global(:root[data-theme='night']) .card-status,
@@ -6709,9 +7185,8 @@ const sections = [
 	:global(:root[data-theme='night']) .live-chat-mod-control,
 	:global(:root[data-theme='night']) .site-footer-column h2,
 	:global(:root[data-theme='night']) .site-footer-bottom {
-		font-family: var(--font-mono);
-		font-weight: 400;
-		letter-spacing: 0.08em;
+		font-weight: 700;
+		letter-spacing: 0.1em;
 	}
 
 	:global(:root[data-theme='night']) .card-index,
@@ -6732,21 +7207,20 @@ const sections = [
 		line-height: 1.6;
 	}
 
-	/* ---------- Buttons and links: pill-shaped, glow instead of a hard shadow ---------- */
+	/* ---------- Buttons and links: pills that fill marigold when pressed toward ---------- */
 
 	:global(:root[data-theme='night']) .outline-link,
 	:global(:root[data-theme='night']) .news-list-trigger {
 		min-height: 40px;
 		padding: 8px 16px;
-		border: 1px solid var(--c-line);
+		border: 1.5px solid var(--c-outline);
 		border-radius: 999px;
 		background: transparent;
 		color: var(--c-text);
-		font-family: var(--font-mono);
-		font-weight: 400;
+		font-weight: 800;
 		letter-spacing: 0.08em;
 		white-space: nowrap;
-		transition: border-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
+		transition: border-color 160ms ease, color 160ms ease, background-color 160ms ease, transform 160ms var(--ozb-out);
 	}
 
 	:global(:root[data-theme='night']) .social-card-bottom {
@@ -6760,25 +7234,28 @@ const sections = [
 	:global(:root[data-theme='night']) .outline-link:not([aria-disabled='true']):hover,
 	:global(:root[data-theme='night']) .news-list-trigger:hover {
 		border-color: var(--c-accent);
-		background: transparent;
-		color: var(--c-accent);
-		box-shadow: 0 0 22px -8px rgb(242 189 87 / 65%);
+		background: var(--c-accent);
+		color: var(--c-on-accent);
+		box-shadow: none;
 		transform: none;
 	}
 
+	:global(:root[data-theme='night']) .outline-link:not([aria-disabled='true']):active,
+	:global(:root[data-theme='night']) .news-list-trigger:active {
+		transform: scale(0.96);
+	}
+
 	:global(:root[data-theme='night']) .carousel-chevron {
-		background: color-mix(in srgb, var(--c-surface-2) 85%, transparent);
-		-webkit-backdrop-filter: blur(8px);
-		backdrop-filter: blur(8px);
+		background: color-mix(in srgb, var(--c-surface-2) 88%, transparent);
 		box-shadow: 0 10px 24px -12px rgb(0 0 0 / 80%);
 		color: var(--c-text);
 	}
 
 	:global(:root[data-theme='night']) .carousel-chevron:hover {
 		border-color: var(--c-accent);
-		background: var(--c-surface-2);
-		color: var(--c-accent);
-		box-shadow: 0 0 24px -6px rgb(242 189 87 / 55%);
+		background: var(--c-accent);
+		color: var(--c-on-accent);
+		box-shadow: 0 10px 24px -12px rgb(0 0 0 / 80%);
 		transform: none;
 	}
 
@@ -6790,7 +7267,7 @@ const sections = [
 	:global(:root[data-theme='night']) .video-picker-item {
 		padding: 8px 10px;
 		border: 1px solid var(--c-line);
-		border-radius: 10px;
+		border-radius: 12px;
 		background: var(--c-surface-2);
 	}
 
@@ -6804,10 +7281,9 @@ const sections = [
 		color: var(--c-text);
 	}
 
-	/* ---------- On air: the console ---------- */
+	/* ---------- On air: the marathon studio ---------- */
 
-	:global(:root[data-theme='night']) .live-chat-heading,
-	:global(:root[data-theme='night']) .broadcast-heading {
+	:global(:root[data-theme='night']) .live-chat-heading {
 		background: var(--c-surface-2);
 	}
 
@@ -6820,14 +7296,14 @@ const sections = [
 
 	:global(:root[data-theme='night']) .broadcast-heading {
 		background: var(--c-stage-2);
+		box-shadow: inset 0 -1px 0 rgb(var(--ozb-glow) / 25%);
 	}
 
 	:global(:root[data-theme='night']) .listen-content .broadcast-heading .on-air {
 		padding: 4px 10px;
-		border: 1px solid rgb(255 90 60 / 50%);
+		border: 1px solid rgb(255 79 46 / 55%);
 		border-radius: 999px;
 		color: var(--c-signal);
-		text-shadow: 0 0 10px rgb(255 90 60 / 55%);
 	}
 
 	:global(:root[data-theme='night']) .broadcast-heading .on-air::before {
@@ -6837,42 +7313,33 @@ const sections = [
 		background: var(--c-signal);
 		box-shadow: 0 0 8px var(--c-signal);
 		content: '';
-		animation: night-signal 1.6s ease-in-out infinite;
+		animation: ozb-signal 1.6s ease-in-out infinite;
 	}
 
 	:global(:root[data-theme='night']) .broadcast {
-		background: radial-gradient(ellipse at 50% 58%, rgb(242 189 87 / 10%), transparent 62%), var(--c-stage);
-	}
-
-	:global(:root[data-theme='night']) .broadcast::after {
-		position: absolute;
-		z-index: 0;
-		inset: 0;
-		background: repeating-linear-gradient(to bottom, rgb(255 255 255 / 2.5%) 0 1px, transparent 1px 3px);
-		pointer-events: none;
-		content: '';
+		background: radial-gradient(ellipse at 50% 58%, rgb(var(--ozb-glow) / 12%), transparent 62%), var(--c-stage);
 	}
 
 	:global(:root[data-theme='night']) .broadcast-backdrop img {
-		filter: grayscale(1) sepia(0.45) contrast(1.1);
+		filter: grayscale(1) sepia(0.5) contrast(1.1);
 		opacity: 0.16;
 	}
 
+	/* The tune-in button carries the logo's ring: marigold, a gap of ink, then a fainter marigold ring. */
 	:global(:root[data-theme='night']) .tune-in-icon {
 		border: 0;
-		box-shadow: 0 0 0 10px rgb(242 189 87 / 10%), 0 0 0 22px rgb(242 189 87 / 5%), 0 0 60px rgb(242 189 87 / 45%);
+		box-shadow: 0 0 0 6px var(--c-stage), 0 0 0 8px rgb(var(--ozb-glow) / 60%), 0 0 0 22px rgb(var(--ozb-glow) / 7%), 0 0 60px rgb(var(--ozb-glow) / 40%);
+		transition: transform 220ms var(--ozb-pop);
 	}
 
 	:global(:root[data-theme='night']) .broadcast-options .broadcast-option:hover .tune-in-icon {
-		box-shadow: 0 0 0 12px rgb(242 189 87 / 15%), 0 0 0 28px rgb(242 189 87 / 7%), 0 0 84px rgb(242 189 87 / 60%);
-		transform: scale(1.05);
+		transform: scale(1.06);
 	}
 
 	:global(:root[data-theme='night']) .tune-in-frequency {
 		color: var(--c-accent);
-		font-family: var(--font-mono);
-		font-weight: 400;
-		letter-spacing: 0.14em;
+		font-weight: 800;
+		letter-spacing: 0.16em;
 	}
 
 	:global(:root[data-theme='night']) .broadcast.is-streaming .broadcast-options .broadcast-option {
@@ -6882,18 +7349,17 @@ const sections = [
 		border-radius: 999px;
 		background: var(--c-surface);
 		color: var(--c-text);
-		font-family: var(--font-mono);
 	}
 
 	:global(:root[data-theme='night']) .broadcast.is-streaming .broadcast-options .broadcast-option:hover {
 		border-color: var(--c-accent);
-		background: var(--c-surface);
-		color: var(--c-accent);
+		background: var(--c-accent);
+		color: var(--c-on-accent);
 	}
 
 	:global(:root[data-theme='night']) .listener-stats {
 		border-top-color: var(--c-line);
-		background: rgb(8 7 6 / 72%);
+		background: rgb(8 8 9 / 76%);
 	}
 
 	:global(:root[data-theme='night']) .live-chat-compose {
@@ -6918,33 +7384,52 @@ const sections = [
 		background: transparent;
 	}
 
-	/* ---------- Announcers: the one amber band, like the logo itself ---------- */
+	/* ---------- Announcers: the marigold band, racing-striped, like the logo's script ---------- */
 
 	:global(:root[data-theme='night']) .screen-dark {
-		--c-line: rgb(26 18 6 / 22%);
-		--c-muted: rgb(26 18 6 / 55%);
-		--c-outline: rgb(26 18 6 / 30%);
-		--c-signal: #B9301A;
+		--c-line: rgb(15 15 16 / 22%);
+		--c-muted: rgb(15 15 16 / 62%);
+		--c-outline: rgb(15 15 16 / 30%);
+		--c-signal: #B42A12;
 		border-bottom-color: transparent;
-		background: radial-gradient(ellipse at 12% 0%, rgb(255 255 255 / 24%), transparent 55%), var(--c-accent);
+		background:
+			repeating-linear-gradient(-55deg, rgb(15 15 16 / 4.5%) 0 18px, transparent 18px 36px),
+			radial-gradient(ellipse at 12% 0%, rgb(255 255 255 / 24%), transparent 55%),
+			var(--c-accent);
 		color: var(--c-on-accent);
 	}
 
 	:global(:root[data-theme='night']) .screen-dark .eyebrow {
-		color: #4A3410;
+		color: #3D2A05;
 	}
 
 	:global(:root[data-theme='night']) .screen-dark .section-heading .eyebrow::before {
-		color: var(--c-on-accent);
+		background: var(--ozb-ink);
+		color: var(--c-accent);
+	}
+
+	:global(:root[data-theme='night']) .screen-dark .section-heading::after {
+		background:
+			linear-gradient(var(--ozb-ink) 0 0) left top / 100% 2px no-repeat,
+			linear-gradient(var(--ozb-ink) 0 0) left bottom / 100% 1px no-repeat;
+	}
+
+	:global(:root[data-theme='night']) .screen-dark .section-heading h2,
+	:global(:root[data-theme='night']) .screen-dark .section-heading h2 span {
+		color: var(--ozb-ink);
+	}
+
+	:global(:root[data-theme='night']) .screen-dark .section-heading h2 span {
+		text-shadow: -0.055em 0.055em 0 var(--ozb-cream);
 	}
 
 	:global(:root[data-theme='night']) .screen-dark .announcer-card {
 		border: 0;
-		box-shadow: 0 0 0 1.5px rgb(26 18 6 / 80%), 0 24px 40px -18px rgb(60 35 0 / 80%);
+		box-shadow: 0 0 0 1.5px rgb(15 15 16 / 85%), 0 24px 40px -18px rgb(60 35 0 / 80%);
 	}
 
 	:global(:root[data-theme='night']) .screen-dark .announcer-card[data-announcer-card]:hover {
-		box-shadow: 0 0 0 3px var(--c-on-accent), 0 30px 50px -18px rgb(60 35 0 / 90%);
+		box-shadow: 0 0 0 2px var(--ozb-ink), 0 0 0 5px var(--c-accent), 0 0 0 6.5px var(--ozb-ink), 0 30px 50px -18px rgb(60 35 0 / 90%);
 	}
 
 	:global(:root[data-theme='night']) .screen-dark .announcer-card[data-announcer-card]:focus-visible {
@@ -6966,12 +7451,13 @@ const sections = [
 	}
 
 	:global(:root[data-theme='night']) .activity-art > span {
-		font-family: var(--font-mono);
-		font-weight: 400;
+		font-weight: 800;
 	}
 
 	:global(:root[data-theme='night']) .contact-layout {
-		background: linear-gradient(140deg, var(--c-surface), var(--c-bg) 120%);
+		background:
+			radial-gradient(rgb(var(--ozb-glow) / 12%) 1px, transparent 1.6px) right bottom / 13px 13px,
+			linear-gradient(140deg, var(--c-surface), var(--c-bg) 120%);
 	}
 
 	:global(:root[data-theme='night']) .contact-item strong {
@@ -6979,7 +7465,7 @@ const sections = [
 	}
 
 	:global(:root[data-theme='night']) .contact-item strong a {
-		text-decoration-color: rgb(242 189 87 / 45%);
+		text-decoration-color: rgb(var(--ozb-glow) / 45%);
 		text-underline-offset: 3px;
 	}
 
@@ -6995,12 +7481,13 @@ const sections = [
 		display: grid;
 		border: 1px solid var(--c-line);
 		border-radius: 50%;
+		transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
 	}
 
 	:global(:root[data-theme='night']) .contact-social:hover {
 		border-color: var(--c-accent);
-		color: var(--c-accent);
-		box-shadow: 0 0 20px -6px rgb(242 189 87 / 60%);
+		background: var(--c-accent);
+		color: var(--c-on-accent);
 	}
 
 	:global(:root[data-theme='night']) .dialog-close {
@@ -7012,20 +7499,20 @@ const sections = [
 	:global(:root[data-theme='night']) .news-list-dialog,
 	:global(:root[data-theme='night']) .announcer-dialog,
 	:global(:root[data-theme='night']) .program-dialog {
-		border-radius: 16px;
-		box-shadow: 0 0 0 1px rgb(255 255 255 / 3%), 0 40px 120px -20px rgb(0 0 0 / 90%);
+		border-radius: 20px;
+		box-shadow: 0 0 0 1px rgb(var(--ozb-glow) / 18%), 0 40px 120px -20px rgb(0 0 0 / 90%);
 	}
 
 	:global(:root[data-theme='night']) .listener-field input,
 	:global(:root[data-theme='night']) .listener-field select,
 	:global(:root[data-theme='night']) .location-options,
 	:global(:root[data-theme='night']) .news-list-sort {
-		border-radius: 8px;
+		border-radius: 10px;
 		background: var(--c-field);
 	}
 
 	:global(:root[data-theme='night']) .news-list-item {
-		border-radius: 12px;
+		border-radius: 14px;
 	}
 
 	:global(:root[data-theme='night']) .program-host {
@@ -7033,11 +7520,12 @@ const sections = [
 	}
 
 	:global(:root[data-theme='night']) .program-slot {
-		border-color: rgb(242 189 87 / 45%);
+		border-color: rgb(var(--ozb-glow) / 45%);
 	}
 
 	:global(:root[data-theme='night']) .site-footer {
-		border-top: 1px solid var(--c-line);
+		border-top: 0;
+		box-shadow: inset 0 2px 0 var(--c-accent), inset 0 5px 0 var(--c-footer), inset 0 6px 0 rgb(var(--ozb-glow) / 60%);
 	}
 
 	:global(:root[data-theme='night']) .site-footer-wordmark img {
@@ -7046,7 +7534,6 @@ const sections = [
 	}
 
 	:global(:root[data-theme='night']) .site-footer-column > a {
-		font-family: var(--font-mono);
 		line-height: 2.2;
 		text-decoration: none;
 	}
@@ -7071,6 +7558,15 @@ const sections = [
 
 		:global(:root[data-theme='night']) .listen-screen {
 			padding: 68px 12px 12px;
+		}
+
+		:global(:root[data-theme='night']) .hero-screen {
+			padding-inline: 16px;
+			padding-bottom: 92px;
+		}
+
+		.ozb-deck {
+			font-size: 14px;
 		}
 
 		:global(:root[data-theme='night']) .topbar {
@@ -7180,26 +7676,60 @@ const sections = [
 		}
 	}
 
-	/* ---------- Motion ---------- */
+	/* ---------- Motion: transform and opacity only, so every loop stays on the compositor ---------- */
 
-	@keyframes night-rings {
-		from { opacity: 1; scale: 1; }
-		to { opacity: 0.45; scale: 1.1; }
+	@keyframes ozb-spin {
+		to { rotate: 1turn; }
 	}
 
-	@keyframes night-signal {
+	@keyframes ozb-stamp {
+		from { opacity: 0; transform: scale(1.22) rotate(-6deg); }
+		55% { opacity: 1; }
+		to { opacity: 1; transform: none; }
+	}
+
+	@keyframes ozb-rise {
+		from { opacity: 0; transform: translateY(18px); }
+		to { opacity: 1; transform: none; }
+	}
+
+	@keyframes ozb-draw {
+		from { transform: scaleX(0); }
+		to { transform: scaleX(1); }
+	}
+
+	@keyframes ozb-eq {
+		from { transform: scaleY(0.25); }
+		to { transform: scaleY(1); }
+	}
+
+	@keyframes ozb-marquee {
+		to { transform: translateX(-50%); }
+	}
+
+	@keyframes ozb-signal {
 		50% { opacity: 0.3; }
-	}
-
-	@keyframes night-needle {
-		from { left: 0%; }
-		to { left: var(--dial, 50%); }
 	}
 
 	@media (prefers-reduced-motion: reduce) {
 		:global(:root[data-theme='night']) .hero-screen::before,
-		:global(:root[data-theme='night']) .broadcast-heading .on-air::before {
+		:global(:root[data-theme='night']) .broadcast-heading .on-air::before,
+		.ozb-presents,
+		.ozb-logo,
+		.ozb-deck,
+		.ozb-status,
+		.ozb-eq i,
+		.ozb-ticker-track {
 			animation: none;
+		}
+
+		.ozb-eq i:nth-child(odd) {
+			transform: scaleY(0.55);
+		}
+
+		.ozb-progress-track span,
+		:global(:root[data-theme='night']) .tune-in-icon {
+			transition: none;
 		}
 
 		:global(:root[data-theme='night']) .broadcast-options .broadcast-option:hover .tune-in-icon {

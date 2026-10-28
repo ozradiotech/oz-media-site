@@ -4,8 +4,14 @@ dist/
 data/listeners.jsonl
 # generated types
 .astro/
-# claude skills
+# agents skills
+.agents/
 .claude/
+.codex/
+skills-lock.json
+
+# playwrite generated files
+.playwright-mcp/
 
 # Vercel build and project metadata
 .vercel/

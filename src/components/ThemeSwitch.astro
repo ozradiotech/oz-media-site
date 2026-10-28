@@ -2,14 +2,17 @@
 // Switch between the Retro (default) and Night Shift site styles. The choice is remembered per browser.
 interface Props {
 	class?: string;
+	/** What the night style is called on this page (OZ Bandung runs it as the Ozubathon event style). */
+	nightLabel?: string;
+	nightName?: string;
 }
-const { class: className } = Astro.props;
+const { class: className, nightLabel = 'NIGHT', nightName = 'Night Shift' } = Astro.props;
 ---
 
-<button class:list={['theme-switch', className]} type="button" role="switch" aria-checked="false" aria-label="Night Shift style" title="Switch site style" data-theme-switch>
+<button class:list={['theme-switch', className]} type="button" role="switch" aria-checked="false" aria-label={`${nightName} style`} title="Switch site style" data-theme-switch>
 	<span class="theme-switch-label" aria-hidden="true">
 		<span class="theme-switch-name theme-switch-name-retro">RETRO</span>
-		<span class="theme-switch-name theme-switch-name-night">NIGHT</span>
+		<span class="theme-switch-name theme-switch-name-night">{nightLabel}</span>
 	</span>
 	<span class="theme-switch-track" aria-hidden="true">
 		<span class="theme-switch-knob">
