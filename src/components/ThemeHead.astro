@@ -1,10 +1,14 @@
 ---
 // Goes in <head>: applies the stored site style before first paint, so the page never flashes the wrong one.
 import '../styles/themes.css';
+
+// The style a first-time visitor sees: 'night' (the Ozubathon style on OZ Bandung) or 'retro'.
+// Visitors who have already picked a style with the switch keep their own choice.
+const defaultTheme = 'night';
 ---
 
-<meta name="theme-color" content="#FFFFF3" data-theme-color />
-<script is:inline>
+<meta name="theme-color" content={defaultTheme === 'night' ? '#0E0D0B' : '#FFFFF3'} data-theme-color />
+<script is:inline define:vars={{ defaultTheme }}>
 	(() => {
 		// ?theme=night (or retro) in the URL picks a style and remembers it, so a style can be shared as a link.
 		let theme = new URLSearchParams(location.search).get('theme');
@@ -12,6 +16,7 @@ import '../styles/themes.css';
 			if (theme === 'night' || theme === 'retro') localStorage.setItem('oz-theme', theme);
 			else theme = localStorage.getItem('oz-theme');
 		} catch {}
+		if (theme !== 'night' && theme !== 'retro') theme = defaultTheme;
 		if (theme !== 'night') return;
 		document.documentElement.dataset.theme = 'night';
 		document.querySelector('[data-theme-color]')?.setAttribute('content', '#0E0D0B');

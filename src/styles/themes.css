@@ -1,9 +1,10 @@
 /* Site styles. Pages use these semantic colour tokens instead of raw hex values, so a style is one block of tokens
    plus a few structural overrides (kept in each page under :root[data-theme='night']).
-   - Retro (default, no data-theme): cream paper, heavy black outlines, hard offset shadows.
+   - Retro (no data-theme): cream paper, heavy black outlines, hard offset shadows.
    - Night Shift (data-theme='night'): the late-night broadcast console. Warm ink surfaces, the logo's amber as
      valve glow, a coral ON AIR signal, monospace frequency readouts and a tuning-dial scale under each heading.
-   The choice is stored in localStorage ('oz-theme') and applied before first paint by ThemeHead.astro. */
+   The choice is stored in localStorage ('oz-theme') and applied before first paint by ThemeHead.astro,
+   which also sets the style first-time visitors get (defaultTheme). */
 
 :root {
 	--c-bg: #FFFFF3;
