@@ -6,7 +6,7 @@ import '../styles/oz-audio-player-bali.css';
 
 // OZ Bali is audio-only for now. The title, artist and listener count are read from the same Icecast mount,
 // so they always follow whichever stream this points at.
-const audioStreamUrl = 'https://streaming.ozradio.id:8443/ozbandung';
+const audioStreamUrl = 'https://streaming.ozradio.id:8443/bali';
 const nowPlayingUrl = `/api/now-playing?mount=${encodeURIComponent(new URL(audioStreamUrl).pathname.split('/').pop() ?? '')}`;
 ---
 
@@ -78,7 +78,7 @@ const nowPlayingUrl = `/api/now-playing?mount=${encodeURIComponent(new URL(audio
 					<a href="/oz-bandung/">Listen to OZ Bandung</a>
 					<a href="/">All stations</a>
 				</nav>
-				<p class="fine">ozradio bali, 101.2 fm. Kuta, Bali.</p>
+				<p class="fine">ozradio bali, 101.2 fm</p>
 			</footer>
 		</main>
 	</body>
