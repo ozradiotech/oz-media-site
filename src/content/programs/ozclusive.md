@@ -1,5 +1,6 @@
 ---
 title: OZCLUSIVE
+visible: false
 order: 10
 image: /uploads/10.webp
 imageAlt: OZCLUSIVE

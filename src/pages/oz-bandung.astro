@@ -29,11 +29,12 @@ const instagramUrl = 'https://www.instagram.com/ozradiobandung';
 const tiktokUrl = 'https://www.tiktok.com/@ozradio';
 const threadsUrl = 'https://www.threads.net/@ozradiobandung';
 
+// Cards switched off in the CMS ("Show on site") are left out everywhere, including as program hosts.
 const [programs, announcers, activities, news] = await Promise.all([
-	getCollection('programs'),
-	getCollection('announcers'),
-	getCollection('activities'),
-	getCollection('news'),
+	getCollection('programs', ({ data }) => data.visible),
+	getCollection('announcers', ({ data }) => data.visible),
+	getCollection('activities', ({ data }) => data.visible),
+	getCollection('news', ({ data }) => data.visible),
 ]);
 const orderedPrograms = programs.sort((a, b) => a.data.order - b.data.order);
 const orderedAnnouncers = announcers.sort((a, b) => a.data.order - b.data.order);

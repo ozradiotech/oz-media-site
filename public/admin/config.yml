@@ -25,6 +25,7 @@ collections:
     sortable_fields: [order, title]
     fields:
       - { label: Title, name: title, widget: string }
+      - { label: Show on site, name: visible, widget: boolean, default: true, required: false, hint: "Turn off to hide this card without deleting it." }
       - { label: Display order, name: order, widget: number, value_type: int, min: 1 }
       - { label: Image, name: image, widget: image }
       - { label: Image alt text, name: imageAlt, widget: string, required: false }
@@ -61,6 +62,7 @@ collections:
     sortable_fields: [order, name]
     fields:
       - { label: Name, name: name, widget: string }
+      - { label: Show on site, name: visible, widget: boolean, default: true, required: false, hint: "Turn off to hide this card without deleting it." }
       - { label: Display order, name: order, widget: number, value_type: int, min: 1 }
       - { label: Summary, name: summary, widget: text }
       - { label: Portrait, name: image, widget: image }
@@ -79,6 +81,7 @@ collections:
     sortable_fields: [order, title]
     fields:
       - { label: Title, name: title, widget: string }
+      - { label: Show on site, name: visible, widget: boolean, default: true, required: false, hint: "Turn off to hide this card without deleting it." }
       - { label: Display order, name: order, widget: number, value_type: int, min: 1 }
       - { label: Category, name: category, widget: string }
       - { label: Summary, name: summary, widget: text }
@@ -107,6 +110,7 @@ collections:
     sortable_fields: [publishedAt, title]
     fields:
       - { label: Title, name: title, widget: string }
+      - { label: Show on site, name: visible, widget: boolean, default: true, required: false, hint: "Turn off to hide this card without deleting it." }
       - { label: Published date, name: publishedAt, widget: datetime, required: false }
       - { label: Category, name: category, widget: string }
       - { label: Summary, name: summary, widget: text }

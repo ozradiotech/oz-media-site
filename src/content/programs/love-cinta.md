@@ -1,5 +1,6 @@
 ---
 title: Love Cinta
+visible: false
 order: 14
 image: /uploads/14.webp
 imageAlt: Love Cinta

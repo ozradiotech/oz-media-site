@@ -1,6 +1,9 @@
 import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
 
+// Unticking "Show on site" in the CMS hides a card without deleting it.
+const visible = z.boolean().default(true);
+
 const cardFields = {
 	summary: z.string().default(''),
 	image: z.string(),
@@ -11,6 +14,7 @@ const programs = defineCollection({
 	loader: glob({ pattern: '**/*.md', base: './src/content/programs' }),
 	schema: z.object({
 		title: z.string(),
+		visible,
 		order: z.number().int().default(0),
 		image: cardFields.image,
 		imageAlt: cardFields.imageAlt,
@@ -25,6 +29,7 @@ const announcers = defineCollection({
 	loader: glob({ pattern: '**/*.md', base: './src/content/announcers' }),
 	schema: z.object({
 		name: z.string(),
+		visible,
 		order: z.number().int().default(0),
 		...cardFields,
 	}),
@@ -34,6 +39,7 @@ const activities = defineCollection({
 	loader: glob({ pattern: '**/*.md', base: './src/content/activities' }),
 	schema: z.object({
 		title: z.string(),
+		visible,
 		category: z.string(),
 		artStyle: z.enum(['listen', 'meet', 'create']).default('listen'),
 		artLabel: z.string().default(''),
@@ -47,6 +53,7 @@ const news = defineCollection({
 	loader: glob({ pattern: '**/*.md', base: './src/content/news' }),
 	schema: z.object({
 		title: z.string(),
+		visible,
 		category: z.string().default('OZ NEWS'),
 		publishedAt: z.coerce.date().optional(),
 		...cardFields,

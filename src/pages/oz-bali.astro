@@ -194,6 +194,9 @@ const nowPlayingUrl = `/api/now-playing?mount=${encodeURIComponent(new URL(audio
 		display: block;
 		width: 100%;
 		height: auto;
+		/* White outline around the transparent PNG. Each drop-shadow also shadows the ones before it, so four axis
+		   offsets already cover the corners. */
+		filter: drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff) drop-shadow(0 2px 0 #fff) drop-shadow(0 -2px 0 #fff);
 		view-transition-name: oz-bali-logo;
 	}
 

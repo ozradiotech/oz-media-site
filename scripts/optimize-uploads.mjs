@@ -20,13 +20,23 @@ const UPLOAD_PATTERN = /\/uploads\/[^\n"')]+?\.(?:png|jpe?g|webp)/gi;
 
 const kb = (path) => `${Math.round(statSync(path).size / 1024)}KB`;
 
+// Entries point at the WebP after the first run, so look for the original beside it: replacing the original
+// (or deleting the WebP) must still trigger a rebuild.
+const ORIGINAL_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.PNG', '.JPG', '.JPEG'];
+function findSource(uploadPath) {
+	const base = uploadPath.replace(/\.[^.]+$/, '');
+	const original = ORIGINAL_EXTENSIONS.map((ext) => base + ext).find((path) => existsSync(join(PUBLIC_DIR, path)));
+	return original ?? uploadPath;
+}
+
 async function optimize(uploadPath, size) {
-	const source = join(PUBLIC_DIR, uploadPath);
+	const sourcePath = findSource(uploadPath);
+	const source = join(PUBLIC_DIR, sourcePath);
 	if (!existsSync(source)) {
 		console.warn(`  missing ${uploadPath}, skipped`);
 		return uploadPath;
 	}
-	const webpPath = uploadPath.replace(/\.[^.]+$/, '.webp');
+	const webpPath = sourcePath.replace(/\.[^.]+$/, '.webp');
 	const target = join(PUBLIC_DIR, webpPath);
 	const isWebp = source === target;
 
@@ -45,7 +55,7 @@ async function optimize(uploadPath, size) {
 		.webp({ quality: 80 })
 		.toFile(output);
 	if (isWebp) renameSync(output, target);
-	console.log(`  ${uploadPath} (${before}) -> ${webpPath} (${kb(target)})`);
+	console.log(`  ${sourcePath} (${before}) -> ${webpPath} (${kb(target)})`);
 	return webpPath;
 }
 
