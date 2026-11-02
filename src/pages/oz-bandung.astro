@@ -1866,7 +1866,32 @@ const sections = [
 	fallbackAudio?.addEventListener('pause', stopNowPlayingUpdates);
 	fallbackAudio?.addEventListener('ended', stopNowPlayingUpdates);
 
+	// The listener form opens by itself once a visitor has been listening or watching for 10 seconds.
+	const listenerPromptDelay = 10_000;
+	let listenerPromptTimer: number | undefined;
+
+	const cancelListenerPrompt = () => {
+		if (listenerPromptTimer !== undefined) {
+			window.clearTimeout(listenerPromptTimer);
+			listenerPromptTimer = undefined;
+		}
+	};
+
+	const scheduleListenerPrompt = () => {
+		if (listenerPromptTimer !== undefined || listenerDetailsSaved || listenerPromptShown) return;
+		listenerPromptTimer = window.setTimeout(() => {
+			listenerPromptTimer = undefined;
+			openListenerForm();
+		}, listenerPromptDelay);
+	};
+
+	// Audio counts from when sound actually starts, so buffering or a blocked autoplay don't count.
+	fallbackAudio?.addEventListener('playing', scheduleListenerPrompt);
+	fallbackAudio?.addEventListener('pause', cancelListenerPrompt);
+	fallbackAudio?.addEventListener('ended', cancelListenerPrompt);
+
 	const stopBroadcast = () => {
+		cancelListenerPrompt();
 		stopNowPlayingUpdates();
 		pauseAudio();
 		livePlayer?.removeAttribute('src');
@@ -1952,11 +1977,13 @@ const sections = [
 			playerUrl.searchParams.set('playsinline', '1');
 			playerUrl.searchParams.set('rel', '0');
 			livePlayer.src = playerUrl.toString();
+			// The embed doesn't report playback, so watching counts from when the livestream is picked.
+			scheduleListenerPrompt();
 		}
 	};
 
 	// The dialog has two uses: picking a stream when tuning in, and the listener form, which opens by itself
-	// once a visitor scrolls past the Online section. Each shows only its own parts.
+	// once a visitor has been tuned in for a while (see scheduleListenerPrompt). Each shows only its own parts.
 	const showDialogPart = (part: 'broadcast' | 'details') => {
 		if (!listenerForm || !listenerFields || !listenerConfirmation || !listenerSubmit || !broadcastSelection || !googleAuth) return;
 		listenerForm.reset();
@@ -2032,17 +2059,6 @@ const sections = [
 		});
 		listenerDialog.showModal();
 	};
-
-	if (onlineSection && !listenerDetailsSaved && !listenerPromptShown) {
-		const listenerPromptObserver = new IntersectionObserver((entries) => {
-			// Past means the section's bottom has gone above the viewport, not just out of view below it.
-			const scrolledPast = entries.some((entry) => !entry.isIntersecting && entry.boundingClientRect.bottom <= 0);
-			if (!scrolledPast) return;
-			listenerPromptObserver.disconnect();
-			openListenerForm();
-		});
-		listenerPromptObserver.observe(onlineSection);
-	}
 
 	googleSignIn?.addEventListener('click', async () => {
 		const auth = ozAuth ?? await loadAuth();
