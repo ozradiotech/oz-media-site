@@ -3,6 +3,9 @@
    - Retro (no data-theme): cream paper, heavy black outlines, hard offset shadows.
    - Night Shift (data-theme='night'): the late-night broadcast console. Warm ink surfaces, the logo's amber as
      valve glow, a coral ON AIR signal, monospace frequency readouts and a tuning-dial scale under each heading.
+   - Day Shift (data-theme='night' data-tone='light'): night's layout with a light palette. Warm paper surfaces and
+     ink type; the amber stays a fill, and a deeper amber (--c-accent-strong) carries it wherever it is text.
+     The player stage and footer stay dark, like a console set into the page.
    The choice is stored in localStorage ('oz-theme') and applied before first paint by ThemeHead.astro,
    which also sets the style first-time visitors get (defaultTheme). */
 
@@ -89,6 +92,45 @@
 		drop-shadow(calc(var(--sticker-width) * -1) 0 0 var(--sticker-edge))
 		drop-shadow(0 var(--sticker-width) 0 var(--sticker-edge))
 		drop-shadow(0 calc(var(--sticker-width) * -1) 0 var(--sticker-edge));
+}
+
+:root[data-theme='night'][data-tone='light'] {
+	color-scheme: light;
+
+	--c-bg: #FAF4E6;
+	--c-bg-alt: #F3EAD4;
+	--c-surface: #FFFDF7;
+	--c-surface-2: #F1E8D2;
+	--c-field: #FFFFFF;
+	--c-text: #17140F;
+	--c-text-2: #3B362C;
+	--c-muted: #6A6252;
+	--c-line: #E2D7BC;
+	--c-outline: #BFAE86;
+	--c-shadow: transparent;
+	--c-accent: #F2BD57;
+	--c-on-accent: #1A1206;
+	--c-accent-soft: rgb(242 189 87 / 22%);
+	--c-accent-faint: rgb(242 189 87 / 11%);
+	--c-accent-strong: #8A5A0B;
+	--c-link: #8A5A0B;
+	--c-danger: #A8391B;
+	--c-signal: #C2361A;
+	--c-stage: #15130F;
+	--c-stage-2: #1F1C17;
+	--c-on-stage: #F5ECDA;
+	--c-on-stage-muted: #A89E8A;
+	--c-inverse: #17140F;
+	--c-on-inverse: #F5ECDA;
+	--c-footer: #15130F;
+	--c-footer-muted: #A89E8A;
+	--c-scrollbar: #CBBB93;
+
+	--box-shadow: inset 0 1px 0 rgb(255 255 255 / 70%), 0 1px 2px rgb(80 55 10 / 8%), 0 18px 36px -24px rgb(80 55 10 / 32%);
+	--box-shadow-hover: 0 0 0 1px var(--c-accent), 0 18px 44px -18px rgb(196 136 20 / 45%);
+
+	/* On paper the logos' black extrusion already reads, so the die-cut edge is white and barely there. */
+	--sticker-edge: #FFFFFF;
 }
 
 :root[data-theme='night'] ::selection {

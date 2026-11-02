@@ -152,7 +152,7 @@ const sections = [
 						</a>
 					))}
 				</nav>
-				<ThemeSwitch class="topbar-theme-switch" nightLabel="55 LIVE" nightName="Ozubathon" />
+				<ThemeSwitch class="topbar-theme-switch" nightLabel="55 DARK" nightName="Ozubathon Dark" nightNote="Black lozenge, marigold glow" dayLabel="55 LIGHT" dayName="Ozubathon Light" dayNote="Cream face, ink and marigold" />
 			</header>
 
 			<section class="hero-screen" id="top" aria-labelledby="hero-title" data-hero>
@@ -6753,8 +6753,8 @@ const sections = [
 		--sticker-width: 1px;
 	}
 
-	/* The switch says "55 LIVE" in the event's caps rather than Night Shift's monospace. */
-	:global(:root[data-theme='night'][data-page='bandung'] .topbar .theme-switch-label) {
+	/* The style menu speaks in the event's heavy caps. */
+	:global(:root[data-theme='night'][data-page='bandung'] .topbar .theme-menu-label) {
 		font-family: inherit;
 		font-weight: 800;
 	}
@@ -6782,7 +6782,7 @@ const sections = [
 			mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 22px), transparent);
 		}
 
-		:global(:root[data-theme='night'] .topbar .theme-switch-label) {
+		:global(:root[data-theme='night'] .topbar .theme-menu-label) {
 			display: none;
 		}
 	}
@@ -7751,6 +7751,156 @@ const sections = [
 
 		:global(:root[data-theme='night']) .broadcast-options .broadcast-option:hover .tune-in-icon {
 			transform: none;
+		}
+	}
+
+	/* ---------- Ozubathon Light: the same marathon printed on the logo's cream face ----------
+	   Layout, motion and type all come from the dark style above; this block only re-inks it. Ink type on cream,
+	   marigold as the fill colour, and a burnt marigold wherever the accent is text (plain marigold on cream is
+	   under 2:1). The studio player and the footer stay ink-black, like the logo's lozenge set into the page. */
+
+	:global(:root[data-theme='night'][data-tone='light'][data-page='bandung']) {
+		--ozb-paper: #FBF6EA;
+		--ozb-burnt: #8F5800;
+
+		--c-bg: var(--ozb-paper);
+		--c-bg-alt: #F5ECD6;
+		--c-surface: #FFFEF9;
+		--c-surface-2: #F3EAD3;
+		--c-field: #FFFFFF;
+		--c-text: var(--ozb-ink);
+		--c-text-2: #37342D;
+		--c-muted: #6B6455;
+		--c-line: #E5DAC0;
+		--c-outline: #C4B48C;
+		--c-accent: var(--ozb-marigold);
+		--c-on-accent: var(--ozb-ink);
+		--c-accent-soft: rgb(var(--ozb-glow) / 22%);
+		--c-accent-faint: rgb(var(--ozb-glow) / 10%);
+		--c-accent-strong: var(--ozb-burnt);
+		--c-link: var(--ozb-burnt);
+		--c-danger: #A8341A;
+		--c-signal: #C4321A;
+		--c-stage: #121213;
+		--c-stage-2: #1C1C1B;
+		--c-on-stage: var(--ozb-cream);
+		--c-on-stage-muted: #ABA697;
+		--c-inverse: var(--ozb-ink);
+		--c-on-inverse: var(--ozb-cream);
+		--c-footer: var(--ozb-ink);
+		--c-footer-muted: #ABA697;
+		--c-scrollbar: #CDBD95;
+
+		/* Cards are cream lozenges: a hairline edge and a warm lifted shadow; hover keeps the logo's ring. */
+		--box-shadow: inset 0 1px 0 rgb(255 255 255 / 80%), 0 1px 2px rgb(90 60 0 / 8%), 0 20px 38px -24px rgb(90 60 0 / 34%);
+		--box-shadow-hover: 0 0 0 1.5px var(--c-accent), 0 0 0 5px var(--c-bg), 0 0 0 6px rgb(var(--ozb-glow) / 70%), 0 22px 48px -20px rgb(var(--ozb-glow) / 45%);
+		--sticker-edge: #FFFFFF;
+	}
+
+	/* The player is a dark stage in both tones, so inside it the accent and signal stay at their dark-style values. */
+	:global(:root[data-theme='night'][data-tone='light']) .broadcast,
+	:global(:root[data-theme='night'][data-tone='light']) .broadcast-heading {
+		--c-accent-strong: var(--ozb-marigold);
+		--c-signal: #FF5A3C;
+		--c-line: #34332F;
+	}
+
+	:global(:root[data-theme='night'][data-tone='light']) .listen-content .broadcast-label {
+		color: var(--c-on-stage);
+	}
+
+	:global(:root[data-theme='night'][data-tone='light']) .listen-content .broadcast-heading .on-air {
+		border-color: rgb(255 90 60 / 55%);
+	}
+
+	/* Topbar: frosted paper with a hairline instead of a glow. */
+	:global(:root[data-theme='night'][data-tone='light']) .topbar {
+		box-shadow: inset 0 -1px 0 var(--c-line);
+	}
+
+	/* Hero: a warm sun behind the lockup, a stronger sunburst and halftone so they still read on cream. */
+	:global(:root[data-theme='night'][data-tone='light']) .hero-screen {
+		background:
+			radial-gradient(closest-side at 50% 54%, rgb(var(--ozb-glow) / 34%), transparent 82%),
+			linear-gradient(var(--c-bg-alt), var(--c-bg) 60%);
+	}
+
+	:global(:root[data-theme='night'][data-tone='light']) .hero-screen::before {
+		background: repeating-conic-gradient(rgb(var(--ozb-glow) / 22%) 0 4.5deg, transparent 4.5deg 15deg);
+	}
+
+	:global(:root[data-theme='night'][data-tone='light']) .hero-screen::after {
+		background: radial-gradient(rgb(var(--ozb-glow) / 48%) 1.1px, transparent 1.7px) 0 0 / 13px 13px;
+	}
+
+	:global(:root[data-theme='night'][data-tone='light']) .ozb-logo {
+		filter: drop-shadow(0 0 36px rgb(var(--ozb-glow) / 30%)) drop-shadow(0 18px 22px rgb(70 45 0 / 28%));
+	}
+
+	:global(:root[data-theme='night'][data-tone='light']) .ozb-unit {
+		box-shadow: inset 0 0 0 1px var(--c-line), inset 0 -3px 0 var(--c-accent), 0 10px 22px -16px rgb(90 60 0 / 40%);
+	}
+
+	/* Accent as text: burnt marigold, so small caps stay readable on cream. */
+	:global(:root[data-theme='night'][data-tone='light']) .ozb-deck span,
+	:global(:root[data-theme='night'][data-tone='light']) .ozb-chip,
+	:global(:root[data-theme='night'][data-tone='light']) .card-index,
+	:global(:root[data-theme='night'][data-tone='light']) .contact-item > span,
+	:global(:root[data-theme='night'][data-tone='light']) .calendar-date > span,
+	:global(:root[data-theme='night'][data-tone='light']) .social-mark,
+	:global(:root[data-theme='night'][data-tone='light']) .calendar-head .card-index,
+	:global(:root[data-theme='night'][data-tone='light']) .calendar-icon,
+	:global(:root[data-theme='night'][data-tone='light']) .listen-heading h1 span,
+	:global(:root[data-theme='night'][data-tone='light']) .video-picker-item[aria-pressed='true'] {
+		color: var(--c-accent-strong);
+	}
+
+	:global(:root[data-theme='night'][data-tone='light']) .ozb-chip {
+		border-color: rgb(143 88 0 / 40%);
+		background: rgb(var(--ozb-glow) / 12%);
+	}
+
+	:global(:root[data-theme='night'][data-tone='light']) [data-ozb-state='live'] .ozb-chip {
+		border-color: rgb(196 50 26 / 45%);
+		background: rgb(196 50 26 / 7%);
+		color: var(--c-signal);
+	}
+
+	:global(:root[data-theme='night'][data-tone='light']) .contact-item strong a {
+		text-decoration-color: rgb(143 88 0 / 45%);
+	}
+
+	/* Shadows tuned for paper: warm and short instead of a deep black pool. */
+	:global(:root[data-theme='night'][data-tone='light']) .carousel-chevron {
+		box-shadow: inset 0 0 0 1px var(--c-line), 0 10px 22px -12px rgb(90 60 0 / 40%);
+	}
+
+	:global(:root[data-theme='night'][data-tone='light']) .carousel-chevron:hover {
+		box-shadow: 0 10px 22px -12px rgb(90 60 0 / 40%);
+	}
+
+	:global(:root[data-theme='night'][data-tone='light']) .listener-dialog,
+	:global(:root[data-theme='night'][data-tone='light']) .article-dialog,
+	:global(:root[data-theme='night'][data-tone='light']) .news-list-dialog,
+	:global(:root[data-theme='night'][data-tone='light']) .announcer-dialog,
+	:global(:root[data-theme='night'][data-tone='light']) .program-dialog {
+		box-shadow: 0 0 0 1px var(--c-line), 0 40px 100px -24px rgb(60 40 0 / 45%);
+	}
+
+	:global(:root[data-theme='night'][data-tone='light']) .contact-layout {
+		background:
+			radial-gradient(rgb(var(--ozb-glow) / 40%) 1px, transparent 1.6px) right bottom / 13px 13px,
+			linear-gradient(140deg, var(--c-surface), var(--c-bg-alt) 120%);
+	}
+
+	/* The footer is ink in both tones; keep its link hover in bright marigold. */
+	:global(:root[data-theme='night'][data-tone='light']) .site-footer {
+		--c-accent-strong: var(--ozb-marigold);
+	}
+
+	@media (max-width: 650px) {
+		:global(:root[data-theme='night'][data-tone='light']) .article-dialog {
+			box-shadow: none;
 		}
 	}
 </style>

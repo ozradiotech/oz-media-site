@@ -1,35 +1,76 @@
 ---
-// Switch between the Retro (default) and Night Shift site styles. The choice is remembered per browser.
+// Pick the site style from a dropdown: Retro, or the dark or light take on the page's event style.
+// The choice is remembered per browser. Styles are applied by ThemeHead.astro before first paint:
+//   retro -> no data-theme
+//   night -> data-theme="night"
+//   day   -> data-theme="night" data-tone="light" (same layout as night, light palette)
 interface Props {
 	class?: string;
-	/** What the night style is called on this page (OZ Bandung runs it as the Ozubathon event style). */
+	/** Short trigger labels and menu names for the two event styles (OZ Bandung runs them as the Ozubathon). */
 	nightLabel?: string;
 	nightName?: string;
+	nightNote?: string;
+	dayLabel?: string;
+	dayName?: string;
+	dayNote?: string;
 }
-const { class: className, nightLabel = 'NIGHT', nightName = 'Night Shift' } = Astro.props;
+const {
+	class: className,
+	nightLabel = 'NIGHT',
+	nightName = 'Night Shift',
+	nightNote = 'Late-night console, amber glow',
+	dayLabel = 'DAY',
+	dayName = 'Day Shift',
+	dayNote = 'The console in daylight',
+} = Astro.props;
+
+// Swatches preview each style with fixed colours, so they read the same whichever style is showing.
+const options = [
+	{ value: 'retro', label: 'RETRO', name: 'Retro', note: 'Cream paper, bold outlines', swatch: '--sw-bg:#FFFFF3;--sw-ink:#000;--sw-accent:#F2BD57;--sw-edge:#000' },
+	{ value: 'night', label: nightLabel, name: nightName, note: nightNote, swatch: '--sw-bg:#0F0F10;--sw-ink:#FFFEF9;--sw-accent:#FBB31E;--sw-edge:#403E39' },
+	{ value: 'day', label: dayLabel, name: dayName, note: dayNote, swatch: '--sw-bg:#FBF5E6;--sw-ink:#0F0F10;--sw-accent:#FBB31E;--sw-edge:#C9B88E' },
+];
+const menuId = 'theme-menu-list';
 ---
 
-<button class:list={['theme-switch', className]} type="button" role="switch" aria-checked="false" aria-label={`${nightName} style`} title="Switch site style" data-theme-switch>
-	<span class="theme-switch-label" aria-hidden="true">
-		<span class="theme-switch-name theme-switch-name-retro">RETRO</span>
-		<span class="theme-switch-name theme-switch-name-night">{nightLabel}</span>
-	</span>
-	<span class="theme-switch-track" aria-hidden="true">
-		<span class="theme-switch-knob">
-			<svg viewBox="0 0 24 24" width="12" height="12"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" /></svg>
-		</span>
-	</span>
-</button>
+<div class:list={['theme-menu', className]} data-theme-menu>
+	<button class="theme-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls={menuId} aria-label="Site style" title="Site style" data-theme-trigger>
+		{options.map((option) => (
+			<span class="theme-menu-current" data-for={option.value} aria-hidden="true">
+				<span class="theme-swatch" data-swatch={option.value} style={option.swatch}></span>
+				<span class="theme-menu-label">{option.label}</span>
+			</span>
+		))}
+		<svg class="theme-menu-chevron" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" /></svg>
+	</button>
+	<div class="theme-menu-list" id={menuId} role="menu" aria-label="Site style" data-theme-list>
+		<p class="theme-menu-heading" aria-hidden="true">Site style</p>
+		{options.map((option) => (
+			<button class="theme-menu-item" type="button" role="menuitemradio" aria-checked="false" tabindex="-1" data-theme-option={option.value}>
+				<span class="theme-swatch" data-swatch={option.value} style={option.swatch} aria-hidden="true"></span>
+				<span class="theme-menu-copy">
+					<strong>{option.name}</strong>
+					<small>{option.note}</small>
+				</span>
+				<svg class="theme-menu-check" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7" /></svg>
+			</button>
+		))}
+	</div>
+</div>
 
 <style>
-	.theme-switch {
+	.theme-menu {
+		position: relative;
+		flex: 0 0 auto;
+	}
+
+	.theme-menu-trigger {
 		min-height: 40px;
 		display: inline-flex;
-		flex: 0 0 auto;
 		align-items: center;
-		gap: 9px;
-		padding: 0 4px 0 10px;
-		border: 1px solid transparent;
+		gap: 8px;
+		padding: 0 12px 0 6px;
+		border: 1px solid var(--c-line);
 		border-radius: 999px;
 		background: none;
 		color: var(--c-text);
@@ -37,167 +78,376 @@ const { class: className, nightLabel = 'NIGHT', nightName = 'Night Shift' } = As
 		cursor: pointer;
 		touch-action: manipulation;
 		-webkit-tap-highlight-color: transparent;
-		transition: border-color 180ms ease, background-color 180ms ease;
+		transition: border-color 160ms ease, background-color 160ms ease;
 	}
 
-	.theme-switch:hover {
-		border-color: var(--c-line);
+	.theme-menu-trigger:hover,
+	.theme-menu-trigger[aria-expanded='true'] {
+		border-color: var(--c-outline);
+		background: var(--c-accent-faint);
 	}
 
-	.theme-switch:focus-visible {
+	.theme-menu-trigger:focus-visible,
+	.theme-menu-item:focus-visible {
 		outline: 2px solid var(--c-accent);
 		outline-offset: 2px;
 	}
 
-	/* Both names share one slot, so the switch keeps its width when the label changes. */
-	.theme-switch-label {
-		display: grid;
+	/* The trigger carries all three swatches and shows the live one, so it is right before any script runs. */
+	.theme-menu-current {
+		display: none;
+		align-items: center;
+		gap: 8px;
+	}
+
+	:global(:root:not([data-theme])) .theme-menu-current[data-for='retro'],
+	:global(:root[data-theme='night']:not([data-tone='light'])) .theme-menu-current[data-for='night'],
+	:global(:root[data-theme='night'][data-tone='light']) .theme-menu-current[data-for='day'] {
+		display: inline-flex;
+	}
+
+	.theme-menu-label {
 		font-size: 10px;
-		font-weight: 700;
+		font-weight: 800;
 		letter-spacing: 0.12em;
+		white-space: nowrap;
 	}
 
-	.theme-switch-name {
-		grid-area: 1 / 1;
-		text-align: right;
-		transition: opacity 180ms ease, translate 180ms ease;
-	}
-
-	.theme-switch-name-night,
-	.theme-switch[aria-checked='true'] .theme-switch-name-retro {
-		opacity: 0;
-		translate: 0 4px;
-	}
-
-	.theme-switch[aria-checked='true'] .theme-switch-name-night {
-		opacity: 1;
-		translate: 0 0;
-	}
-
-	.theme-switch-track {
-		position: relative;
-		width: 44px;
-		height: 24px;
+	.theme-menu-chevron {
 		flex: none;
-		border: 1.5px solid var(--c-outline);
-		border-radius: 999px;
-		background: var(--c-surface);
-		transition: background-color 220ms ease, border-color 220ms ease;
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 1.6;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+		opacity: 0.7;
+		transition: rotate 200ms cubic-bezier(0.2, 0.9, 0.3, 1);
 	}
 
-	.theme-switch-knob {
-		position: absolute;
-		top: 2px;
-		left: 2px;
-		width: 17px;
-		height: 17px;
-		display: grid;
-		place-items: center;
+	.theme-menu-trigger[aria-expanded='true'] .theme-menu-chevron {
+		rotate: 180deg;
+	}
+
+	/* A little card of the style: its page colour, a line of type and the accent disc. */
+	.theme-swatch {
+		position: relative;
+		width: 26px;
+		height: 26px;
+		flex: none;
+		overflow: hidden;
 		border-radius: 50%;
-		background: var(--c-accent);
-		box-shadow: 0 0 0 1.5px var(--c-outline);
-		color: var(--c-on-accent);
-		transition: translate 260ms cubic-bezier(0.3, 1.4, 0.5, 1), box-shadow 220ms ease;
+		background: var(--sw-bg);
+		box-shadow: inset 0 0 0 1.5px var(--sw-edge);
 	}
 
-	.theme-switch-knob svg {
-		fill: currentColor;
+	/* Retro is the boxy one: a square tile with its hard offset shadow. */
+	.theme-swatch[data-swatch='retro'] {
+		overflow: visible;
+		border-radius: 5px;
+		box-shadow: inset 0 0 0 1.5px var(--sw-edge), 2px 2px 0 var(--sw-edge);
+	}
+
+	.theme-swatch[data-swatch='retro']::after {
+		inset: auto 1.5px 1.5px;
+		border-radius: 0 0 3px 3px;
+	}
+
+	.theme-swatch::before,
+	.theme-swatch::after {
+		position: absolute;
+		content: '';
+	}
+
+	.theme-swatch::before {
+		top: 50%;
+		left: 50%;
+		width: 12px;
+		height: 12px;
+		border-radius: 50%;
+		background: var(--sw-accent);
+		box-shadow: 0 0 0 1.5px var(--sw-bg), 0 0 0 2.5px var(--sw-ink);
+		translate: -50% -50%;
+	}
+
+	.theme-swatch::after {
+		inset: auto 0 0;
+		height: 5px;
+		background: var(--sw-ink);
+		opacity: 0.9;
+	}
+
+	.theme-menu-list {
+		position: absolute;
+		z-index: 20;
+		top: calc(100% + 8px);
+		right: 0;
+		width: min(292px, calc(100vw - 24px));
+		display: grid;
+		gap: 2px;
+		padding: 6px;
+		border: 1.5px solid var(--c-outline);
+		border-radius: 14px;
+		background: var(--c-surface);
+		color: var(--c-text);
+		box-shadow: 4px 4px 0 var(--c-shadow), 0 22px 48px -20px rgb(0 0 0 / 45%);
 		opacity: 0;
-		transition: opacity 180ms ease;
+		visibility: hidden;
+		pointer-events: none;
+		transform: translateY(-6px) scale(0.97);
+		transform-origin: top right;
+		transition: opacity 110ms ease-in, transform 110ms ease-in, visibility 0s linear 110ms;
 	}
 
-	.theme-switch[aria-checked='true'] .theme-switch-track {
-		border-color: var(--c-accent);
-		background: var(--c-stage);
-	}
-
-	.theme-switch[aria-checked='true'] .theme-switch-knob {
-		translate: 20px 0;
-		box-shadow: 0 0 12px rgb(242 189 87 / 70%);
-	}
-
-	.theme-switch[aria-checked='true'] .theme-switch-knob svg {
+	.theme-menu.is-open .theme-menu-list {
 		opacity: 1;
+		visibility: visible;
+		pointer-events: auto;
+		transform: none;
+		transition: opacity 160ms ease-out, transform 220ms cubic-bezier(0.2, 0.9, 0.3, 1.1), visibility 0s;
 	}
 
-	:global(:root[data-theme='night']) .theme-switch-label {
-		font-family: var(--font-mono);
-		font-weight: 400;
+	.theme-menu-heading {
+		margin: 4px 10px 6px;
+		color: var(--c-muted);
+		font-size: 10px;
+		font-weight: 800;
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
+	}
+
+	.theme-menu-item {
+		min-height: 52px;
+		display: grid;
+		grid-template-columns: auto 1fr 16px;
+		align-items: center;
+		gap: 12px;
+		padding: 8px 10px;
+		border: 0;
+		border-radius: 9px;
+		background: none;
+		color: inherit;
+		font: inherit;
+		text-align: left;
+		cursor: pointer;
+		touch-action: manipulation;
+		transition: background-color 120ms ease;
+	}
+
+	.theme-menu-item:hover,
+	.theme-menu-item:focus-visible {
+		background: var(--c-surface-2);
+	}
+
+	.theme-menu-item[aria-checked='true'] {
+		background: var(--c-accent-soft);
+	}
+
+	.theme-menu-item .theme-swatch {
+		width: 30px;
+		height: 30px;
+	}
+
+	.theme-menu-copy {
+		min-width: 0;
+		display: grid;
+		gap: 1px;
+	}
+
+	.theme-menu-copy strong {
+		font-size: 14px;
+		font-weight: 800;
+		line-height: 1.25;
+	}
+
+	.theme-menu-copy small {
+		color: var(--c-muted);
+		font-size: 12px;
+		line-height: 1.35;
+	}
+
+	.theme-menu-check {
+		fill: none;
+		stroke: var(--c-accent-strong);
+		stroke-width: 2.2;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+		opacity: 0;
+		scale: 0.6;
+		transition: opacity 140ms ease, scale 200ms cubic-bezier(0.2, 0.9, 0.3, 1.3);
+	}
+
+	.theme-menu-item[aria-checked='true'] .theme-menu-check {
+		opacity: 1;
+		scale: 1;
 	}
 
 	@media (max-width: 650px) {
-		.theme-switch {
+		.theme-menu-trigger {
 			min-width: 44px;
 			min-height: 44px;
 			justify-content: center;
-			padding: 0;
+			padding: 0 8px 0 7px;
+			gap: 4px;
 		}
 
-		.theme-switch-label {
+		.theme-menu-label {
 			display: none;
 		}
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.theme-switch-name,
-		.theme-switch-knob,
-		.theme-switch-track {
+		.theme-menu-list,
+		.theme-menu.is-open .theme-menu-list {
+			transform: none;
+			transition: opacity 120ms linear, visibility 0s linear 120ms;
+		}
+
+		.theme-menu.is-open .theme-menu-list {
+			transition: opacity 120ms linear, visibility 0s;
+		}
+
+		.theme-menu-chevron,
+		.theme-menu-check {
 			transition: none;
 		}
 	}
 </style>
 
 <script>
+	type Theme = 'retro' | 'night' | 'day';
 	const THEME_KEY = 'oz-theme';
-	const NIGHT_COLOR = '#0E0D0B';
-	const RETRO_COLOR = '#FFFFF3';
+	const THEME_COLORS: Record<Theme, string> = { retro: '#FFFFF3', night: '#0E0D0B', day: '#FBF5E6' };
 	const root = document.documentElement;
-	const switches = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-theme-switch]'));
+	const menus = Array.from(document.querySelectorAll<HTMLElement>('[data-theme-menu]'));
 
-	const isNight = () => root.dataset.theme === 'night';
+	const current = (): Theme => (root.dataset.theme !== 'night' ? 'retro' : root.dataset.tone === 'light' ? 'day' : 'night');
+	const isTheme = (value: unknown): value is Theme => value === 'retro' || value === 'night' || value === 'day';
 
 	const sync = () => {
-		switches.forEach((button) => button.setAttribute('aria-checked', String(isNight())));
-		document.querySelector('[data-theme-color]')?.setAttribute('content', isNight() ? NIGHT_COLOR : RETRO_COLOR);
+		const theme = current();
+		menus.forEach((menu) => {
+			const items = menu.querySelectorAll<HTMLButtonElement>('[data-theme-option]');
+			items.forEach((item) => item.setAttribute('aria-checked', String(item.dataset.themeOption === theme)));
+			const name = menu.querySelector(`[data-theme-option='${theme}'] strong`)?.textContent ?? theme;
+			menu.querySelector('[data-theme-trigger]')?.setAttribute('aria-label', `Site style: ${name}`);
+		});
+		document.querySelector('[data-theme-color]')?.setAttribute('content', THEME_COLORS[theme]);
 	};
 
-	const apply = (night: boolean) => {
-		if (night) root.dataset.theme = 'night';
-		else delete root.dataset.theme;
+	const apply = (theme: Theme) => {
+		if (theme === 'retro') delete root.dataset.theme;
+		else root.dataset.theme = 'night';
+		if (theme === 'day') root.dataset.tone = 'light';
+		else delete root.dataset.tone;
 		sync();
 	};
 
-	const store = (night: boolean) => {
+	const store = (theme: Theme) => {
 		try {
-			localStorage.setItem(THEME_KEY, night ? 'night' : 'retro');
+			localStorage.setItem(THEME_KEY, theme);
 		} catch {}
 	};
 
-	switches.forEach((button) => {
-		button.addEventListener('click', () => {
-			const night = !isNight();
-			store(night);
-			const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-			if (!document.startViewTransition || reducedMotion) {
-				apply(night);
-				return;
+	// Sweep the new style in as a circle growing from the menu trigger.
+	const choose = (theme: Theme, origin: HTMLElement) => {
+		if (theme === current()) return;
+		store(theme);
+		const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		if (!document.startViewTransition || reducedMotion) {
+			apply(theme);
+			return;
+		}
+		const box = origin.getBoundingClientRect();
+		const x = box.left + box.width / 2;
+		const y = box.top + box.height / 2;
+		root.style.setProperty('--theme-x', `${x}px`);
+		root.style.setProperty('--theme-y', `${y}px`);
+		root.style.setProperty('--theme-r', `${Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y))}px`);
+		root.classList.add('is-theme-switching');
+		const transition = document.startViewTransition(() => apply(theme));
+		transition.finished.finally(() => root.classList.remove('is-theme-switching'));
+	};
+
+	menus.forEach((menu) => {
+		const trigger = menu.querySelector<HTMLButtonElement>('[data-theme-trigger]');
+		const items = Array.from(menu.querySelectorAll<HTMLButtonElement>('[data-theme-option]'));
+		if (!trigger || !items.length) return;
+
+		const isOpen = () => menu.classList.contains('is-open');
+
+		const focusItem = (index: number) => items[(index + items.length) % items.length].focus();
+
+		const open = (focus: 'checked' | 'first' | 'last' | 'none' = 'none') => {
+			menu.classList.add('is-open');
+			trigger.setAttribute('aria-expanded', 'true');
+			if (focus === 'checked') focusItem(Math.max(0, items.findIndex((item) => item.getAttribute('aria-checked') === 'true')));
+			else if (focus === 'first') focusItem(0);
+			else if (focus === 'last') focusItem(-1);
+		};
+
+		const close = (returnFocus = false) => {
+			if (!isOpen()) return;
+			menu.classList.remove('is-open');
+			trigger.setAttribute('aria-expanded', 'false');
+			if (returnFocus) trigger.focus();
+		};
+
+		trigger.addEventListener('click', (event) => {
+			if (isOpen()) close();
+			// A keyboard "click" (detail 0) moves focus into the menu; a pointer click leaves it on the trigger.
+			else open(event.detail === 0 ? 'checked' : 'none');
+		});
+
+		trigger.addEventListener('keydown', (event) => {
+			if (event.key === 'ArrowDown') {
+				event.preventDefault();
+				open('checked');
+			} else if (event.key === 'ArrowUp') {
+				event.preventDefault();
+				open('last');
+			} else if (event.key === 'Escape') {
+				close();
 			}
-			// Sweep the new style in as a circle growing from the switch.
-			const box = button.getBoundingClientRect();
-			const x = box.left + box.width / 2;
-			const y = box.top + box.height / 2;
-			root.style.setProperty('--theme-x', `${x}px`);
-			root.style.setProperty('--theme-y', `${y}px`);
-			root.style.setProperty('--theme-r', `${Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y))}px`);
-			root.classList.add('is-theme-switching');
-			const transition = document.startViewTransition(() => apply(night));
-			transition.finished.finally(() => root.classList.remove('is-theme-switching'));
+		});
+
+		items.forEach((item, index) => {
+			item.addEventListener('click', () => {
+				const theme = item.dataset.themeOption;
+				close(true);
+				if (isTheme(theme)) choose(theme, trigger);
+			});
+
+			item.addEventListener('keydown', (event) => {
+				const keys: Record<string, () => void> = {
+					ArrowDown: () => focusItem(index + 1),
+					ArrowUp: () => focusItem(index - 1),
+					Home: () => focusItem(0),
+					End: () => focusItem(-1),
+					Escape: () => close(true),
+				};
+				if (event.key === 'Tab') {
+					close();
+					return;
+				}
+				const action = keys[event.key];
+				if (!action) return;
+				event.preventDefault();
+				action();
+			});
+		});
+
+		// Close on a press outside, or when focus leaves the menu.
+		document.addEventListener('pointerdown', (event) => {
+			if (isOpen() && !menu.contains(event.target as Node)) close();
+		});
+		menu.addEventListener('focusout', (event) => {
+			if (isOpen() && !menu.contains(event.relatedTarget as Node | null) && event.relatedTarget) close();
 		});
 	});
 
 	// Keep other open tabs in step.
 	window.addEventListener('storage', (event) => {
-		if (event.key === THEME_KEY) apply(event.newValue === 'night');
+		if (event.key === THEME_KEY && isTheme(event.newValue)) apply(event.newValue);
 	});
 
 	sync();

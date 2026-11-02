@@ -2,23 +2,27 @@
 // Goes in <head>: applies the stored site style before first paint, so the page never flashes the wrong one.
 import '../styles/themes.css';
 
-// The style a first-time visitor sees: 'night' (the Ozubathon style on OZ Bandung) or 'retro'.
-// Visitors who have already picked a style with the switch keep their own choice.
+// The style a first-time visitor sees: 'night' (the Ozubathon style on OZ Bandung), 'day' (its light take) or 'retro'.
+// Visitors who have already picked a style from the menu keep their own choice.
 const defaultTheme = 'night';
+const themeColors = { retro: '#FFFFF3', night: '#0E0D0B', day: '#FBF5E6' };
 ---
 
-<meta name="theme-color" content={defaultTheme === 'night' ? '#0E0D0B' : '#FFFFF3'} data-theme-color />
-<script is:inline define:vars={{ defaultTheme }}>
+<meta name="theme-color" content={themeColors[defaultTheme]} data-theme-color />
+<script is:inline define:vars={{ defaultTheme, themeColors }}>
 	(() => {
-		// ?theme=night (or retro) in the URL picks a style and remembers it, so a style can be shared as a link.
+		const known = (value) => value === 'night' || value === 'day' || value === 'retro';
+		// ?theme=night (or day, or retro) in the URL picks a style and remembers it, so a style can be shared as a link.
 		let theme = new URLSearchParams(location.search).get('theme');
 		try {
-			if (theme === 'night' || theme === 'retro') localStorage.setItem('oz-theme', theme);
+			if (known(theme)) localStorage.setItem('oz-theme', theme);
 			else theme = localStorage.getItem('oz-theme');
 		} catch {}
-		if (theme !== 'night' && theme !== 'retro') theme = defaultTheme;
-		if (theme !== 'night') return;
+		if (!known(theme)) theme = defaultTheme;
+		document.querySelector('[data-theme-color]')?.setAttribute('content', themeColors[theme]);
+		if (theme === 'retro') return;
+		// Day shares night's layout and swaps in a light palette.
 		document.documentElement.dataset.theme = 'night';
-		document.querySelector('[data-theme-color]')?.setAttribute('content', '#0E0D0B');
+		if (theme === 'day') document.documentElement.dataset.tone = 'light';
 	})();
 </script>

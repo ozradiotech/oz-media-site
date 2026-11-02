@@ -520,6 +520,28 @@ const locations = [
 		background: linear-gradient(transparent, var(--c-line), transparent);
 	}
 
+	/* Day Shift: the same console on warm paper. */
+	:global(:root[data-theme='night'][data-tone='light']) .landing-bg::after {
+		background: radial-gradient(ellipse 70% 60% at 50% 40%, rgb(250 244 230 / 88%), rgb(250 244 230 / 66%));
+	}
+
+	:global(:root[data-theme='night'][data-tone='light']) .landing {
+		background: radial-gradient(closest-side at 50% 40%, rgb(242 189 87 / 26%), transparent 80%);
+	}
+
+	:global(:root[data-theme='night'][data-tone='light']) .landing::before {
+		background: repeating-radial-gradient(circle, transparent 0 54px, rgb(196 136 20 / 18%) 54px 55px);
+	}
+
+	:global(:root[data-theme='night'][data-tone='light']) .landing::after {
+		background: repeating-linear-gradient(to bottom, rgb(23 20 15 / 2.5%) 0 1px, transparent 1px 3px);
+	}
+
+	:global(:root[data-theme='night'][data-tone='light']) .intro {
+		color: var(--c-accent-strong);
+		text-shadow: none;
+	}
+
 	@keyframes night-rings {
 		from { opacity: 1; scale: 1; }
 		to { opacity: 0.45; scale: 1.1; }
