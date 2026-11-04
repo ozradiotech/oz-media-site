@@ -1,0 +1,111 @@
+---
+// Shell for the OZ News pages: the newsroom index and each article. It carries OZ Bandung's three styles
+// (Retro, Ozubathon Dark and Light, via data-page="bandung"), a masthead sized like the station's top bar
+// and the shared site footer.
+import { Font } from 'astro:assets';
+import '../styles/typography.css';
+import '../styles/page-transitions.css';
+import '../styles/retro.css';
+import '../styles/ozubathon.css';
+import '../styles/news.css';
+import ThemeHead from '../components/ThemeHead.astro';
+import ThemeSwitch from '../components/ThemeSwitch.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import { newsIndexPath } from '../lib/news';
+
+interface Props {
+	title: string;
+	description: string;
+	/** Site path of this page, for the canonical link and share previews. */
+	path: string;
+	image?: string;
+	imageAlt?: string;
+	/** Article pages add their publish date to the share preview. */
+	article?: { publishedAt?: Date; section: string };
+	/** Shows the reading progress line under the masthead. */
+	readingProgress?: boolean;
+}
+
+const { title, description, path, image, imageAlt = '', article, readingProgress = false } = Astro.props;
+
+// Share previews want absolute URLs; they become absolute once `site` is set in astro.config.mjs.
+const absolute = (value: string) => (Astro.site ? new URL(value, Astro.site).href : value);
+const pageTitle = path === newsIndexPath ? 'OZ News · OZ Radio Bandung' : `${title} | OZ News · OZ Radio Bandung`;
+---
+
+<!doctype html>
+<html lang="en" data-page="bandung">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<ThemeHead />
+		<title>{pageTitle}</title>
+		<meta name="description" content={description} />
+		<link rel="canonical" href={absolute(path)} />
+		<meta property="og:site_name" content="OZ Radio Bandung" />
+		<meta property="og:type" content={article ? 'article' : 'website'} />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		<meta property="og:url" content={absolute(path)} />
+		{image && <meta property="og:image" content={absolute(image)} />}
+		{image && imageAlt && <meta property="og:image:alt" content={imageAlt} />}
+		{article?.publishedAt && <meta property="article:published_time" content={article.publishedAt.toISOString()} />}
+		{article && <meta property="article:section" content={article.section} />}
+		<meta name="twitter:card" content={image ? 'summary_large_image' : 'summary'} />
+		<meta name="twitter:title" content={title} />
+		<meta name="twitter:description" content={description} />
+		{image && <meta name="twitter:image" content={absolute(image)} />}
+		<Font cssVariable="--font-tango" preload={[{ style: 'normal' }]} />
+		<Font cssVariable="--font-jakarta" preload={[{ style: 'normal' }]} />
+		<Font cssVariable="--font-mono" />
+		<script type="speculationrules" is:inline set:html={JSON.stringify({ prefetch: [{ where: { or: [{ href_matches: '/oz-bandung' }, { href_matches: `${newsIndexPath}{/*}?` }] }, eagerness: 'moderate' }] })} />
+		<slot name="head" />
+	</head>
+	<body class="news-site">
+		<a class="news-skip" href="#news-main">Skip to content</a>
+		<header class="news-masthead">
+			<div class="news-masthead-inner">
+				<a class="news-masthead-logo" href="/oz-bandung" aria-label="OZ Radio Bandung home" data-sticker><img src="/images/logo-oz-bandung.png" alt="OZ Radio Bandung" width="1246" height="648" /></a>
+				<a class="news-masthead-section" href={newsIndexPath} aria-current={path === newsIndexPath ? 'page' : undefined}>OZ <span>News</span></a>
+				<nav class="news-masthead-nav" aria-label="OZ Radio Bandung">
+					<a href="/oz-bandung#listen"><span class="news-live-dot" aria-hidden="true"></span>LISTEN LIVE</a>
+					<a class="news-masthead-station" href="/oz-bandung">STATION</a>
+				</nav>
+				<ThemeSwitch class="news-theme-switch" nightLabel="55 DARK" nightName="Ozubathon Dark" nightNote="Black lozenge, marigold glow" dayLabel="55 LIGHT" dayName="Ozubathon Light" dayNote="Cream face, ink and marigold" />
+			</div>
+			{readingProgress && <span class="news-progress" data-reading-progress aria-hidden="true"></span>}
+		</header>
+
+		<main class="news-main" id="news-main">
+			<slot />
+		</main>
+
+		<SiteFooter topHref="#news-main" />
+
+		{readingProgress && (
+			<script>
+				// The line under the masthead fills as the reader works through the article body.
+				const progress = document.querySelector<HTMLElement>('[data-reading-progress]');
+				const story = document.querySelector<HTMLElement>('[data-story]');
+				if (progress && story) {
+					let queued = false;
+					const update = () => {
+						queued = false;
+						const box = story.getBoundingClientRect();
+						const distance = box.height - window.innerHeight * 0.6;
+						const read = distance > 0 ? Math.min(1, Math.max(0, -box.top / distance)) : 1;
+						progress.style.setProperty('--progress', String(read));
+					};
+					const queue = () => {
+						if (queued) return;
+						queued = true;
+						requestAnimationFrame(update);
+					};
+					addEventListener('scroll', queue, { passive: true });
+					addEventListener('resize', queue);
+					update();
+				}
+			</script>
+		)}
+	</body>
+</html>

@@ -4,7 +4,7 @@ category: LIVE MUSIC
 summary: Lorem ipsum dolor sit amet.
 image: /images/activity-live-music.jpg
 imageAlt: ""
-order: 1
+order: 2
 artStyle: listen
 artLabel: |-
   LISTEN

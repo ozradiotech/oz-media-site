@@ -4,7 +4,7 @@ category: COMMUNITY
 summary: Lorem ipsum dolor sit amet.
 image: /images/activity-community.jpg
 imageAlt: ""
-order: 2
+order: 3
 artStyle: meet
 artLabel: |-
   MEET

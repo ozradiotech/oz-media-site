@@ -1,0 +1,114 @@
+---
+// The OZ News front page: the newest story leads, two more sit beside it, and every other story follows
+// in a river that can be re-sorted. Opened from the OZ News heading and "View all articles" on OZ Bandung.
+import NewsLayout from '../../../layouts/NewsLayout.astro';
+import { formatNewsDate, getVisibleNews, newsIndexPath, newsPath } from '../../../lib/news';
+
+export const prerender = true;
+
+const all = await getVisibleNews();
+const [lead, ...rest] = all;
+const secondary = rest.slice(0, 2);
+const river = rest.slice(2);
+---
+
+<NewsLayout
+	title="OZ News"
+	description="The latest stories from the OZ Radio Bandung newsroom: Bandung, Indonesia and the world, from music and film to sport and current affairs."
+	path={newsIndexPath}
+	image={lead?.data.image}
+	imageAlt={lead?.data.imageAlt}
+>
+	<header class="newsroom-head">
+		<nav class="news-crumbs" aria-label="Breadcrumb">
+			<a href="/oz-bandung">OZ Radio Bandung</a>
+			<span aria-hidden="true">/</span>
+			<span aria-current="page">OZ News</span>
+		</nav>
+		<p class="news-eyebrow">OZ RADIO BANDUNG · NEWSROOM</p>
+		<h1 class="newsroom-title">OZ <span>News.</span></h1>
+		<p class="newsroom-deck">Stories from Bandung, Indonesia and beyond, from the OZ Radio newsroom. <span>{all.length} {all.length === 1 ? 'story' : 'stories'}</span></p>
+	</header>
+
+	{lead ? (
+		<>
+			<section class="newsroom-top" aria-label="Top stories">
+				<a class="news-lead" href={newsPath(lead)} lang="id">
+					<div class="news-lead-image"><img src={lead.data.image} alt={lead.data.imageAlt} fetchpriority="high" decoding="async" /></div>
+					<div class="news-lead-copy">
+						<span class="news-kicker">LATEST · {lead.data.category}</span>
+						<h2>{lead.data.title}</h2>
+						<p>{lead.data.summary}</p>
+						{lead.data.publishedAt && <time datetime={lead.data.publishedAt.toISOString()}>{formatNewsDate(lead.data.publishedAt)}</time>}
+					</div>
+				</a>
+				{secondary.length > 0 && (
+					<div class="newsroom-secondary">
+						{secondary.map((entry) => (
+							<a class="news-card" href={newsPath(entry)} lang="id">
+								<div class="news-card-image"><img src={entry.data.image} alt="" decoding="async" /></div>
+								<div class="news-card-copy">
+									<span class="news-kicker">{entry.data.category}</span>
+									<h3>{entry.data.title}</h3>
+									{entry.data.publishedAt && <time datetime={entry.data.publishedAt.toISOString()}>{formatNewsDate(entry.data.publishedAt)}</time>}
+								</div>
+							</a>
+						))}
+					</div>
+				)}
+			</section>
+
+			{river.length > 0 && (
+				<section class="newsroom-river" aria-labelledby="river-title">
+					<div class="newsroom-river-head">
+						<h2 class="news-rule-heading" id="river-title">More stories</h2>
+						<label class="newsroom-sort" data-news-sort hidden>
+							<span>SORT</span>
+							<select data-news-sort-select>
+								<option value="newest">Newest first</option>
+								<option value="oldest">Oldest first</option>
+								<option value="title">Title A–Z</option>
+							</select>
+						</label>
+					</div>
+					<ul class="newsroom-grid" role="list" data-news-river>
+						{river.map((entry) => (
+							<li data-date={entry.data.publishedAt?.getTime() ?? 0} data-title={entry.data.title}>
+								<a class="news-card" href={newsPath(entry)} lang="id">
+									<div class="news-card-image"><img src={entry.data.image} alt="" loading="lazy" decoding="async" /></div>
+									<div class="news-card-copy">
+										<span class="news-kicker">{entry.data.category}</span>
+										<h3>{entry.data.title}</h3>
+										<p>{entry.data.summary}</p>
+										{entry.data.publishedAt && <time datetime={entry.data.publishedAt.toISOString()}>{formatNewsDate(entry.data.publishedAt)}</time>}
+									</div>
+								</a>
+							</li>
+						))}
+					</ul>
+				</section>
+			)}
+		</>
+	) : (
+		<p class="newsroom-empty">No stories yet. Check back soon.</p>
+	)}
+</NewsLayout>
+
+<script>
+	// The sort control only appears once this script runs, since it does nothing without it.
+	const sort = document.querySelector<HTMLElement>('[data-news-sort]');
+	const select = sort?.querySelector<HTMLSelectElement>('[data-news-sort-select]');
+	const river = document.querySelector<HTMLElement>('[data-news-river]');
+	if (sort && select && river) {
+		sort.hidden = false;
+		select.addEventListener('change', () => {
+			const items = Array.from(river.children) as HTMLElement[];
+			items.sort((first, second) => {
+				if (select.value === 'title') return (first.dataset.title ?? '').localeCompare(second.dataset.title ?? '');
+				const difference = Number(first.dataset.date ?? 0) - Number(second.dataset.date ?? 0);
+				return select.value === 'oldest' ? difference : -difference;
+			});
+			river.append(...items);
+		});
+	}
+</script>

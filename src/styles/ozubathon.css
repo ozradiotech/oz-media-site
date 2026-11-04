@@ -1,0 +1,89 @@
+/* Ozubathon style tokens: on OZ Bandung (and its OZ News pages) the night style is the "55 Loud and Live"
+   anniversary marathon. They override themes.css's night tokens on pages with data-page="bandung" only. */
+
+:root[data-theme='night'][data-page='bandung'] {
+	--ozb-ink: #0F0F10;
+	--ozb-marigold: #FBB31E;
+	--ozb-cream: #FFFEF9;
+	--ozb-glow: 251 179 30;
+
+	--c-bg: var(--ozb-ink);
+	--c-bg-alt: #151514;
+	--c-surface: #1B1B1A;
+	--c-surface-2: #252523;
+	--c-field: #0B0B0C;
+	--c-text: var(--ozb-cream);
+	--c-text-2: #E4DFD2;
+	--c-muted: #ABA697;
+	--c-line: #31302C;
+	--c-outline: #403E39;
+	--c-accent: var(--ozb-marigold);
+	--c-on-accent: var(--ozb-ink);
+	--c-accent-soft: rgb(var(--ozb-glow) / 14%);
+	--c-accent-faint: rgb(var(--ozb-glow) / 7%);
+	--c-accent-strong: var(--ozb-marigold);
+	--c-link: #FDC655;
+	--c-signal: #FF4F2E;
+	--c-stage: #080809;
+	--c-stage-2: #131313;
+	--c-on-stage: var(--ozb-cream);
+	--c-inverse: var(--ozb-marigold);
+	--c-on-inverse: var(--ozb-ink);
+	--c-footer: #080809;
+
+	/* Cards are black lozenges like the logo's: round corners, a hairline edge, and on hover the logo's
+	   marigold ring with a gap of ink inside it. */
+	--box-radius: 18px;
+	--box-shadow: inset 0 1px 0 rgb(255 255 255 / 4%), 0 24px 44px -26px rgb(0 0 0 / 90%);
+	--box-shadow-hover: 0 0 0 1.5px var(--c-accent), 0 0 0 5px var(--c-bg), 0 0 0 6px rgb(var(--ozb-glow) / 55%), 0 22px 54px -18px rgb(var(--ozb-glow) / 32%);
+	--sticker-edge: var(--ozb-cream);
+
+	/* One motion vocabulary for the whole style. */
+	--ozb-pop: cubic-bezier(0.2, 0.9, 0.3, 1.18);
+	--ozb-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root[data-theme='night'][data-page='bandung'] ::selection {
+	background: #FBB31E;
+	color: #0F0F10;
+}
+
+/* Ozubathon Light: the same marathon printed on the logo's cream face. Burnt marigold wherever the accent is text
+   (plain marigold on cream is under 2:1); the player and footer stay ink-black. */
+:root[data-theme='night'][data-tone='light'][data-page='bandung'] {
+	--ozb-paper: #FBF6EA;
+	--ozb-burnt: #8F5800;
+
+	--c-bg: var(--ozb-paper);
+	--c-bg-alt: #F5ECD6;
+	--c-surface: #FFFEF9;
+	--c-surface-2: #F3EAD3;
+	--c-field: #FFFFFF;
+	--c-text: var(--ozb-ink);
+	--c-text-2: #37342D;
+	--c-muted: #6B6455;
+	--c-line: #E5DAC0;
+	--c-outline: #C4B48C;
+	--c-accent: var(--ozb-marigold);
+	--c-on-accent: var(--ozb-ink);
+	--c-accent-soft: rgb(var(--ozb-glow) / 22%);
+	--c-accent-faint: rgb(var(--ozb-glow) / 10%);
+	--c-accent-strong: var(--ozb-burnt);
+	--c-link: var(--ozb-burnt);
+	--c-danger: #A8341A;
+	--c-signal: #C4321A;
+	--c-stage: #121213;
+	--c-stage-2: #1C1C1B;
+	--c-on-stage: var(--ozb-cream);
+	--c-on-stage-muted: #ABA697;
+	--c-inverse: var(--ozb-ink);
+	--c-on-inverse: var(--ozb-cream);
+	--c-footer: var(--ozb-ink);
+	--c-footer-muted: #ABA697;
+	--c-scrollbar: #CDBD95;
+
+	/* Cards are cream lozenges: a hairline edge and a warm lifted shadow; hover keeps the logo's ring. */
+	--box-shadow: inset 0 1px 0 rgb(255 255 255 / 80%), 0 1px 2px rgb(90 60 0 / 8%), 0 20px 38px -24px rgb(90 60 0 / 34%);
+	--box-shadow-hover: 0 0 0 1.5px var(--c-accent), 0 0 0 5px var(--c-bg), 0 0 0 6px rgb(var(--ozb-glow) / 70%), 0 22px 48px -20px rgb(var(--ozb-glow) / 45%);
+	--sticker-edge: #FFFFFF;
+}

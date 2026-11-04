@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "src/styles/news.css"
+        ],
+        "createdAt": "2026-11-04T07:48:12.215Z",
+        "reason": "Claude triage: L539 is a pull-quote rule in article prose (same as the existing article dialog blockquote); L966 is the footer's full-width top pinstripe copied from oz-bandung's site footer; neither is a card side-tab"
+      }
+    ]
+  }
+}

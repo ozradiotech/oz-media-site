@@ -4,7 +4,7 @@ category: WORKSHOPS
 summary: Lorem ipsum dolor sit amet.
 image: /images/activity-workshop.jpg
 imageAlt: ""
-order: 3
+order: 4
 artStyle: create
 artLabel: |-
   MAKE
