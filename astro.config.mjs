@@ -6,6 +6,8 @@ import vercel from '@astrojs/vercel';
 // Vercel sets VERCEL=1 during its builds; everywhere else (local, self-hosted) uses Node.
 // https://astro.build/config
 export default defineConfig({
+	// Production domain; used for canonical links and share URLs.
+	site: 'https://ozradio.id',
 	output: 'server',
 	adapter: process.env.VERCEL ? vercel() : node({ mode: 'standalone' }),
 	// Self-hosted fonts, loaded per page with <Font /> (see src/styles/typography.css).

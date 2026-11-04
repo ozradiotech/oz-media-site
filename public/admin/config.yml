@@ -1,9 +1,9 @@
-# The configured OAuth base URL must match CMS_OAUTH_BASE_URL in Vercel.
+# The configured OAuth base URL must match CMS_OAUTH_BASE_URL on the server.
 backend:
   name: github
   repo: brannn86/oz-proto
   branch: main
-  base_url: https://oz-proto.vercel.app
+  base_url: https://ozradio.id
   auth_endpoint: api/cms-auth
 
 # On localhost with `npm run cms:proxy` running, Decap edits local files instead of GitHub.
