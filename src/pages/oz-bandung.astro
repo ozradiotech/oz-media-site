@@ -111,7 +111,7 @@ const sections = [
 		<Font cssVariable="--font-tango" preload={[{ style: 'normal' }]} />
 		<Font cssVariable="--font-jakarta" preload={[{ style: 'normal' }]} />
 		<Font cssVariable="--font-mono" />
-		<title>OZ Media</title>
+		<title>OZ Radio Bandung - Your Friendly Station</title>
 		<script type="speculationrules" is:inline set:html={JSON.stringify({ prefetch: [{ where: { or: [{ href_matches: '/' }, { href_matches: '/oz-bandung/news{/*}?' }] }, eagerness: 'moderate' }] })} />
 		<script is:inline>
 			// Logo hand-off for the view transition with the home page (see src/styles/page-transitions.css).
@@ -1608,7 +1608,7 @@ const sections = [
 	const locationInput = listenerForm?.querySelector<HTMLInputElement>('[data-location-input]');
 	const locationOptions = listenerForm?.querySelector<HTMLElement>('[data-location-options]');
 	const listenerSessionKey = 'oz-listener-details-saved';
-	// The form asks once per session: saving or dismissing it both count.
+	// Once the form has appeared, the stream stays stopped for the rest of the session until it is saved.
 	const listenerPromptKey = 'oz-listener-form-shown';
 	let listenerDetailsSaved = false;
 	let listenerPromptShown = false;
@@ -1617,7 +1617,10 @@ const sections = [
 		listenerPromptShown = sessionStorage.getItem(listenerPromptKey) === 'true';
 	} catch {}
 	let selectedBroadcast: 'audio' | 'video' | null = null;
+	// The stream the form interrupted (or that was picked while it was required), started once the details are saved.
+	let pendingBroadcast: 'audio' | 'video' | null = null;
 	let nowPlayingTimer: number | undefined;
+	const listenerFormRequired = () => listenerPromptShown && !listenerDetailsSaved;
 
 	const stopNowPlayingUpdates = () => {
 		if (nowPlayingTimer !== undefined) {
@@ -1735,6 +1738,13 @@ const sections = [
 	fallbackAudio?.addEventListener('playing', scheduleListenerPrompt);
 	fallbackAudio?.addEventListener('pause', cancelListenerPrompt);
 	fallbackAudio?.addEventListener('ended', cancelListenerPrompt);
+	// Any other way of starting the audio while the form is required brings the form back instead.
+	fallbackAudio?.addEventListener('play', () => {
+		if (!listenerFormRequired()) return;
+		pendingBroadcast = 'audio';
+		pauseAudio();
+		openListenerForm();
+	});
 
 	const stopBroadcast = () => {
 		cancelListenerPrompt();
@@ -1802,6 +1812,11 @@ const sections = [
 
 	const startBroadcast = () => {
 		if (!selectedBroadcast) return;
+		if (listenerFormRequired()) {
+			pendingBroadcast = selectedBroadcast;
+			openListenerForm();
+			return;
+		}
 		broadcast?.classList.add('is-streaming');
 		if (tuneInLabel) tuneInLabel.textContent = 'Change stream';
 		broadcastPanels.forEach((panel) => {
@@ -1879,17 +1894,24 @@ const sections = [
 	};
 
 	const openListenerForm = () => {
-		if (!listenerDialog || !dialogTitle || listenerDetailsSaved || listenerPromptShown) return;
+		if (!listenerDialog || !dialogTitle || listenerDetailsSaved || listenerDialog.open) return;
+		// Stop the stream as soon as the form is due; it comes back once the details are saved.
+		if (broadcast?.classList.contains('is-streaming')) {
+			pendingBroadcast = selectedBroadcast;
+			stopBroadcast();
+		} else if (fallbackAudio && !fallbackAudio.paused) {
+			pauseAudio();
+		}
+		listenerPromptShown = true;
+		try {
+			sessionStorage.setItem(listenerPromptKey, 'true');
+		} catch {}
 		// Wait for whatever the visitor has open (an article, a program) rather than stacking on top of it.
 		const openDialog = document.querySelector<HTMLDialogElement>('dialog[open]');
 		if (openDialog) {
 			openDialog.addEventListener('close', openListenerForm, { once: true });
 			return;
 		}
-		listenerPromptShown = true;
-		try {
-			sessionStorage.setItem(listenerPromptKey, 'true');
-		} catch {}
 		showDialogPart('details');
 		dialogTitle.textContent = 'Tell us about you';
 		loadLocationAutocomplete();
@@ -1931,6 +1953,15 @@ const sections = [
 	googleSignOut?.addEventListener('click', () => { void ozAuth?.signOut(); });
 
 	listenerDialog?.querySelector('[data-dialog-close]')?.addEventListener('click', () => listenerDialog.close());
+
+	// Closing the form only brings the stream back once the details are saved. The close comes from a click or
+	// a key press, so the browser still lets the audio start with sound.
+	listenerDialog?.addEventListener('close', () => {
+		if (!listenerDetailsSaved || !pendingBroadcast) return;
+		selectedBroadcast = pendingBroadcast;
+		pendingBroadcast = null;
+		startBroadcast();
+	});
 
 	listenerForm?.addEventListener('submit', async (event) => {
 		event.preventDefault();
