@@ -66,7 +66,7 @@ This is a fast-forward. If it is refused, something was committed on `deploy` th
 
 ### Content edits
 
-- **Online CMS** (`https://ozradio.id/admin`) commits to `main` on `origin`. Run `git pull` before you start coding, then push `main` to `production` and run the deploy script to publish the edits (see Self-hosting).
+- **Online CMS** (`https://ozradio.id/admin`) commits to `main` on `ozradiotech/oz-media-site` (the `production` remote). Run `git pull production main` before you start coding; run the deploy script on the server to publish the edits (see Self-hosting).
 - **Local CMS**: run `npm run dev` and `npm run cms:proxy`, open `http://localhost:4321/admin`. Edits are written to your files; commit them like code.
 
 ### Don't
@@ -78,8 +78,8 @@ This is a fast-forward. If it is refused, something was committed on `deploy` th
 ### Self-hosting (ozradio.id)
 
 The live site runs on an aaPanel VPS as a Node project in `/www/wwwroot/oz-media`, started with
-`node --env-file=.env dist/server/entry.mjs` on `127.0.0.1:4321` behind Nginx. The server builds from `main` on the
-`production` remote, so publish by pushing there:
+`node --env-file=.env dist/server/entry.mjs` on `127.0.0.1:4321` behind Nginx. The server's clone tracks
+`ozradiotech/oz-media-site` (its `origin`; `production` in local clones) and builds `main`, so publish by pushing there:
 
 ```sh
 git push production main
@@ -91,7 +91,7 @@ Then, on the server as root:
 bash /www/wwwroot/oz-media/scripts/deploy.sh
 ```
 
-and restart the Node project in aaPanel. The script resets the server copy to `production/main` (discarding the files
+and restart the Node project in aaPanel. The script resets the server copy to `origin/main` (discarding the files
 the build's image step rewrites), runs `npm ci` when the lockfile changed, and rebuilds. `.env`, `data/` and `dist/`
 are git-ignored and kept. Vercel Cron does not run here; an aaPanel cron calls `/api/chat-cleanup` daily with
 `Authorization: Bearer $CRON_SECRET`.
@@ -149,7 +149,7 @@ are git-ignored and kept. Vercel Cron does not run here; an aaPanel cron calls `
 - GitHub backend: https://decapcms.org/docs/github-backend/
 - Local backend / dev workflow: https://decapcms.org/docs/working-with-a-local-git-backend/
 
-Decap is configured to edit `brannn86/oz-proto` on its `main` branch. For local editing, run `npm run dev` and `npm run cms:proxy`, then open `http://localhost:4321/admin`; Decap uses the local proxy (`local_backend: true`) instead of GitHub. The GitHub OAuth routes keep the client secret on the server, validate the OAuth state, and return the access token only to the same-origin CMS window. Only trusted GitHub users with write access to this repository should be able to use the CMS.
+Decap is configured to edit `ozradiotech/oz-media-site` on its `main` branch. For local editing, run `npm run dev` and `npm run cms:proxy`, then open `http://localhost:4321/admin`; Decap uses the local proxy (`local_backend: true`) instead of GitHub. The GitHub OAuth routes keep the client secret on the server, validate the OAuth state, and return the access token only to the same-origin CMS window. Only trusted GitHub users with write access to this repository should be able to use the CMS.
 
 ### Deploy a Vercel preview
 

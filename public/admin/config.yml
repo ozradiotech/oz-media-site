@@ -1,7 +1,7 @@
 # The configured OAuth base URL must match CMS_OAUTH_BASE_URL on the server.
 backend:
   name: github
-  repo: brannn86/oz-proto
+  repo: ozradiotech/oz-media-site
   branch: main
   base_url: https://ozradio.id
   auth_endpoint: api/cms-auth

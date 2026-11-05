@@ -15,14 +15,14 @@ PM2_NAME="${PM2_NAME:-oz-media}"
 
 cd "$APP_DIR"
 
-echo "==> Fetching production/$BRANCH"
-git fetch --quiet production "$BRANCH"
+echo "==> Fetching origin/$BRANCH"
+git fetch --quiet origin "$BRANCH"
 before_lock="$(git rev-parse HEAD:package-lock.json)"
 before_head="$(git rev-parse --short HEAD)"
 
 # The build's image step (scripts/optimize-uploads.mjs) rewrites src/content and adds .webp files to
 # public/uploads; drop those so the update applies cleanly. The next build regenerates them.
-git reset --hard --quiet "production/$BRANCH"
+git reset --hard --quiet "origin/$BRANCH"
 git clean -fdq -- src/content public/uploads
 echo "    $before_head -> $(git rev-parse --short HEAD)"
 
