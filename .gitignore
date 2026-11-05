@@ -1,5 +1,6 @@
 # build output
 dist/
+dist.prev/
 # listener records
 data/listeners.jsonl
 # generated types

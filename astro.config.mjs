@@ -8,6 +8,11 @@ import vercel from '@astrojs/vercel';
 export default defineConfig({
 	// Production domain; used for canonical links and share URLs.
 	site: 'https://ozradio.id',
+	// The CMS lives at /admin only; catch the station-prefixed guesses.
+	redirects: {
+		'/oz-bandung/admin': '/admin',
+		'/oz-bali/admin': '/admin',
+	},
 	output: 'server',
 	adapter: process.env.VERCEL ? vercel() : node({ mode: 'standalone' }),
 	// Self-hosted fonts, loaded per page with <Font /> (see src/styles/typography.css).
