@@ -81,6 +81,20 @@ const radioBreakdowns = [
 	{ chart: 'radio-errors', title: 'Stream errors', style: 'table' },
 ];
 
+// Live chat (private).
+const chatTrends = [
+	{ chart: 'chat-daily', title: 'Day by day', style: 'line', metrics: [['messages', 'Messages'], ['chatters', 'Chatters'], ['views', 'Chat views'], ['signIns', 'Sign-ins'], ['refused', 'Refused messages']] },
+	{ chart: 'chat-hours', title: 'Peak chat hours (WIB)', style: 'bar', metrics: undefined },
+];
+const chatBreakdowns = [
+	{ chart: 'chat-viewers', title: 'Chat views: signed in or not', style: 'doughnut' },
+	{ chart: 'chat-signins', title: 'Sign-in attempts', style: 'doughnut' },
+	{ chart: 'chat-refusals', title: 'Why messages were refused', style: 'bar' },
+	{ chart: 'chat-moderation', title: 'Moderation', style: 'bar' },
+	{ chart: 'chat-disconnects', title: 'Disconnections', style: 'pie' },
+	{ chart: 'chat-signin-errors', title: 'Sign-in errors', style: 'table' },
+];
+
 // Listener form breakdowns on the private panel, filled in by the script once the visitor is signed in.
 const listenerBreakdowns = [
 	{ chart: 'listener-gender', title: 'Gender', style: 'doughnut' },
@@ -183,7 +197,7 @@ const monthLabel = (month: string) =>
 					</p>
 				</div>
 				<div class="gate" data-gate>
-					<p class="gate-message" data-gate-message aria-live="polite">Listener forms and radio listening are private. Sign in with a Google account that has analytics access.</p>
+					<p class="gate-message" data-gate-message aria-live="polite">Listener forms, radio listening and chat analytics are private. Sign in with a Google account that has analytics access.</p>
 					<button class="action-button" type="button" data-sign-in>Sign in with Google</button>
 				</div>
 				<div class="toolbar" data-private-toolbar hidden>
@@ -228,6 +242,54 @@ const monthLabel = (month: string) =>
 						</article>
 					))}
 					{radioBreakdowns.map((card) => (
+						<article class="chart-card" data-chart={card.chart} data-style={card.style}>
+							<header class="chart-card-header">
+								<h3>{card.title}</h3>
+								<div class="chart-controls">
+									<div class="style-switch" role="group" aria-label="Chart style">
+										{breakdownStyles.map((style) => <button type="button" data-style-option={style.value} aria-pressed={style.value === card.style ? 'true' : 'false'}>{style.label}</button>)}
+									</div>
+								</div>
+							</header>
+							<p class="chart-total" data-chart-total></p>
+							<div class="chart-body chart-body-square"><canvas></canvas><div class="chart-table" hidden></div></div>
+						</article>
+					))}
+				</div>
+			</section>
+
+			<section class="panel" aria-labelledby="chat-title" data-chat-panel hidden>
+				<div class="panel-heading">
+					<h2 id="chat-title">LIVE CHAT</h2>
+					<div class="chart-controls">
+						<button class="action-button" type="button" data-export-chat="daily">Daily CSV</button>
+						<button class="action-button" type="button" data-export-chat="events">Raw events CSV</button>
+					</div>
+				</div>
+				<p class="panel-note">People and views are counted apart. A <strong>chatter</strong> is a Google account that posted, known only by a scrambled id. A <strong>view</strong> is one page load that showed the chat, signed in or not; one person can make many views. Chat history starts when this tracking went live.</p>
+				<div class="tiles" data-chat-tiles></div>
+				<div class="chart-grid">
+					{chatTrends.map((card) => (
+						<article class="chart-card chart-card-wide" data-chart={card.chart} data-style={card.style}>
+							<header class="chart-card-header">
+								<h3>{card.title}</h3>
+								<div class="chart-controls">
+									{card.metrics && (
+										<label class="filter filter-compact"><span class="visually-hidden">Metric</span>
+											<select data-metric-select>
+												{card.metrics.map(([value, label]) => <option value={value}>{label}</option>)}
+											</select>
+										</label>
+									)}
+									<div class="style-switch" role="group" aria-label="Chart style">
+										{trendStyles.map((style) => <button type="button" data-style-option={style.value} aria-pressed={style.value === card.style ? 'true' : 'false'}>{style.label}</button>)}
+									</div>
+								</div>
+							</header>
+							<div class="chart-body"><canvas></canvas><div class="chart-table" hidden></div></div>
+						</article>
+					))}
+					{chatBreakdowns.map((card) => (
 						<article class="chart-card" data-chart={card.chart} data-style={card.style}>
 							<header class="chart-card-header">
 								<h3>{card.title}</h3>
@@ -1458,7 +1520,8 @@ const monthLabel = (month: string) =>
 	const privateArea = document.querySelector<HTMLElement>('[data-private]');
 	const listenerPanel = document.querySelector<HTMLElement>('[data-listener-panel]');
 	const radioPanel = document.querySelector<HTMLElement>('[data-radio-panel]');
-	if (privateArea && listenerPanel && radioPanel) {
+	const chatPanel = document.querySelector<HTMLElement>('[data-chat-panel]');
+	if (privateArea && listenerPanel && radioPanel && chatPanel) {
 		const gate = privateArea.querySelector<HTMLElement>('[data-gate]')!;
 		const gateMessage = privateArea.querySelector<HTMLElement>('[data-gate-message]')!;
 		const signInButton = privateArea.querySelector<HTMLButtonElement>('[data-sign-in]')!;
@@ -1468,7 +1531,8 @@ const monthLabel = (month: string) =>
 		const fromInput = privateArea.querySelector<HTMLInputElement>('[data-range-from]')!;
 		const toInput = privateArea.querySelector<HTMLInputElement>('[data-range-to]')!;
 		const status = privateArea.querySelector<HTMLElement>('[data-private-status]')!;
-		const cards = new Map([...document.querySelectorAll<HTMLElement>('[data-listener-panel] .chart-card[data-chart], [data-radio-panel] .chart-card[data-chart]')]
+		const panels = [radioPanel, chatPanel, listenerPanel];
+		const cards = new Map([...document.querySelectorAll<HTMLElement>('[data-listener-panel] .chart-card[data-chart], [data-radio-panel] .chart-card[data-chart], [data-chat-panel] .chart-card[data-chart]')]
 			.map((root) => [root.dataset.chart!, new ChartCard(root)]));
 
 		// The last 30 days, in Jakarta dates, until changed.
@@ -1487,8 +1551,7 @@ const monthLabel = (month: string) =>
 		const showGate = (message: string, { signIn = true } = {}) => {
 			gate.hidden = false;
 			toolbar.hidden = true;
-			listenerPanel.hidden = true;
-			radioPanel.hidden = true;
+			panels.forEach((panel) => { panel.hidden = true; });
 			gateMessage.innerHTML = message;
 			signInButton.hidden = !signIn;
 		};
@@ -1709,21 +1772,110 @@ const monthLabel = (month: string) =>
 			drawBreakdown('radio-errors', fromRecord(summary.errorCodes, errorLabels), 'Errors');
 		};
 
+		/* ----- Live chat ----- */
+
+		type ChatSummary = {
+			totals: {
+				messages: number;
+				moderatorMessages: number;
+				chatters: number;
+				returningChatters: number;
+				activeNow: number;
+				messagesPerChatter: number;
+				messagesPerVisit: number;
+				views: number;
+				signedInViews: number;
+				signInAttempts: number;
+				signIns: number;
+				newAccounts: number;
+				refused: number;
+				networkFailures: number;
+				reports: number;
+				hiddenByReports: number;
+				moderationActions: number;
+				medianFirstMessageSeconds: number;
+				disconnections: number;
+			};
+			daily: { day: string; messages: number; chatters: number; views: number; signIns: number; refused: number }[];
+			hourOfDay: number[];
+			viewers: { signedIn: number; anonymous: number };
+			signInOutcomes: Record<string, number>;
+			signInErrors: Record<string, number>;
+			refusals: Record<string, number>;
+			moderation: Record<string, number>;
+			disconnectCauses: Record<string, number>;
+		};
+
+		const chatTiles = chatPanel.querySelector<HTMLElement>('[data-chat-tiles]')!;
+		const signInLabels: Record<string, string> = { success: 'Signed in', cancelled: 'Closed the window', failed: 'Failed' };
+		const refusalLabels: Record<string, string> = {
+			signed_out: 'Not signed in', banned: 'Banned', muted: 'Muted', too_fast: 'Too fast / slow mode', empty: 'Empty',
+			too_long: 'Too long', emoji: 'Too many emoji', link: 'Contained a link', blocked_words: 'Blocked words',
+			duplicate: 'Repeated message', error: 'Server error',
+		};
+		const moderationLabels: Record<string, string> = {
+			delete: 'Deleted by a moderator', timeout: 'Muted by a moderator', ban: 'Banned', slowmode: 'Slow mode changed',
+			auto_mute: 'Muted automatically (3 strikes)', auto_hide: 'Hidden by reports',
+		};
+		const disconnectLabels: Record<string, string> = { idle: 'Chat left unseen (idle)', network: 'Network dropped', leave: 'Left the page' };
+		const formatAverage = (value: number) => (value ? value.toFixed(1) : '—');
+
+		const renderChat = (summary: ChatSummary) => {
+			const { totals } = summary;
+			chatTiles.innerHTML = [
+				tile('Messages', formatNumber(totals.messages), totals.moderatorMessages ? `${formatNumber(totals.moderatorMessages)} by moderators` : ''),
+				tile('Chatters', formatNumber(totals.chatters), 'Accounts that posted'),
+				tile('Returning chatters', formatNumber(totals.returningChatters), 'Posted on 2 or more days'),
+				tile('Active now', formatNumber(totals.activeNow), 'Posted in the last 15 min'),
+				tile('Messages per visit', formatAverage(totals.messagesPerVisit), `${formatAverage(totals.messagesPerChatter)} per chatter`),
+				tile('Chat views', formatNumber(totals.views), `${formatNumber(totals.signedInViews)} signed in · ${formatNumber(totals.views - totals.signedInViews)} not`),
+				tile('Sign-ins', formatNumber(totals.signIns), `${formatNumber(totals.signInAttempts)} attempts · ${formatNumber(totals.newAccounts)} new accounts`),
+				tile('Time to first message', totals.medianFirstMessageSeconds ? formatMinutes(totals.medianFirstMessageSeconds / 60) : '—', 'Median, from the chat showing'),
+				tile('Failed messages', formatNumber(totals.refused + totals.networkFailures), `${formatNumber(totals.refused)} refused · ${formatNumber(totals.networkFailures)} network`),
+				tile('Moderation', formatNumber(totals.moderationActions), `${formatNumber(totals.reports)} reports · ${formatNumber(totals.hiddenByReports)} hidden`),
+			].join('');
+
+			const daily = cards.get('chat-daily');
+			if (daily) {
+				const select = daily.root.querySelector<HTMLSelectElement>('[data-metric-select]')!;
+				daily.render = () => {
+					const key = select.value as 'messages' | 'chatters' | 'views' | 'signIns' | 'refused';
+					const label = select.selectedOptions[0]?.textContent ?? key;
+					daily.trend(summary.daily.map((day) => shortDay(day.day)), [{ label, values: summary.daily.map((day) => day[key]) }], [palette[2]]);
+				};
+				select.onchange = () => daily.render();
+				daily.render();
+			}
+			const hours = cards.get('chat-hours');
+			if (hours) {
+				hours.render = () => hours.trend(Array.from({ length: 24 }, (_, hour) => `${String(hour).padStart(2, '0')}:00`), [{ label: 'Messages', values: summary.hourOfDay }], [palette[3]]);
+				hours.render();
+			}
+
+			drawBreakdown('chat-viewers', [['Signed in', summary.viewers.signedIn], ['Not signed in', summary.viewers.anonymous]], 'Views');
+			drawBreakdown('chat-signins', fromRecord(Object.fromEntries(Object.entries(summary.signInOutcomes).filter(([status]) => status !== 'attempt')), signInLabels), 'Attempts');
+			drawBreakdown('chat-refusals', fromRecord(summary.refusals, refusalLabels), 'Messages');
+			drawBreakdown('chat-moderation', fromRecord(summary.moderation, moderationLabels), 'Actions');
+			drawBreakdown('chat-disconnects', fromRecord(summary.disconnectCauses, disconnectLabels), 'Disconnections');
+			drawBreakdown('chat-signin-errors', fromRecord(summary.signInErrors), 'Errors');
+		};
+
 		/* ----- Loading ----- */
 
 		const load = async () => {
 			status.textContent = 'Loading…';
 			try {
-				const [listeners, radio] = await Promise.all([
+				const [listeners, radio, chat] = await Promise.all([
 					request('/api/analytics/listeners').then((response) => response.json() as Promise<{ records: ListenerRecord[] }>),
 					request('/api/analytics/radio').then((response) => response.json() as Promise<RadioSummary>),
+					request('/api/analytics/chat').then((response) => response.json() as Promise<ChatSummary>),
 				]);
 				gate.hidden = true;
 				toolbar.hidden = false;
-				listenerPanel.hidden = false;
-				radioPanel.hidden = false;
+				panels.forEach((panel) => { panel.hidden = false; });
 				renderListeners(listeners.records);
 				renderRadio(radio);
+				renderChat(chat);
 				status.textContent = `Updated ${new Date().toLocaleTimeString('en-GB')}`;
 			} catch (error) {
 				if (error instanceof AccessError && error.status === 403) {
@@ -1745,6 +1897,9 @@ const monthLabel = (month: string) =>
 		});
 		radioPanel.querySelectorAll<HTMLButtonElement>('[data-export-radio]').forEach((button) => {
 			button.addEventListener('click', () => void downloadFrom(button, '/api/analytics/radio', { table: button.dataset.exportRadio ?? 'sessions' }));
+		});
+		chatPanel.querySelectorAll<HTMLButtonElement>('[data-export-chat]').forEach((button) => {
+			button.addEventListener('click', () => void downloadFrom(button, '/api/analytics/chat', { table: button.dataset.exportChat ?? 'daily' }));
 		});
 
 		signInButton.addEventListener('click', async () => {
@@ -1783,7 +1938,7 @@ const monthLabel = (month: string) =>
 					account.hidden = !user;
 					accountEmail.textContent = user?.email ?? '';
 					if (user) void load();
-					else showGate('Listener forms and radio listening are private. Sign in with a Google account that has analytics access.');
+					else showGate('Listener forms, radio listening and chat analytics are private. Sign in with a Google account that has analytics access.');
 				});
 			})
 			.catch(() => showGate('Google sign-in could not be loaded. Please reload the page.', { signIn: false }));

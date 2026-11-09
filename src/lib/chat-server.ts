@@ -5,9 +5,11 @@ import { FIREBASE_SERVICE_ACCOUNT } from 'astro:env/server';
 import type { App } from 'firebase-admin/app';
 import type { AppCheck } from 'firebase-admin/app-check';
 import type { Auth, DecodedIdToken } from 'firebase-admin/auth';
+import { logChatEvent, type ChatLogEvent, type RefusalReason } from './chat-analytics';
+import { chatRoomNames } from './chat-events';
 import { defaultBlocklist, type Blocklist } from './chat-filter';
 
-export const chatRooms = new Set(['bandung', 'bali']);
+export const chatRooms = new Set<string>(chatRoomNames);
 
 export type ChatMessage = {
 	/** Sender uid. */
@@ -31,7 +33,8 @@ const appCheckRequired = Boolean(import.meta.env.PUBLIC_FIREBASE_APPCHECK_SITE_K
 export const isChatServerConfigured = Boolean(FIREBASE_SERVICE_ACCOUNT && databaseUrl);
 
 export class ChatError extends Error {
-	constructor(readonly status: number, message: string) {
+	/** `reason`: why a message was refused, for the chat analytics (src/lib/chat-analytics.ts). */
+	constructor(readonly status: number, message: string, readonly reason?: RefusalReason) {
 		super(message);
 	}
 }
@@ -173,5 +176,10 @@ export const getBlocklist = async (): Promise<Blocklist> => {
 	return value;
 };
 
-export const logModAction = (moderator: DecodedIdToken, entry: Record<string, unknown>) =>
-	db('POST', 'chat/private/modlog', { ...entry, by: moderator.uid, byName: moderator.name ?? null, at: serverTimestamp });
+type ModAction = Extract<ChatLogEvent, { type: 'chat_moderation' }>['action'];
+
+/** Keeps the moderators' log in the database, and counts the action in the chat analytics. */
+export const logModAction = (moderator: DecodedIdToken, entry: { action: ModAction; room: string } & Record<string, unknown>) => {
+	void logChatEvent({ type: 'chat_moderation', room: entry.room, action: entry.action });
+	return db('POST', 'chat/private/modlog', { ...entry, by: moderator.uid, byName: moderator.name ?? null, at: serverTimestamp });
+};

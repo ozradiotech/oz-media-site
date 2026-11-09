@@ -1,9 +1,11 @@
 import type { APIRoute } from 'astro';
 import { appendEvents, type StoredEvent } from '../../lib/event-store';
+import { chatDisconnectCauses, chatRoomNames, chatSignInStatuses } from '../../lib/chat-events';
 import { endReasons, interruptionKinds, playSources, streamTypes } from '../../lib/radio-events';
 import { isBot, parseUserAgent } from '../../lib/user-agent';
 
-// Receives the radio listening events from src/scripts/oz-radio-tracker.ts and stores them (src/lib/event-store.ts).
+// Receives our own analytics events (radio listening and live chat; see src/scripts/oz-events.ts) and stores them
+// (src/lib/event-store.ts).
 // Public and unauthenticated, so everything is checked against the allowed values and anything else is dropped.
 // The IP address is only used, in memory, to rate-limit; it is never stored. Neither is the User-Agent header, only
 // the device type, OS and browser read from it.
@@ -37,10 +39,37 @@ const errorCode = (value: unknown) => (typeof value === 'string' && /^[\w-]{1,40
 
 type CleanEvent = { type: string } & Record<string, string | number | undefined>;
 
+const cleanChat = (event: Record<string, unknown>): CleanEvent | null => {
+	const room = oneOf(chatRoomNames, event.room);
+	if (!room) return null;
+	switch (event.type) {
+		case 'chat_view':
+			return typeof event.signedIn === 'boolean' ? { type: 'chat_view', room, signedIn: event.signedIn ? 1 : 0 } : null;
+		case 'chat_sign_in': {
+			const status = oneOf(chatSignInStatuses, event.status);
+			if (!status) return null;
+			return { type: 'chat_sign_in', room, status, newAccount: event.newAccount === true ? 1 : undefined, code: errorCode(event.code) };
+		}
+		case 'chat_first_message': {
+			const waitMs = duration(event.waitMs);
+			return waitMs === undefined ? null : { type: 'chat_first_message', room, waitMs };
+		}
+		case 'chat_send_error':
+			return event.reason === 'network' ? { type: 'chat_send_error', room, reason: 'network' } : null;
+		case 'chat_connection':
+			if (event.state === 'connected') return { type: 'chat_connection', room, state: 'connected' };
+			if (event.state !== 'disconnected') return null;
+			return { type: 'chat_connection', room, state: 'disconnected', cause: oneOf(chatDisconnectCauses, event.cause) ?? 'network' };
+		default:
+			return null;
+	}
+};
+
 /** The stored form of one incoming event, or null when it isn't valid. */
 const clean = (input: unknown): CleanEvent | null => {
 	if (!input || typeof input !== 'object') return null;
 	const event = input as Record<string, unknown>;
+	if (typeof event.type === 'string' && event.type.startsWith('chat_')) return cleanChat(event);
 	const stream = oneOf(streamTypes, event.stream);
 	if (!stream) return null;
 	switch (event.type) {

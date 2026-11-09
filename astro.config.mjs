@@ -14,6 +14,14 @@ export default defineConfig({
 		'/oz-bali/admin': '/admin',
 	},
 	output: 'server',
+	vite: {
+		// Development only. These are imported on demand (sign-in, chat, the player, the dashboard charts), so Vite would
+		// only find them once a page asks for one, re-bundle, and leave open pages pointing at a bundle that no longer
+		// exists ("504 Outdated Optimize Dep", e.g. Google sign-in failing to load). Bundling them up front avoids that.
+		optimizeDeps: {
+			include: ['firebase/app', 'firebase/app-check', 'firebase/auth', 'firebase/database', 'chart.js/auto', 'video.js/core.es.js'],
+		},
+	},
 	adapter: process.env.VERCEL ? vercel() : node({ mode: 'standalone' }),
 	// Self-hosted fonts, loaded per page with <Font /> (see src/styles/typography.css).
 	fonts: [
@@ -56,6 +64,8 @@ export default defineConfig({
 			// Live chat (see src/lib/chat-server.ts). Read at runtime and never sent to the browser.
 			FIREBASE_SERVICE_ACCOUNT: envField.string({ context: 'server', access: 'secret', optional: true }),
 			CRON_SECRET: envField.string({ context: 'server', access: 'secret', optional: true }),
+			// Key for the hashed chatter ids in the analytics (see src/lib/chat-analytics.ts). Optional.
+			ANALYTICS_SALT: envField.string({ context: 'server', access: 'secret', optional: true }),
 		},
 	},
 });

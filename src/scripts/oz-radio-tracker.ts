@@ -1,41 +1,8 @@
-// Radio listening analytics, sent to our own server (/api/track; see src/lib/radio-events.ts for the events and
-// src/lib/radio-stats.ts for what the dashboard makes of them). OZ Bandung's station script drives it from the
-// player's events.
-//
-// No names, no cookies and no IP addresses are stored. A random id per page load groups a visit's events; a lasting
-// listener id, to count returning listeners, is only kept and sent for visitors who accepted analytics cookies.
-import { consentStorageKey, listenerIdStorageKey as visitorKey } from '../lib/analytics-config';
-import { heartbeatInterval, type EndReason, type InterruptionKind, type PlaySource, type RadioEvent, type StreamType } from '../lib/radio-events';
-
-const endpoint = '/api/track';
-const randomId = () => crypto.randomUUID();
-const tab = randomId();
-
-const visitorId = () => {
-	try {
-		if (localStorage.getItem(consentStorageKey) !== 'granted') {
-			// Declined (or never asked): drop any id kept from an earlier "accept".
-			localStorage.removeItem(visitorKey);
-			return undefined;
-		}
-		let id = localStorage.getItem(visitorKey);
-		if (!id) {
-			id = randomId();
-			localStorage.setItem(visitorKey, id);
-		}
-		return id;
-	} catch {
-		return undefined;
-	}
-};
-
-// While the page is closing only sendBeacon is sure to arrive; otherwise a keep-alive fetch.
-const send = (events: RadioEvent[], closing = false) => {
-	const body = JSON.stringify({ tab, vid: visitorId(), events });
-	if (import.meta.env.DEV) console.debug('[radio]', ...events.map((event) => event.type), events);
-	if (closing && navigator.sendBeacon?.(endpoint, new Blob([body], { type: 'application/json' }))) return;
-	void fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive: true }).catch(() => {});
-};
+// Radio listening analytics, sent to our own server through src/scripts/oz-events.ts (see src/lib/radio-events.ts
+// for the events and src/lib/radio-stats.ts for what the dashboard makes of them). OZ Bandung's station script drives
+// it from the player's events.
+import { heartbeatInterval, type EndReason, type InterruptionKind, type PlaySource, type StreamType } from '../lib/radio-events';
+import { randomId, sendEvents as send } from './oz-events';
 
 type Session = {
 	sid: string;

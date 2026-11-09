@@ -184,6 +184,7 @@ The chat on `/oz-bandung/` uses the Firebase Realtime Database. Anyone can read 
 | `FIREBASE_SERVICE_ACCOUNT` | The whole key file from step 3 as one line of JSON. In `.env`, wrap it in single quotes. |
 | `PUBLIC_FIREBASE_APPCHECK_SITE_KEY` | Optional. The reCAPTCHA Enterprise site key from step 4. When set, the chat API requires App Check. |
 | `CRON_SECRET` | Any long random string. Vercel Cron sends it to `/api/chat-cleanup`. |
+| `ANALYTICS_SALT` | Optional. Any long random string, the key for the hashed chatter ids in the chat analytics (see Analytics → Live chat). |
 
 ### Moderation
 
@@ -300,6 +301,16 @@ Our own listening stats, kept on our server and separate from GA4. `src/scripts/
 - **Returning listeners** need a lasting random ID (`oz-listener-id` in local storage), which is only kept and sent for visitors who accepted the cookie banner; declining deletes it. Everyone else is counted anonymously.
 - The livestream is a YouTube embed, which doesn't report playback, so a livestream session runs from opening it until it's closed.
 - Event types and allowed values live in `src/lib/radio-events.ts`; the summaries in `src/lib/radio-stats.ts`.
+
+### Live chat
+
+Chat analytics go into the same event store as the radio listening (`data/events/`) and show in the **Live chat** panel on `/analytics`, with daily and raw-event CSV exports.
+
+- **From the server** (`src/lib/chat-analytics.ts`, called by `/api/chat` and `/api/chat-mod`): every message posted, every message refused and why (not signed in, banned, muted, too fast, link, blocked words, repeat…), reports, and moderation (deletes, mutes, bans, slow mode, automatic mutes and hides).
+- **From browsers** (`src/lib/chat-events.ts`, through `/api/track`): chat views (signed in or not), sign-in attempts and how they ended (including first-time accounts), messages that never reached the server, connections and disconnections (idle, network, leaving the page), and the time from the chat showing to the first message.
+- **People and views are kept apart.** A *chatter* is an account that posted, stored only as a keyed hash of its account id (`cid`). A *view* is one page load that showed the chat; one person can make many. Messages per visit use the page load's id, which the chat sends with each message.
+- The hash key is `ANALYTICS_SALT` in `.env` (optional; the service-account key is used when it's unset). Changing it makes every chatter look new.
+- Chat messages themselves are deleted after a day, so these statistics start from when this went live.
 
 ### Privacy policy
 

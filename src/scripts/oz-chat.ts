@@ -1,6 +1,7 @@
 import { getDatabase, goOffline, goOnline, limitToLast, onChildAdded, onChildRemoved, onValue, orderByKey, query, ref } from 'firebase/database';
 import type { OzAuth, OzUser } from './oz-auth';
 import { getAppCheckToken, getOzFirebaseApp, isChatConfigured } from './oz-firebase';
+import { sendEvents, tabId } from './oz-events';
 import { track } from './oz-track';
 
 // Live chat. Anyone can read it straight from the Realtime Database; sending, reporting and moderating go
@@ -308,8 +309,9 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth, signal }:
 		} else if (!offline && idleTimer === undefined) {
 			idleTimer = window.setTimeout(() => {
 				idleTimer = undefined;
-				goOffline(database);
+				// Set first, so the disconnection below is counted as idle rather than a dropped network.
 				offline = true;
+				goOffline(database);
 			}, idleDisconnectDelay);
 		}
 	};
@@ -320,9 +322,21 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth, signal }:
 	viewObserver.observe(root);
 	document.addEventListener('visibilitychange', updateConnection, { signal });
 
+	// Connections and disconnections, for the chat analytics (src/lib/chat-events.ts).
+	let connected = false;
+	subscriptions.push(onValue(ref(database, '.info/connected'), (snapshot) => {
+		const now = snapshot.val() === true;
+		if (now === connected) return;
+		connected = now;
+		sendEvents([now
+			? { type: 'chat_connection', room, state: 'connected' }
+			: { type: 'chat_connection', room, state: 'disconnected', cause: offline ? 'idle' : 'network' }]);
+	}));
+
 	// Leaving the page stops the listeners and lets the connection go until the chat is shown again.
 	onAbort(() => {
 		subscriptions.forEach((unsubscribe) => unsubscribe());
+		if (connected) sendEvents([{ type: 'chat_connection', room, state: 'disconnected', cause: 'leave' }]);
 		viewObserver.disconnect();
 		window.clearTimeout(idleTimer);
 		if (layoutFrame !== undefined) cancelAnimationFrame(layoutFrame);
@@ -334,7 +348,8 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth, signal }:
 		if (!idToken) throw new Error('Please sign in to chat.');
 		const headers: Record<string, string> = { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` };
 		if (appCheckToken) headers['X-Firebase-AppCheck'] = appCheckToken;
-		const response = await fetch(path, { method: 'POST', headers, body: JSON.stringify({ room, ...body }) });
+		// `tab` (this page load) lets the dashboard count messages per visit.
+		const response = await fetch(path, { method: 'POST', headers, body: JSON.stringify({ room, tab: tabId, ...body }) });
 		const result = await response.json().catch(() => ({})) as { error?: string; hidden?: boolean; id?: string };
 		if (!response.ok) throw new Error(result.error || 'Something went wrong. Please try again.');
 		return result;
@@ -380,11 +395,17 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth, signal }:
 		try {
 			const { id } = await callApi('/api/chat', { text });
 			track('chat_message_send', { status: 'sent' });
+			if (shownAt !== null) {
+				sendEvents([{ type: 'chat_first_message', room, waitMs: performance.now() - shownAt }]);
+				shownAt = null;
+			}
 			// The real message may already be here if the database was quicker than the response.
 			if (id && !items.has(id)) pending.set(id, placeholder);
 			else placeholder.remove();
 		} catch (error) {
 			track('chat_message_send', { status: 'failed' });
+			// The server logs the messages it refuses; only those that never reached it are sent from here.
+			if (error instanceof TypeError) sendEvents([{ type: 'chat_send_error', room, reason: 'network' }]);
 			placeholder.remove();
 			cooldownUntil = 0;
 			if (!input.value) input.value = text;
@@ -448,14 +469,18 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth, signal }:
 		if (!auth) return;
 		signIn.disabled = true;
 		track('chat_sign_in', { status: 'attempt' });
+		sendEvents([{ type: 'chat_sign_in', room, status: 'attempt' }]);
 		try {
-			await auth.signIn();
-			// GA4's own event for a sign-in.
+			const { isNewUser } = await auth.signIn();
+			// GA4's own events for a sign-in, and for a first one.
 			track('login', { method: 'Google' });
+			if (isNewUser) track('sign_up', { method: 'Google' });
+			sendEvents([{ type: 'chat_sign_in', room, status: 'success', newAccount: isNewUser }]);
 		} catch (error) {
 			const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
 			const cancelled = code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request';
 			track('chat_sign_in', { status: cancelled ? 'cancelled' : 'failed', error_code: typeof code === 'string' ? code : 'unknown' });
+			sendEvents([{ type: 'chat_sign_in', room, status: cancelled ? 'cancelled' : 'failed', code: typeof code === 'string' ? code.replace(/^auth\//, '') : 'unknown' }]);
 			if (!cancelled) {
 				console.warn('Google sign-in failed:', error);
 				showStatus(code === 'auth/popup-blocked'
@@ -474,11 +499,15 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth, signal }:
 		void auth?.signOut();
 	});
 
+	// From the chat being shown to this page view's first message; null once sent.
+	let shownAt: number | null = performance.now();
+
 	renderViewer();
 	auth = await loadAuth();
 	if (signal.aborted) return;
 	if (!auth) {
 		authKnown = true;
+		sendEvents([{ type: 'chat_view', room, signedIn: false }]);
 		renderViewer();
 		signIn.disabled = true;
 		showStatus('Google sign-in is unavailable right now. Please try again later.');
@@ -486,9 +515,11 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth, signal }:
 	}
 	const currentAuth = auth;
 	// Firebase keeps the sign-in on this device until the visitor signs out; wait for it to be restored.
-	await currentAuth.ready().catch(() => null);
+	const restored = await currentAuth.ready().catch(() => null);
 	if (signal.aborted) return;
 	authKnown = true;
+	// Once per page view, once it's known whether the viewer is signed in. A view is not a person.
+	sendEvents([{ type: 'chat_view', room, signedIn: Boolean(restored) }]);
 	onAbort(currentAuth.onChange(async (user) => {
 		viewer = user;
 		moderator = false;
