@@ -185,6 +185,7 @@ The chat on `/oz-bandung/` uses the Firebase Realtime Database. Anyone can read 
 | `PUBLIC_FIREBASE_APPCHECK_SITE_KEY` | Optional. The reCAPTCHA Enterprise site key from step 4. When set, the chat API requires App Check. |
 | `CRON_SECRET` | Any long random string. Vercel Cron sends it to `/api/chat-cleanup`. |
 | `ANALYTICS_SALT` | Optional. Any long random string, the key for the hashed chatter ids in the chat analytics (see Analytics → Live chat). |
+| `GA_PROPERTY_ID` | Optional. The GA4 property number for the Website panel on `/analytics` (see Analytics → Website panel). |
 
 ### Moderation
 
@@ -270,6 +271,18 @@ The ID is baked in at build time, so on the server add it to `.env` and run `scr
 
 Google's script only loads after a visitor clicks **Accept** in the cookie banner (`ConsentBanner.astro`); until then, or after **Decline**, nothing is sent and no `_ga` cookies are set. The choice is kept in the browser (`oz-analytics-consent`), and **Cookie settings** in the footers brings the banner back. The banner and notice also show on the dev server so they can be tried out, but GA never loads there.
 
+#### Website panel (GA4 reports on /analytics)
+
+The **Website** panel on `/analytics` shows GA4's numbers for the chosen dates: overview, traffic channels and sources, most visited and landing pages, new vs returning visitors, devices, browsers, operating systems, cities, UTM campaigns and events. Each table exports to CSV. `src/lib/ga4.ts` reads them through the GA4 Data API, signed in as the Firebase service account with read-only Analytics access; results are cached for 10 minutes.
+
+Setup, once:
+
+1. `GA_PROPERTY_ID` in `.env`: the number in GA4 → **Admin → Property details** (not the `G-` Measurement ID).
+2. In the Google Cloud console for project `oz-media-site`, enable **Google Analytics Data API**.
+3. In GA4 → **Admin → Property access management**, add the service account's email (`client_email` in `FIREBASE_SERVICE_ACCOUNT`) as a **Viewer**.
+
+Until then the panel says which step is missing. GA4 has no exit-page report outside its own Explorations, so exits aren't shown.
+
 #### Events
 
 Besides page views, the site sends these GA4 events through `track()` in `src/scripts/oz-track.ts` (only with consent; on the dev server they are logged to the browser console instead). Parameters never carry names, emails or locations.
@@ -311,6 +324,15 @@ Chat analytics go into the same event store as the radio listening (`data/events
 - **People and views are kept apart.** A *chatter* is an account that posted, stored only as a keyed hash of its account id (`cid`). A *view* is one page load that showed the chat; one person can make many. Messages per visit use the page load's id, which the chat sends with each message.
 - The hash key is `ANALYTICS_SALT` in `.env` (optional; the service-account key is used when it's unset). Changing it makes every chatter look new.
 - Chat messages themselves are deleted after a day, so these statistics start from when this went live.
+
+### Site performance
+
+`src/components/SiteMonitor.astro` (on the public pages) loads `src/scripts/oz-site-monitor.ts`, which measures the Core Web Vitals with Google's `web-vitals` library (LCP, INP, CLS, plus FCP and TTFB) and the full page load time, and reports JavaScript errors. They are sent through `/api/track` into `data/events/` and shown in the **Site performance** panel on `/analytics`, with measurement and error CSV exports.
+
+- Pages are reported by kind (`Home`, `OZ Bandung`, `News article`…; see `pageGroup` in `src/lib/site-events.ts`), never by address. Add new pages there.
+- Figures are 75th percentiles, rated with Google's thresholds, as in Search Console and PageSpeed Insights. "Good page experience" is the share of page views with good LCP and CLS, and good INP when there was an interaction.
+- Vitals are sent when the page is hidden or closed, since CLS and INP are only final then. Moving between OZ Bandung and OZ News without a reload is one page view, of the page the visitor arrived on.
+- Error messages are cut to 150 characters, with addresses replaced by `[url]`; at most five different errors are sent per page load.
 
 ### Privacy policy
 

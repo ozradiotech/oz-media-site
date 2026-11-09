@@ -19,7 +19,7 @@ export default defineConfig({
 		// only find them once a page asks for one, re-bundle, and leave open pages pointing at a bundle that no longer
 		// exists ("504 Outdated Optimize Dep", e.g. Google sign-in failing to load). Bundling them up front avoids that.
 		optimizeDeps: {
-			include: ['firebase/app', 'firebase/app-check', 'firebase/auth', 'firebase/database', 'chart.js/auto', 'video.js/core.es.js'],
+			include: ['firebase/app', 'firebase/app-check', 'firebase/auth', 'firebase/database', 'chart.js/auto', 'video.js/core.es.js', 'web-vitals'],
 		},
 	},
 	adapter: process.env.VERCEL ? vercel() : node({ mode: 'standalone' }),
@@ -66,6 +66,8 @@ export default defineConfig({
 			CRON_SECRET: envField.string({ context: 'server', access: 'secret', optional: true }),
 			// Key for the hashed chatter ids in the analytics (see src/lib/chat-analytics.ts). Optional.
 			ANALYTICS_SALT: envField.string({ context: 'server', access: 'secret', optional: true }),
+			// The GA4 property the /analytics Website panel reads (see src/lib/ga4.ts). Optional.
+			GA_PROPERTY_ID: envField.string({ context: 'server', access: 'public', optional: true }),
 		},
 	},
 });

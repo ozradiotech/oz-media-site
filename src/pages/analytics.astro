@@ -65,6 +65,28 @@ const platforms = [
 	},
 ];
 
+// Website (private): Google Analytics 4 reports from /api/analytics/web.
+const webTrends = [
+	{ chart: 'web-daily', title: 'Day by day', style: 'line', metrics: [['activeUsers', 'Visitors'], ['newUsers', 'New visitors'], ['sessions', 'Sessions'], ['screenPageViews', 'Page views'], ['engagedSessions', 'Engaged sessions']] },
+];
+const webTraffic = [
+	{ chart: 'web-channels', title: 'Where sessions came from', style: 'pie' },
+];
+const webAudience = [
+	{ chart: 'web-returning', title: 'New or returning visitors', style: 'doughnut' },
+	{ chart: 'web-devices', title: 'Devices', style: 'doughnut' },
+	{ chart: 'web-browsers', title: 'Browsers', style: 'bar' },
+	{ chart: 'web-os', title: 'Operating systems', style: 'bar' },
+];
+const webTables = [
+	{ report: 'sources', title: 'Sources (utm_source / medium)', section: 'traffic' },
+	{ report: 'pages', title: 'Most visited pages', section: 'traffic' },
+	{ report: 'landingPages', title: 'Landing pages (first page of a visit)', section: 'traffic' },
+	{ report: 'cities', title: 'Cities (approximate)', section: 'audience' },
+	{ report: 'campaigns', title: 'Campaign links (UTM)', section: 'campaigns' },
+	{ report: 'events', title: 'Events', section: 'campaigns' },
+];
+
 // Radio listening (private): filled in by the script once the visitor is signed in.
 const radioTrends = [
 	{ chart: 'radio-daily', title: 'Day by day', style: 'line', metrics: [['sessions', 'Listening sessions'], ['listeningHours', 'Listening hours'], ['playClicks', 'Play clicks'], ['errors', 'Stream errors']] },
@@ -93,6 +115,11 @@ const chatBreakdowns = [
 	{ chart: 'chat-moderation', title: 'Moderation', style: 'bar' },
 	{ chart: 'chat-disconnects', title: 'Disconnections', style: 'pie' },
 	{ chart: 'chat-signin-errors', title: 'Sign-in errors', style: 'table' },
+];
+
+// Site performance (private).
+const siteTrends = [
+	{ chart: 'site-daily', title: 'Day by day (75th percentile)', style: 'line', metrics: [['LCP', 'Largest Contentful Paint (ms)'], ['INP', 'Interaction to Next Paint (ms)'], ['CLS', 'Cumulative Layout Shift'], ['FCP', 'First Contentful Paint (ms)'], ['TTFB', 'Time to First Byte (ms)'], ['LOAD', 'Full page load (ms)']] },
 ];
 
 // Listener form breakdowns on the private panel, filled in by the script once the visitor is signed in.
@@ -197,7 +224,7 @@ const monthLabel = (month: string) =>
 					</p>
 				</div>
 				<div class="gate" data-gate>
-					<p class="gate-message" data-gate-message aria-live="polite">Listener forms, radio listening and chat analytics are private. Sign in with a Google account that has analytics access.</p>
+					<p class="gate-message" data-gate-message aria-live="polite">Listener forms, radio listening, chat and site analytics are private. Sign in with a Google account that has analytics access.</p>
 					<button class="action-button" type="button" data-sign-in>Sign in with Google</button>
 				</div>
 				<div class="toolbar" data-private-toolbar hidden>
@@ -206,6 +233,104 @@ const monthLabel = (month: string) =>
 						<label class="filter">To<input type="date" data-range-to /></label>
 					</div>
 					<p class="chart-note" data-private-status aria-live="polite"></p>
+				</div>
+			</section>
+
+			<section class="panel" aria-labelledby="web-title" data-web-panel hidden>
+				<div class="panel-heading">
+					<h2 id="web-title">WEBSITE · GOOGLE ANALYTICS</h2>
+				</div>
+				<p class="panel-note">Traffic, audience and campaigns from Google Analytics 4, which only counts visitors who accepted analytics cookies; it reads lower than the real number of visitors. GA hides some rows when numbers are small. Refreshed at most every 10 minutes.</p>
+				<p class="gate-message" data-web-status aria-live="polite" hidden></p>
+				<div class="private-sections" data-web-body>
+					<h3 class="section-label">Overview</h3>
+					<div class="tiles" data-web-tiles></div>
+					<div class="chart-grid">
+						{webTrends.map((card) => (
+						<article class="chart-card chart-card-wide" data-chart={card.chart} data-style={card.style}>
+							<header class="chart-card-header">
+								<h3>{card.title}</h3>
+								<div class="chart-controls">
+									{card.metrics && (
+										<label class="filter filter-compact"><span class="visually-hidden">Metric</span>
+											<select data-metric-select>
+												{card.metrics.map(([value, label]) => <option value={value}>{label}</option>)}
+											</select>
+										</label>
+									)}
+									<div class="style-switch" role="group" aria-label="Chart style">
+										{trendStyles.map((style) => <button type="button" data-style-option={style.value} aria-pressed={style.value === card.style ? 'true' : 'false'}>{style.label}</button>)}
+									</div>
+								</div>
+							</header>
+							<div class="chart-body"><canvas></canvas><div class="chart-table" hidden></div></div>
+						</article>
+					))}
+					</div>
+					<h3 class="section-label">Traffic</h3>
+					<div class="chart-grid">
+						{webTraffic.map((card) => (
+						<article class="chart-card" data-chart={card.chart} data-style={card.style}>
+							<header class="chart-card-header">
+								<h3>{card.title}</h3>
+								<div class="chart-controls">
+									<div class="style-switch" role="group" aria-label="Chart style">
+										{breakdownStyles.map((style) => <button type="button" data-style-option={style.value} aria-pressed={style.value === card.style ? 'true' : 'false'}>{style.label}</button>)}
+									</div>
+								</div>
+							</header>
+							<p class="chart-total" data-chart-total></p>
+							<div class="chart-body chart-body-square"><canvas></canvas><div class="chart-table" hidden></div></div>
+						</article>
+					))}
+						{webTables.filter((table) => table.section === 'traffic').map((table) => (
+							<article class="chart-card chart-card-wide">
+								<header class="chart-card-header">
+									<h3>{table.title}</h3>
+									<button class="action-button" type="button" data-export-web={table.report}>CSV</button>
+								</header>
+								<div class="chart-table record-table" data-web-table={table.report}></div>
+							</article>
+						))}
+					</div>
+					<h3 class="section-label">Audience</h3>
+					<div class="chart-grid">
+						{webAudience.map((card) => (
+						<article class="chart-card" data-chart={card.chart} data-style={card.style}>
+							<header class="chart-card-header">
+								<h3>{card.title}</h3>
+								<div class="chart-controls">
+									<div class="style-switch" role="group" aria-label="Chart style">
+										{breakdownStyles.map((style) => <button type="button" data-style-option={style.value} aria-pressed={style.value === card.style ? 'true' : 'false'}>{style.label}</button>)}
+									</div>
+								</div>
+							</header>
+							<p class="chart-total" data-chart-total></p>
+							<div class="chart-body chart-body-square"><canvas></canvas><div class="chart-table" hidden></div></div>
+						</article>
+					))}
+						{webTables.filter((table) => table.section === 'audience').map((table) => (
+							<article class="chart-card chart-card-wide">
+								<header class="chart-card-header">
+									<h3>{table.title}</h3>
+									<button class="action-button" type="button" data-export-web={table.report}>CSV</button>
+								</header>
+								<div class="chart-table record-table" data-web-table={table.report}></div>
+							</article>
+						))}
+					</div>
+					<h3 class="section-label">Campaigns and events</h3>
+					<div class="chart-grid">
+						{webTables.filter((table) => table.section === 'campaigns').map((table) => (
+							<article class="chart-card chart-card-wide">
+								<header class="chart-card-header">
+									<h3>{table.title}</h3>
+									<button class="action-button" type="button" data-export-web={table.report}>CSV</button>
+								</header>
+								<div class="chart-table record-table" data-web-table={table.report}></div>
+							</article>
+						))}
+					</div>
 				</div>
 			</section>
 
@@ -303,6 +428,52 @@ const monthLabel = (month: string) =>
 							<div class="chart-body chart-body-square"><canvas></canvas><div class="chart-table" hidden></div></div>
 						</article>
 					))}
+				</div>
+			</section>
+
+			<section class="panel" aria-labelledby="site-title" data-site-panel hidden>
+				<div class="panel-heading">
+					<h2 id="site-title">SITE PERFORMANCE</h2>
+					<div class="chart-controls">
+						<button class="action-button" type="button" data-export-site="vitals">Measurements CSV</button>
+						<button class="action-button" type="button" data-export-site="errors">Errors CSV</button>
+					</div>
+				</div>
+				<p class="panel-note">How fast and stable pages are for real visitors (Core Web Vitals), and JavaScript errors. Each figure is the 75th percentile: three in four page views were at least this good. Ratings use Google's thresholds. Moving between OZ Bandung and OZ News without a reload counts as one page view, of the page the visitor arrived on.</p>
+				<div class="tiles" data-site-tiles></div>
+				<div class="chart-grid">
+					{siteTrends.map((card) => (
+						<article class="chart-card chart-card-wide" data-chart={card.chart} data-style={card.style}>
+							<header class="chart-card-header">
+								<h3>{card.title}</h3>
+								<div class="chart-controls">
+									{card.metrics && (
+										<label class="filter filter-compact"><span class="visually-hidden">Metric</span>
+											<select data-metric-select>
+												{card.metrics.map(([value, label]) => <option value={value}>{label}</option>)}
+											</select>
+										</label>
+									)}
+									<div class="style-switch" role="group" aria-label="Chart style">
+										{trendStyles.map((style) => <button type="button" data-style-option={style.value} aria-pressed={style.value === card.style ? 'true' : 'false'}>{style.label}</button>)}
+									</div>
+								</div>
+							</header>
+							<div class="chart-body"><canvas></canvas><div class="chart-table" hidden></div></div>
+						</article>
+					))}
+					<article class="chart-card chart-card-wide">
+						<header class="chart-card-header"><h3>By page</h3></header>
+						<div class="chart-table record-table" data-site-pages></div>
+					</article>
+					<article class="chart-card chart-card-wide">
+						<header class="chart-card-header"><h3>By device</h3></header>
+						<div class="chart-table record-table" data-site-devices></div>
+					</article>
+					<article class="chart-card chart-card-wide">
+						<header class="chart-card-header"><h3>JavaScript errors</h3></header>
+						<div class="chart-table record-table" data-site-errors></div>
+					</article>
 				</div>
 			</section>
 
@@ -772,6 +943,24 @@ const monthLabel = (month: string) =>
 		max-height: 480px;
 	}
 
+	.section-label {
+		margin: 8px 0 -6px;
+		font-size: 13px;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--ink-secondary);
+	}
+
+	.private-sections {
+		display: grid;
+		gap: 20px;
+	}
+
+	.private-sections[hidden],
+	.gate-message[hidden] {
+		display: none;
+	}
+
 	.panel-note {
 		max-width: 75ch;
 		margin: -8px 0 0;
@@ -1029,6 +1218,34 @@ const monthLabel = (month: string) =>
 		font-size: 12px;
 		color: var(--ink-secondary);
 		background: var(--surface-raised);
+	}
+
+	/* Core Web Vitals ratings, Google's colours and labels. */
+	:global(.rating) {
+		font-weight: 700;
+		white-space: nowrap;
+	}
+
+	:global(.rating::before) {
+		display: inline-block;
+		width: 8px;
+		height: 8px;
+		margin-right: 6px;
+		border-radius: 50%;
+		background: currentColor;
+		content: '';
+	}
+
+	:global(.rating-good) {
+		color: #0a7c42;
+	}
+
+	:global(.rating-needs-improvement) {
+		color: #a35a00;
+	}
+
+	:global(.rating-poor) {
+		color: #c5221f;
 	}
 
 	.chart-note {
@@ -1521,7 +1738,9 @@ const monthLabel = (month: string) =>
 	const listenerPanel = document.querySelector<HTMLElement>('[data-listener-panel]');
 	const radioPanel = document.querySelector<HTMLElement>('[data-radio-panel]');
 	const chatPanel = document.querySelector<HTMLElement>('[data-chat-panel]');
-	if (privateArea && listenerPanel && radioPanel && chatPanel) {
+	const sitePanel = document.querySelector<HTMLElement>('[data-site-panel]');
+	const webPanel = document.querySelector<HTMLElement>('[data-web-panel]');
+	if (privateArea && listenerPanel && radioPanel && chatPanel && sitePanel && webPanel) {
 		const gate = privateArea.querySelector<HTMLElement>('[data-gate]')!;
 		const gateMessage = privateArea.querySelector<HTMLElement>('[data-gate-message]')!;
 		const signInButton = privateArea.querySelector<HTMLButtonElement>('[data-sign-in]')!;
@@ -1531,8 +1750,8 @@ const monthLabel = (month: string) =>
 		const fromInput = privateArea.querySelector<HTMLInputElement>('[data-range-from]')!;
 		const toInput = privateArea.querySelector<HTMLInputElement>('[data-range-to]')!;
 		const status = privateArea.querySelector<HTMLElement>('[data-private-status]')!;
-		const panels = [radioPanel, chatPanel, listenerPanel];
-		const cards = new Map([...document.querySelectorAll<HTMLElement>('[data-listener-panel] .chart-card[data-chart], [data-radio-panel] .chart-card[data-chart], [data-chat-panel] .chart-card[data-chart]')]
+		const panels = [webPanel, radioPanel, chatPanel, sitePanel, listenerPanel];
+		const cards = new Map([...document.querySelectorAll<HTMLElement>('[data-web-panel] .chart-card[data-chart], [data-listener-panel] .chart-card[data-chart], [data-radio-panel] .chart-card[data-chart], [data-chat-panel] .chart-card[data-chart], [data-site-panel] .chart-card[data-chart]')]
 			.map((root) => [root.dataset.chart!, new ChartCard(root)]));
 
 		// The last 30 days, in Jakarta dates, until changed.
@@ -1860,15 +2079,190 @@ const monthLabel = (month: string) =>
 			drawBreakdown('chat-signin-errors', fromRecord(summary.signInErrors), 'Errors');
 		};
 
+		/* ----- Site performance ----- */
+
+		type VitalName = 'LCP' | 'INP' | 'CLS' | 'FCP' | 'TTFB' | 'LOAD';
+		type VitalRow = { views: number } & Record<VitalName, number | null>;
+		type SiteSummary = {
+			totals: { pageViews: number; passingShare: number | null; judgedViews: number; errors: number; pageViewsWithErrors: number };
+			metrics: Record<VitalName, { p75: number | null; rating: string | null; samples: number; ratings: Record<string, number> }>;
+			pages: Record<string, VitalRow>;
+			devices: Record<string, VitalRow>;
+			daily: ({ day: string } & Record<VitalName, number | null>)[];
+			errors: { message: string; source: string; page: string; count: number; lastSeen: string }[];
+		};
+
+		const siteTiles = sitePanel.querySelector<HTMLElement>('[data-site-tiles]')!;
+		const sitePages = sitePanel.querySelector<HTMLElement>('[data-site-pages]')!;
+		const siteDevices = sitePanel.querySelector<HTMLElement>('[data-site-devices]')!;
+		const siteErrors = sitePanel.querySelector<HTMLElement>('[data-site-errors]')!;
+		const vitalOrder: VitalName[] = ['LCP', 'INP', 'CLS', 'FCP', 'TTFB', 'LOAD'];
+		const vitalLabels: Record<VitalName, string> = {
+			LCP: 'Largest Contentful Paint', INP: 'Interaction to Next Paint', CLS: 'Cumulative Layout Shift',
+			FCP: 'First Contentful Paint', TTFB: 'Time to First Byte', LOAD: 'Full page load',
+		};
+		// Same thresholds as src/lib/site-events.ts (Google's).
+		const vitalLimits: Partial<Record<VitalName, [number, number]>> = { LCP: [2500, 4000], INP: [200, 500], CLS: [0.1, 0.25], FCP: [1800, 3000], TTFB: [800, 1800] };
+		const ratingLabels: Record<string, string> = { good: 'Good', 'needs-improvement': 'Needs improvement', poor: 'Poor' };
+		const ratingOf = (name: VitalName, value: number) => {
+			const limits = vitalLimits[name];
+			if (!limits) return null;
+			return value <= limits[0] ? 'good' : value > limits[1] ? 'poor' : 'needs-improvement';
+		};
+		const formatVital = (name: VitalName, value: number | null) => {
+			if (value === null) return '—';
+			if (name === 'CLS') return value.toFixed(2);
+			return value >= 1000 ? `${(value / 1000).toFixed(1)} s` : `${Math.round(value)} ms`;
+		};
+		// A value with its rating colour (as HTML). The rating word is also written out, so colour isn't the only clue; the
+		// tiles hide it visually (.tile .visually-hidden), the tables show it.
+		const ratedCell = (name: VitalName, value: number | null) => {
+			const rating = value === null ? null : ratingOf(name, value);
+			const text = escapeHtml(formatVital(name, value));
+			return rating ? `<span class="rating rating-${rating}">${text}<span class="visually-hidden"> (${ratingLabels[rating]})</span></span>` : text;
+		};
+
+		const vitalsTable = (container: HTMLElement, rows: Record<string, VitalRow>, heading: string, labels: Record<string, string> = {}) => {
+			const entries = Object.entries(rows).sort((a, b) => b[1].views - a[1].views);
+			container.innerHTML = entries.length
+				? `<table><thead><tr><th scope="col">${heading}</th><th scope="col">Page views</th>${vitalOrder.map((name) => `<th scope="col" title="${vitalLabels[name]}">${name}</th>`).join('')}</tr></thead><tbody>${entries.map(([key, row]) =>
+					`<tr><th scope="row">${escapeHtml(labels[key] ?? key)}</th><td>${formatNumber(row.views)}</td>${vitalOrder.map((name) => `<td>${ratedCell(name, row[name])}</td>`).join('')}</tr>`).join('')}</tbody></table>`
+				: '<p class="chart-note">No measurements in this period yet.</p>';
+		};
+
+		const renderSite = (summary: SiteSummary) => {
+			const { totals, metrics } = summary;
+			const metricTile = (name: VitalName) => {
+				const metric = metrics[name];
+				const goodShare = metric.samples && vitalLimits[name] ? `${Math.round(((metric.ratings.good ?? 0) / metric.samples) * 100)}% good · ` : '';
+				return `<div class="tile"><span class="tile-label">${escapeHtml(vitalLabels[name])}</span><strong class="tile-value">${ratedCell(name, metric.p75)}</strong><span class="tile-note">${escapeHtml(`${name} · ${goodShare}${formatNumber(metric.samples)} measured`)}</span></div>`;
+			};
+			siteTiles.innerHTML = [
+				tile('Good page experience', totals.passingShare === null ? '—' : `${Math.round(totals.passingShare * 100)}%`, `Of ${formatNumber(totals.judgedViews)} page views: good LCP, CLS and INP`),
+				...vitalOrder.map(metricTile),
+				tile('JavaScript errors', formatNumber(totals.errors), `In ${formatNumber(totals.pageViewsWithErrors)} page views`),
+			].join('');
+
+			const daily = cards.get('site-daily');
+			if (daily) {
+				const select = daily.root.querySelector<HTMLSelectElement>('[data-metric-select]')!;
+				daily.render = () => {
+					const name = select.value as VitalName;
+					const label = select.selectedOptions[0]?.textContent ?? name;
+					daily.trend(summary.daily.map((day) => shortDay(day.day)), [{ label, values: summary.daily.map((day) => day[name]) }], [palette[4]], (value) => (typeof value === 'number' ? formatVital(name, value) : '—'));
+				};
+				select.onchange = () => daily.render();
+				daily.render();
+			}
+
+			vitalsTable(sitePages, summary.pages, 'Page');
+			vitalsTable(siteDevices, summary.devices, 'Device', deviceLabels);
+			siteErrors.innerHTML = summary.errors.length
+				? `<table><thead><tr>${['Error', 'Script', 'Page', 'Times', 'Last seen'].map((heading) => `<th scope="col">${heading}</th>`).join('')}</tr></thead><tbody>${summary.errors.map((error) => `<tr>${[
+					error.message, error.source || '—', error.page, formatNumber(error.count), sentAt.format(new Date(error.lastSeen)),
+				].map((cell) => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`).join('')}</tbody></table>`
+				: '<p class="chart-note">No JavaScript errors in this period.</p>';
+		};
+
+		/* ----- Website (Google Analytics 4) ----- */
+
+		type GaRow = Record<string, string | number>;
+		type WebData = { reports: Record<string, GaRow[]> };
+
+		const webStatus = webPanel.querySelector<HTMLElement>('[data-web-status]')!;
+		const webBody = webPanel.querySelector<HTMLElement>('[data-web-body]')!;
+		const webTiles = webPanel.querySelector<HTMLElement>('[data-web-tiles]')!;
+		const gaDay = (value: string) => `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`;
+		const notSet = (value: unknown) => (value === '' || value === '(not set)' ? '—' : String(value));
+		// [field, heading, how to show it]; "perVisitor" divides by the row's visitors (engagement time per visitor).
+		type Column = [string, string, 'text' | 'number' | 'perVisitor'];
+		const webColumns: Record<string, Column[]> = {
+			sources: [['sessionSource', 'Source', 'text'], ['sessionMedium', 'Medium', 'text'], ['sessions', 'Sessions', 'number'], ['activeUsers', 'Visitors', 'number'], ['engagedSessions', 'Engaged sessions', 'number']],
+			pages: [['pagePath', 'Page', 'text'], ['screenPageViews', 'Views', 'number'], ['activeUsers', 'Visitors', 'number'], ['userEngagementDuration', 'Time per visitor', 'perVisitor']],
+			landingPages: [['landingPage', 'Landing page', 'text'], ['sessions', 'Sessions', 'number'], ['engagedSessions', 'Engaged sessions', 'number'], ['activeUsers', 'Visitors', 'number']],
+			cities: [['city', 'City', 'text'], ['country', 'Country', 'text'], ['activeUsers', 'Visitors', 'number'], ['sessions', 'Sessions', 'number']],
+			campaigns: [['sessionCampaignName', 'Campaign', 'text'], ['sessionSource', 'Source', 'text'], ['sessionMedium', 'Medium', 'text'], ['sessionManualAdContent', 'Placement', 'text'], ['sessions', 'Sessions', 'number'], ['activeUsers', 'Visitors', 'number'], ['engagedSessions', 'Engaged sessions', 'number']],
+			events: [['eventName', 'Event', 'text'], ['eventCount', 'Times', 'number'], ['totalUsers', 'Visitors', 'number']],
+		};
+		const emptyNotes: Record<string, string> = {
+			campaigns: 'No visits from campaign links in this period. Make links in Campaign links below and use them in posts.',
+		};
+
+		const renderWebTable = (name: string, rows: GaRow[]) => {
+			const container = webPanel.querySelector<HTMLElement>(`[data-web-table="${name}"]`);
+			const columns = webColumns[name];
+			if (!container || !columns) return;
+			const cell = (row: GaRow, [field, , kind]: Column) => {
+				if (kind === 'text') return escapeHtml(notSet(row[field]));
+				if (kind === 'perVisitor') return Number(row.activeUsers) ? formatDuration(Number(row[field]) / Number(row.activeUsers)) : '—';
+				return formatNumber(Number(row[field]));
+			};
+			container.innerHTML = rows.length
+				? `<table><thead><tr>${columns.map(([, heading]) => `<th scope="col">${heading}</th>`).join('')}</tr></thead><tbody>${rows.map((row) => `<tr>${columns.map((column) => `<td>${cell(row, column)}</td>`).join('')}</tr>`).join('')}</tbody></table>`
+				: `<p class="chart-note">${escapeHtml(emptyNotes[name] ?? 'No data in this period yet.')}</p>`;
+		};
+
+		const pairs = (rows: GaRow[], dimension: string, metric: string, labels: Record<string, string> = {}, limit = 8) =>
+			foldOther(rows.map((row) => [labels[String(row[dimension])] ?? notSet(row[dimension]), Number(row[metric])] as [string, number]), limit);
+
+		const renderWeb = ({ reports }: WebData) => {
+			const totals = reports.totals?.[0] ?? {};
+			const number = (field: string) => Number(totals[field] ?? 0);
+			webTiles.innerHTML = [
+				tile('Visitors', formatNumber(number('activeUsers')), 'Who accepted cookies'),
+				tile('New visitors', formatNumber(number('newUsers'))),
+				tile('Sessions', formatNumber(number('sessions')), `${number('sessionsPerUser').toFixed(1)} per visitor`),
+				tile('Page views', formatNumber(number('screenPageViews'))),
+				tile('Engaged sessions', `${Math.round(number('engagementRate') * 100)}%`, `${formatNumber(number('engagedSessions'))} sessions over 10 s, 2+ pages or an event`),
+				tile('Average session', formatDuration(number('averageSessionDuration'))),
+			].join('');
+
+			const daily = cards.get('web-daily');
+			if (daily) {
+				const select = daily.root.querySelector<HTMLSelectElement>('[data-metric-select]')!;
+				const rows = reports.daily ?? [];
+				daily.render = () => {
+					const key = select.value;
+					const label = select.selectedOptions[0]?.textContent ?? key;
+					daily.trend(rows.map((row) => shortDay(gaDay(String(row.date)))), [{ label, values: rows.map((row) => Number(row[key])) }], [palette[0]]);
+				};
+				select.onchange = () => daily.render();
+				daily.render();
+			}
+
+			drawBreakdown('web-channels', pairs(reports.channels ?? [], 'sessionDefaultChannelGroup', 'sessions'), 'Sessions');
+			drawBreakdown('web-returning', pairs(reports.newVsReturning ?? [], 'newVsReturning', 'activeUsers', { new: 'New', returning: 'Returning' }), 'Visitors');
+			drawBreakdown('web-devices', pairs(reports.devices ?? [], 'deviceCategory', 'activeUsers', { mobile: 'Mobile', desktop: 'Desktop', tablet: 'Tablet' }), 'Visitors');
+			drawBreakdown('web-browsers', pairs(reports.browsers ?? [], 'browser', 'activeUsers', {}, 6), 'Visitors');
+			drawBreakdown('web-os', pairs(reports.operatingSystems ?? [], 'operatingSystem', 'activeUsers', {}, 6), 'Visitors');
+			Object.keys(webColumns).forEach((name) => renderWebTable(name, reports[name] ?? []));
+		};
+
+		// Loaded on its own, so a GA problem (not set up, Google unreachable) only affects this panel.
+		const loadWeb = async () => {
+			webStatus.hidden = false;
+			webStatus.textContent = 'Loading Google Analytics…';
+			try {
+				const data = await (await request('/api/analytics/web')).json() as WebData;
+				webStatus.hidden = true;
+				webBody.hidden = false;
+				renderWeb(data);
+			} catch (error) {
+				webBody.hidden = true;
+				webStatus.textContent = error instanceof Error ? error.message : 'Google Analytics could not be loaded.';
+			}
+		};
+
 		/* ----- Loading ----- */
 
 		const load = async () => {
 			status.textContent = 'Loading…';
 			try {
-				const [listeners, radio, chat] = await Promise.all([
+				const [listeners, radio, chat, site] = await Promise.all([
 					request('/api/analytics/listeners').then((response) => response.json() as Promise<{ records: ListenerRecord[] }>),
 					request('/api/analytics/radio').then((response) => response.json() as Promise<RadioSummary>),
 					request('/api/analytics/chat').then((response) => response.json() as Promise<ChatSummary>),
+					request('/api/analytics/site').then((response) => response.json() as Promise<SiteSummary>),
 				]);
 				gate.hidden = true;
 				toolbar.hidden = false;
@@ -1876,6 +2270,8 @@ const monthLabel = (month: string) =>
 				renderListeners(listeners.records);
 				renderRadio(radio);
 				renderChat(chat);
+				renderSite(site);
+				void loadWeb();
 				status.textContent = `Updated ${new Date().toLocaleTimeString('en-GB')}`;
 			} catch (error) {
 				if (error instanceof AccessError && error.status === 403) {
@@ -1897,6 +2293,12 @@ const monthLabel = (month: string) =>
 		});
 		radioPanel.querySelectorAll<HTMLButtonElement>('[data-export-radio]').forEach((button) => {
 			button.addEventListener('click', () => void downloadFrom(button, '/api/analytics/radio', { table: button.dataset.exportRadio ?? 'sessions' }));
+		});
+		webPanel.querySelectorAll<HTMLButtonElement>('[data-export-web]').forEach((button) => {
+			button.addEventListener('click', () => void downloadFrom(button, '/api/analytics/web', { table: button.dataset.exportWeb ?? 'totals' }));
+		});
+		sitePanel.querySelectorAll<HTMLButtonElement>('[data-export-site]').forEach((button) => {
+			button.addEventListener('click', () => void downloadFrom(button, '/api/analytics/site', { table: button.dataset.exportSite ?? 'vitals' }));
 		});
 		chatPanel.querySelectorAll<HTMLButtonElement>('[data-export-chat]').forEach((button) => {
 			button.addEventListener('click', () => void downloadFrom(button, '/api/analytics/chat', { table: button.dataset.exportChat ?? 'daily' }));
@@ -1938,7 +2340,7 @@ const monthLabel = (month: string) =>
 					account.hidden = !user;
 					accountEmail.textContent = user?.email ?? '';
 					if (user) void load();
-					else showGate('Listener forms, radio listening and chat analytics are private. Sign in with a Google account that has analytics access.');
+					else showGate('Listener forms, radio listening, chat and site analytics are private. Sign in with a Google account that has analytics access.');
 				});
 			})
 			.catch(() => showGate('Google sign-in could not be loaded. Please reload the page.', { signIn: false }));

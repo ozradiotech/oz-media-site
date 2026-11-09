@@ -6,8 +6,9 @@
 import { consentStorageKey, listenerIdStorageKey } from '../lib/analytics-config';
 import type { ChatEvent } from '../lib/chat-events';
 import type { RadioEvent } from '../lib/radio-events';
+import type { SiteEvent } from '../lib/site-events';
 
-export type OzEvent = RadioEvent | ChatEvent;
+export type OzEvent = RadioEvent | ChatEvent | SiteEvent;
 
 const endpoint = '/api/track';
 

@@ -5,6 +5,7 @@ import '../styles/page-transitions.css';
 import '../styles/oz-audio-player-bali.css';
 import GoogleAnalytics from '../components/GoogleAnalytics.astro';
 import ConsentBanner from '../components/ConsentBanner.astro';
+import SiteMonitor from '../components/SiteMonitor.astro';
 import { consentEnabled } from '../lib/analytics-config';
 
 // OZ Bali is audio-only for now. The title, artist and listener count are read from the same Icecast mount,
@@ -89,6 +90,7 @@ const nowPlayingUrl = `/api/now-playing?mount=${encodeURIComponent(new URL(audio
 			</footer>
 		</main>
 		<ConsentBanner />
+		<SiteMonitor />
 	</body>
 </html>
 

@@ -13,6 +13,7 @@ import ThemeHead from '../components/ThemeHead.astro';
 import StationRouter from '../components/StationRouter.astro';
 import GoogleAnalytics from '../components/GoogleAnalytics.astro';
 import ConsentBanner from '../components/ConsentBanner.astro';
+import SiteMonitor from '../components/SiteMonitor.astro';
 import StationDock from '../components/StationDock.astro';
 import ThemeSwitch from '../components/ThemeSwitch.astro';
 import SiteFooter from '../components/SiteFooter.astro';
@@ -102,6 +103,7 @@ const pageTitle = path === newsIndexPath ? 'OZ News · OZ Radio Bandung' : isNew
 		<SiteFooter topHref="#news-main" />
 		<StationDock />
 		<ConsentBanner />
+		<SiteMonitor />
 
 		{readingProgress && (
 			<script>

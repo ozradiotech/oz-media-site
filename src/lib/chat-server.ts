@@ -46,7 +46,7 @@ export const chatErrorResponse = (error: unknown) => {
 };
 
 // Accepts the key file's JSON as pasted, with or without the quotes .env needs around it.
-const parseServiceAccount = (value: string): Record<string, unknown> => {
+export const parseServiceAccount = (value: string): Record<string, unknown> => {
 	const json = value.trim().replace(/^(['"])(\{[\s\S]*\})\1$/, '$2');
 	try {
 		return JSON.parse(json);

@@ -2,9 +2,10 @@ import type { APIRoute } from 'astro';
 import { appendEvents, type StoredEvent } from '../../lib/event-store';
 import { chatDisconnectCauses, chatRoomNames, chatSignInStatuses } from '../../lib/chat-events';
 import { endReasons, interruptionKinds, playSources, streamTypes } from '../../lib/radio-events';
+import { pageGroups, vitalNames, vitalRatings } from '../../lib/site-events';
 import { isBot, parseUserAgent } from '../../lib/user-agent';
 
-// Receives our own analytics events (radio listening and live chat; see src/scripts/oz-events.ts) and stores them
+// Receives our own analytics events (radio listening, live chat, site performance; see src/scripts/oz-events.ts) and stores them
 // (src/lib/event-store.ts).
 // Public and unauthenticated, so everything is checked against the allowed values and anything else is dropped.
 // The IP address is only used, in memory, to rate-limit; it is never stored. Neither is the User-Agent header, only
@@ -65,11 +66,29 @@ const cleanChat = (event: Record<string, unknown>): CleanEvent | null => {
 	}
 };
 
+const cleanSite = (event: Record<string, unknown>): CleanEvent | null => {
+	const page = oneOf(pageGroups, event.page);
+	if (!page) return null;
+	if (event.type === 'web_vital') {
+		const name = oneOf(vitalNames, event.name);
+		const value = typeof event.value === 'number' && Number.isFinite(event.value) && event.value >= 0 ? event.value : undefined;
+		if (!name || value === undefined) return null;
+		// CLS is a score (usually well under 1); the rest are milliseconds, capped at a minute.
+		return { type: 'web_vital', page, name, value: name === 'CLS' ? Math.min(Number(value.toFixed(4)), 10) : Math.min(Math.round(value), 60_000), rating: oneOf(vitalRatings, event.rating) };
+	}
+	const message = typeof event.message === 'string' ? event.message.replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 150) : '';
+	if (!message) return null;
+	const source = typeof event.source === 'string' && /^[\w./@:-]{1,120}$/.test(event.source) ? event.source : undefined;
+	const line = typeof event.line === 'number' && Number.isInteger(event.line) && event.line > 0 ? Math.min(event.line, 1_000_000) : undefined;
+	return { type: 'js_error', page, message, source, line };
+};
+
 /** The stored form of one incoming event, or null when it isn't valid. */
 const clean = (input: unknown): CleanEvent | null => {
 	if (!input || typeof input !== 'object') return null;
 	const event = input as Record<string, unknown>;
 	if (typeof event.type === 'string' && event.type.startsWith('chat_')) return cleanChat(event);
+	if (event.type === 'web_vital' || event.type === 'js_error') return cleanSite(event);
 	const stream = oneOf(streamTypes, event.stream);
 	if (!stream) return null;
 	switch (event.type) {
