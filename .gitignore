@@ -1,8 +1,8 @@
 # build output
 dist/
 dist.prev/
-# listener records
-data/listeners.jsonl
+# listener records and analytics events (data/listeners.jsonl, data/events/), kept on the server only
+data/
 # generated types
 .astro/
 # agents skills
