@@ -1,7 +1,7 @@
 ---
 name: VJ
 order: 15
-summary: Vickry Jayahadi
+instagram: instagramprofile
 image: /uploads/Vickry Jayahadi.webp
 ---
 Deskripsi

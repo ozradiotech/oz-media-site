@@ -52,14 +52,19 @@ export interface OzChatOptions {
 	room: string;
 	/** Loads the page's shared Google sign-in (src/scripts/oz-auth.ts). */
 	loadAuth: () => Promise<OzAuth | undefined>;
+	/** Aborts when the visitor leaves the page: the chat then stops listening and lets its connection go. */
+	signal: AbortSignal;
 }
 
-export const mountOzChat = async (root: HTMLElement, { room, loadAuth }: OzChatOptions) => {
+export const mountOzChat = async (root: HTMLElement, { room, loadAuth, signal }: OzChatOptions) => {
 	const list = root.querySelector<HTMLOListElement>('[data-chat-messages]');
 	const empty = root.querySelector<HTMLElement>('[data-chat-empty]');
 	const status = root.querySelector<HTMLElement>('[data-chat-status]');
 	const jump = root.querySelector<HTMLButtonElement>('[data-chat-jump]');
 	const signIn = root.querySelector<HTMLButtonElement>('[data-chat-signin]');
+	const account = root.querySelector<HTMLElement>('[data-chat-account]');
+	const accountName = account?.querySelector<HTMLElement>('[data-chat-account-name]');
+	const signOut = account?.querySelector<HTMLButtonElement>('[data-chat-signout]');
 	const form = root.querySelector<HTMLFormElement>('[data-chat-form]');
 	const input = form?.querySelector<HTMLInputElement>('input[name="message"]');
 	const sendButton = form?.querySelector<HTMLButtonElement>('button[type="submit"]');
@@ -71,7 +76,11 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth }: OzChatO
 	const menuActions = menu ? [...menu.querySelectorAll<HTMLButtonElement>('[data-chat-action]')] : [];
 	if (!list || !empty || !status || !jump || !signIn || !form || !input || !sendButton || !selfAvatar || !menu) return;
 
+	// Whatever must stop when the visitor leaves the page.
+	const onAbort = (stop: () => void) => signal.addEventListener('abort', stop, { once: true });
+
 	let statusTimer: number | undefined;
+	onAbort(() => window.clearTimeout(statusTimer));
 	const showStatus = (message: string) => {
 		window.clearTimeout(statusTimer);
 		status.textContent = message;
@@ -81,6 +90,7 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth }: OzChatO
 
 	if (!isChatConfigured) {
 		empty.textContent = 'Chat is not available right now.';
+		signIn.hidden = false;
 		signIn.disabled = true;
 		return;
 	}
@@ -127,7 +137,7 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth }: OzChatO
 
 	document.addEventListener('pointerdown', (event) => {
 		if (menuTarget && event.target instanceof Node && !menu.contains(event.target) && !menuTarget.button.contains(event.target)) closeMenu();
-	});
+	}, { signal });
 	menu.addEventListener('keydown', (event) => {
 		if (event.key === 'Escape') closeMenu(true);
 		if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
@@ -138,10 +148,17 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth }: OzChatO
 	});
 
 	// Who is looking decides the sign-in button vs. message box, own-message highlighting and the ⋯ buttons (see the styles).
+	// Until a saved sign-in has been restored neither the button nor the box shows, so a signed-in visitor is never
+	// asked to sign in again.
+	let authKnown = false;
 	const renderViewer = () => {
 		closeMenu();
-		signIn.hidden = Boolean(viewer);
+		signIn.hidden = !authKnown || Boolean(viewer);
 		form.hidden = !viewer;
+		if (account && accountName) {
+			account.hidden = !viewer;
+			accountName.textContent = viewer ? viewer.displayName || viewer.email || 'you' : '';
+		}
 		list.dataset.viewer = viewer ? (moderator ? 'mod' : 'member') : 'guest';
 		for (const item of list.children) {
 			if (item instanceof HTMLElement) item.classList.toggle('is-own', item.dataset.uid === viewer?.uid);
@@ -223,6 +240,8 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth }: OzChatO
 	});
 
 	const database = getDatabase(getOzFirebaseApp());
+	// Leaving the page lets the connection go (see below), so a later visit takes it back.
+	goOnline(database);
 	const messagesQuery = query(ref(database, `chat/rooms/${room}/messages`), orderByKey(), limitToLast(messageLimit));
 	const items = new Map<string, HTMLLIElement>();
 	// Sent messages show immediately; the placeholder is swapped for the real one when it arrives.
@@ -234,7 +253,7 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth }: OzChatO
 
 	// The query is a sliding window: older messages are removed as new ones arrive, and a deleted message
 	// is replaced by an older one, so each message is placed after the one the database says precedes it.
-	onChildAdded(messagesQuery, (snapshot, previousKey) => {
+	const subscriptions = [onChildAdded(messagesQuery, (snapshot, previousKey) => {
 		const message: unknown = snapshot.val();
 		if (!snapshot.key || items.has(snapshot.key) || !isChatMessage(message)) return;
 		const item = renderMessage(snapshot.key, message);
@@ -246,7 +265,7 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth }: OzChatO
 		pending.get(snapshot.key)?.remove();
 		pending.delete(snapshot.key);
 		scheduleLayout(loaded);
-	}, showLoadError);
+	}, showLoadError),
 
 	onChildRemoved(messagesQuery, (snapshot) => {
 		if (!snapshot.key) return;
@@ -254,14 +273,14 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth }: OzChatO
 		items.get(snapshot.key)?.remove();
 		items.delete(snapshot.key);
 		scheduleLayout(false);
-	});
+	}),
 
 	// Shares the query's data with the listeners above, so it costs no extra download.
 	onValue(messagesQuery, () => {
 		loaded = true;
 		empty.textContent = 'No messages yet. Say hi!';
 		scheduleLayout(false);
-	}, showLoadError, { onlyOnce: true });
+	}, showLoadError, { onlyOnce: true }),
 
 	onValue(ref(database, `chat/rooms/${room}/meta/slowMode`), (snapshot) => {
 		const value: unknown = snapshot.val();
@@ -271,7 +290,7 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth }: OzChatO
 			slowModeLabel.textContent = `SLOW MODE · ${slowMode}S`;
 		}
 		if (slowModeSelect) slowModeSelect.value = String(slowMode);
-	});
+	})];
 
 	// Connections are the scarce resource (the free plan allows 100 at once), so idle viewers let theirs go.
 	let chatInView = true;
@@ -293,11 +312,21 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth }: OzChatO
 			}, idleDisconnectDelay);
 		}
 	};
-	new IntersectionObserver((entries) => {
+	const viewObserver = new IntersectionObserver((entries) => {
 		chatInView = entries[entries.length - 1]?.isIntersecting ?? chatInView;
 		updateConnection();
-	}).observe(root);
-	document.addEventListener('visibilitychange', updateConnection);
+	});
+	viewObserver.observe(root);
+	document.addEventListener('visibilitychange', updateConnection, { signal });
+
+	// Leaving the page stops the listeners and lets the connection go until the chat is shown again.
+	onAbort(() => {
+		subscriptions.forEach((unsubscribe) => unsubscribe());
+		viewObserver.disconnect();
+		window.clearTimeout(idleTimer);
+		if (layoutFrame !== undefined) cancelAnimationFrame(layoutFrame);
+		goOffline(database);
+	});
 
 	const callApi = async (path: string, body: Record<string, unknown>) => {
 		const [idToken, appCheckToken] = await Promise.all([auth?.idToken() ?? null, getAppCheckToken()]);
@@ -313,6 +342,7 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth }: OzChatO
 	let sending = false;
 	let cooldownUntil = 0;
 	let cooldownTimer: number | undefined;
+	onAbort(() => window.clearTimeout(cooldownTimer));
 	const updateSendButton = () => {
 		window.clearTimeout(cooldownTimer);
 		const remaining = Math.ceil((cooldownUntil - Date.now()) / 1000);
@@ -428,16 +458,26 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth }: OzChatO
 		}
 	});
 
+	signOut?.addEventListener('click', () => {
+		void auth?.signOut();
+	});
+
 	renderViewer();
-	signIn.disabled = true;
 	auth = await loadAuth();
+	if (signal.aborted) return;
 	if (!auth) {
+		authKnown = true;
+		renderViewer();
+		signIn.disabled = true;
 		showStatus('Google sign-in is unavailable right now. Please try again later.');
 		return;
 	}
-	signIn.disabled = false;
 	const currentAuth = auth;
-	currentAuth.onChange(async (user) => {
+	// Firebase keeps the sign-in on this device until the visitor signs out; wait for it to be restored.
+	await currentAuth.ready().catch(() => null);
+	if (signal.aborted) return;
+	authKnown = true;
+	onAbort(currentAuth.onChange(async (user) => {
 		viewer = user;
 		moderator = false;
 		renderViewer();
@@ -446,5 +486,5 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth }: OzChatO
 		if (viewer !== user || !isMod) return;
 		moderator = true;
 		renderViewer();
-	});
+	}));
 };

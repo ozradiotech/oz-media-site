@@ -1,7 +1,7 @@
 ---
 name: Nabila Oriza
 order: 12
-summary: Nabila Zahra
+instagram: instagramprofile
 image: /uploads/Nabila Zahra.webp
 ---
 Deskripsi

@@ -1,7 +1,7 @@
 ---
 name: Anton
 order: 4
-summary: Antoni Lovendio
+instagram: instagramprofile
 image: /uploads/Antoni Lovendio.webp
 imageAlt: ""
 ---

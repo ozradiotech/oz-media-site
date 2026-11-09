@@ -25,4 +25,14 @@ const themeColors = { retro: '#FFFFF3', night: '#0E0D0B', day: '#FBF5E6' };
 		document.documentElement.dataset.theme = 'night';
 		if (theme === 'day') document.documentElement.dataset.tone = 'light';
 	})();
+	// Pages with the client router (StationRouter.astro) take the next page's <html> attributes on navigation; hand
+	// the style over first, so the new page never flashes the wrong one.
+	document.addEventListener('astro:before-swap', (event) => {
+		const { theme, tone } = document.documentElement.dataset;
+		const next = event.newDocument;
+		if (theme) next.documentElement.dataset.theme = theme;
+		if (tone) next.documentElement.dataset.tone = tone;
+		const color = document.querySelector('[data-theme-color]')?.getAttribute('content');
+		if (color) next.querySelector('[data-theme-color]')?.setAttribute('content', color);
+	});
 </script>

@@ -163,8 +163,10 @@ const structuredData = {
 </NewsLayout>
 
 <script>
+	import { onEveryPage } from '../../../scripts/oz-page';
+
 	// Share links are filled in the browser so they carry the page's real address, wherever it is hosted.
-	document.querySelectorAll<HTMLElement>('[data-share]').forEach((share) => {
+	onEveryPage(() => document.querySelectorAll<HTMLElement>('[data-share]').forEach((share) => {
 		const url = share.dataset.shareUrl || location.href.split('#')[0];
 		const title = share.dataset.shareTitle ?? document.title;
 		const links: Record<string, string> = {
@@ -190,5 +192,5 @@ const structuredData = {
 				if (status) status.textContent = '';
 			}, 2400);
 		});
-	});
+	}));
 </script>

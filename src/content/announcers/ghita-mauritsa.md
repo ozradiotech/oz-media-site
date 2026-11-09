@@ -1,7 +1,8 @@
 ---
 name: Maury Ghita
 order: 7
-summary: Ghita Mauritsa
+instagram: instagramprofile
 image: /uploads/Ghita Mauritsa.webp
+ImageAlt: Maury
 ---
 Deskripsi

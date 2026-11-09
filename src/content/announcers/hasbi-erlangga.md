@@ -1,7 +1,7 @@
 ---
 name: Hasbi Erlangga
 order: 9
-summary: Summary
+instagram: instagramprofile
 image: /uploads/Hasbi Erlangga.webp
 ---
 Deskripsi

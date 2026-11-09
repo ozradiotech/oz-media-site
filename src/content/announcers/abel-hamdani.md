@@ -1,7 +1,7 @@
 ---
 name: Abel Hamdani
 order: 1
-summary: Summary
+instagram: instagramprofile
 image: /uploads/Abel Hamdani.webp
 imageAlt: ""
 ---

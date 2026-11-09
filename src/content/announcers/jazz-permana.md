@@ -1,7 +1,7 @@
 ---
 name: Jazz Permana
 order: 16
-summary: Summary
+instagram: instagramprofile
 image: /uploads/Jazz Permana.webp
 imageAlt: Jazz Permana
 ---

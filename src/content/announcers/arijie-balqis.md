@@ -1,7 +1,7 @@
 ---
 name: Aizira Fariza
 order: 5
-summary: Arijie Balqis
+instagram: instagramprofile
 image: /uploads/Arijie Balqiis.webp
 imageAlt: ""
 ---

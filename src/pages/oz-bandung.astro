@@ -5,6 +5,7 @@ import '../styles/page-transitions.css';
 import '../styles/retro.css';
 import SectionNav from '../components/SectionNav.astro';
 import ThemeHead from '../components/ThemeHead.astro';
+import StationRouter from '../components/StationRouter.astro';
 import ThemeSwitch from '../components/ThemeSwitch.astro';
 import BandungRibbon from '../components/BandungRibbon.astro';
 import SiteFooter from '../components/SiteFooter.astro';
@@ -12,6 +13,8 @@ import { getCollection, render } from 'astro:content';
 import { ageRanges } from '../lib/listener';
 import { newsIndexPath, newsPath, sortNews } from '../lib/news';
 import '../styles/ozubathon.css';
+// Loaded with the page rather than with the player script, so it stays when the player is carried to OZ News.
+import '../styles/oz-audio-player.css';
 
 const audioStreamUrl = 'https://streaming.ozradio.id:8443/ozbandung';
 // Livestream: set videoId to embed one live broadcast, or channelId (UC…) to embed whatever that channel is
@@ -88,6 +91,11 @@ const ozubathonInitial = {
 	seconds: Math.floor(ozubathonUntil / 1000) % 60,
 };
 const pad2 = (value: number) => String(value).padStart(2, '0');
+// Announcer Instagram handles may be entered as "@name", "name" or a profile link; keep just the name.
+const instagramHandle = (value: string) => value.trim()
+	.replace(/^(https?:\/\/)?(www\.)?instagram\.com\//i, '')
+	.replace(/^@/, '')
+	.replace(/[/?#].*$/, '');
 const tickerPhrases = ['55 LOUD AND LIVE', 'OZUBATHON', `${ozubathon.hours} HOURS NONSTOP`, 'OZ RADIO BANDUNG ANNIVERSARY'];
 
 const sections = [
@@ -107,6 +115,7 @@ const sections = [
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<ThemeHead />
+		<StationRouter />
 		<meta name="description" content="Your Friendly Station 103.1 FM" />
 		<Font cssVariable="--font-tango" preload={[{ style: 'normal' }]} />
 		<Font cssVariable="--font-jakarta" preload={[{ style: 'normal' }]} />
@@ -236,7 +245,7 @@ const sections = [
 							</div>
 							<div class="live-chat-footer">
 								<p class="live-chat-status" data-chat-status role="status" hidden></p>
-								<button class="google-signin live-chat-signin" type="button" data-chat-signin>
+								<button class="google-signin live-chat-signin" type="button" data-chat-signin hidden>
 									<svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true">
 										<path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
 										<path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
@@ -245,6 +254,10 @@ const sections = [
 									</svg>
 									<span>Sign in with Google to chat</span>
 								</button>
+								<div class="google-user live-chat-account" data-chat-account hidden>
+									<span>Chatting as <strong data-chat-account-name></strong></span>
+									<button class="google-signout" type="button" data-chat-signout>Sign out</button>
+								</div>
 								<form class="live-chat-compose" data-chat-form hidden>
 									<span class="live-chat-self" data-chat-self-avatar></span>
 									<input name="message" maxlength="200" autocomplete="off" enterkeyhint="send" placeholder="Say something..." aria-label="Chat message" />
@@ -268,45 +281,48 @@ const sections = [
 									<span class="tune-in-frequency">103.1 FM · BANDUNG</span>
 								</button>
 							</div>
-							<div class="broadcast-panel" data-broadcast-panel="audio" hidden>
-								<div class="audio-bar">
-									<span class="icon" aria-hidden="true">♫</span>
-									<div class="audio-copy">
-										<strong data-track-title>{audioStreamUrl ? 'Loading track...' : 'Audio stream unavailable'}</strong>
-										<span data-track-artist aria-live="polite"></span>
+							<!-- Carried to the OZ News pages while it plays (StationRouter.astro), where StationDock.astro shows it. -->
+							<div class="station" data-station transition:persist="oz-station">
+								<div class="broadcast-panel" data-broadcast-panel="audio" hidden>
+									<div class="audio-bar">
+										<span class="icon" aria-hidden="true">♫</span>
+										<div class="audio-copy">
+											<strong data-track-title>{audioStreamUrl ? 'Loading track...' : 'Audio stream unavailable'}</strong>
+											<span data-track-artist aria-live="polite"></span>
+										</div>
+										{audioStreamUrl ? (
+											<div class="audio-player" data-audio-player data-stream-url={audioStreamUrl}>
+												<audio controls preload="none" crossorigin="anonymous" src={audioStreamUrl} aria-label="OZ Bandung audio stream">
+													Your browser does not support audio playback.
+												</audio>
+											</div>
+										) : (
+											<span class="stream-status">AUDIO NOT CONNECTED</span>
+										)}
 									</div>
-									{audioStreamUrl ? (
-										<div class="audio-player" data-audio-player data-stream-url={audioStreamUrl}>
-											<audio controls preload="none" crossorigin="anonymous" src={audioStreamUrl} aria-label="OZ Bandung audio stream">
-												Your browser does not support audio playback.
-											</audio>
-										</div>
-									) : (
-										<span class="stream-status">AUDIO NOT CONNECTED</span>
-									)}
+									<div class="listener-stats" aria-live="polite" aria-label="Live listener statistics">
+										<span>LISTENERS <strong data-listener-count>—</strong></span>
+									</div>
 								</div>
-								<div class="listener-stats" aria-live="polite" aria-label="Live listener statistics">
-									<span>LISTENERS <strong data-listener-count>—</strong></span>
-								</div>
-							</div>
-							<div class="broadcast-panel" data-broadcast-panel="video" hidden>
-								<div class="video-frame">
-									{youtubeLiveEmbedUrl ? (
-										<iframe
-											title="OZ Bandung YouTube livestream"
-											data-youtube-live={youtubeLiveEmbedUrl}
-											allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-											referrerpolicy="strict-origin-when-cross-origin"
-											allowfullscreen
-										></iframe>
-									) : (
-										<div class="video-placeholder">
-											<img src="/images/studio-livestream.jpg" alt="" aria-hidden="true" loading="lazy" decoding="async" />
-											<span class="placeholder-play" aria-hidden="true">▶</span>
-											<p>Studio stream coming soon</p>
-											<span class="placeholder-caption">YOUTUBE LIVESTREAM · CHANNEL TO BE ADDED</span>
-										</div>
-									)}
+								<div class="broadcast-panel" data-broadcast-panel="video" hidden>
+									<div class="video-frame">
+										{youtubeLiveEmbedUrl ? (
+											<iframe
+												title="OZ Bandung YouTube livestream"
+												data-youtube-live={youtubeLiveEmbedUrl}
+												allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+												referrerpolicy="strict-origin-when-cross-origin"
+												allowfullscreen
+											></iframe>
+										) : (
+											<div class="video-placeholder">
+												<img src="/images/studio-livestream.jpg" alt="" aria-hidden="true" loading="lazy" decoding="async" />
+												<span class="placeholder-play" aria-hidden="true">▶</span>
+												<p>Studio stream coming soon</p>
+												<span class="placeholder-caption">YOUTUBE LIVESTREAM · CHANNEL TO BE ADDED</span>
+											</div>
+										)}
+									</div>
 								</div>
 							</div>
 						</div>
@@ -349,23 +365,6 @@ const sections = [
 									/>
 									<ul class="location-options" id="listener-location-options" role="listbox" aria-label="Location suggestions" data-location-options hidden></ul>
 								</div>
-							</div>
-							<div class="google-auth" data-google-auth hidden>
-								<button class="google-signin" type="button" data-google-signin>
-									<svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true">
-										<path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
-										<path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
-										<path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
-										<path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
-									</svg>
-									<span>Sign in with Google</span>
-								</button>
-								<div class="google-user" data-google-user hidden>
-									<img data-google-avatar alt="" width="28" height="28" referrerpolicy="no-referrer" hidden />
-									<span>Signed in as <strong data-google-name></strong></span>
-									<button class="google-signout" type="button" data-google-signout>Sign out</button>
-								</div>
-								<p class="google-auth-note" data-google-auth-note aria-live="polite">Sign in with Google to save your details.</p>
 							</div>
 							<div class="listener-confirmation" data-listener-confirmation hidden aria-live="polite"></div>
 							<button class="listener-submit" type="submit" data-listener-submit hidden>Continue</button>
@@ -469,11 +468,11 @@ const sections = [
 											aria-label={`Read announcer profile: ${announcer.data.name}`}
 											role="button"
 											tabindex={isDuplicate ? -1 : 0}
+											data-instagram={instagramHandle(announcer.data.instagram) || undefined}
 										>
 											<img src={optimizeImageUrl(announcer.data.image, 640)} alt={announcer.data.imageAlt} width="600" height="750" loading="lazy" decoding="async" />
 											<div class="announcer-card-copy">
 												<h3>{announcer.data.name}</h3>
-												<p>{announcer.data.summary}</p>
 											</div>
 											<template data-announcer-body><Content /></template>
 										</article>
@@ -759,7 +758,10 @@ const sections = [
 			<div class="announcer-dialog-copy">
 				<p class="eyebrow">OZ RADIO BANDUNG · THE VOICES OF OZ</p>
 				<h2 id="announcer-dialog-title" data-announcer-title></h2>
-				<p class="announcer-dialog-summary" data-announcer-summary></p>
+				<a class="announcer-dialog-instagram" data-announcer-instagram target="_blank" rel="noopener noreferrer" hidden>
+					<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="2" /><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2" /><circle cx="17.5" cy="6.5" r="1.3" fill="currentColor" /></svg>
+					<span data-announcer-instagram-handle></span>
+				</a>
 				<div class="announcer-dialog-body" data-announcer-body-content hidden></div>
 			</div>
 		</dialog>
@@ -767,860 +769,73 @@ const sections = [
 </html>
 
 <script>
-	const hero = document.querySelector<HTMLElement>('[data-hero]');
-	const topbar = document.querySelector<HTMLElement>('[data-topbar]');
-	const topbarLogo = topbar?.querySelector<HTMLElement>('[data-topbar-logo]');
-	const heroLogo = hero?.querySelector<HTMLImageElement>('[data-hero-logo]');
-	const heroNav = hero?.querySelector<HTMLElement>('[data-hero-nav]');
-
-	if (hero && topbar && topbarLogo && heroLogo && heroNav) {
-		type Box = { left: number; top: number; width: number; height: number };
-		type MorphPair = { element: HTMLElement; slot: HTMLElement; dockedBox: Box; slotBox: Box };
-
-		const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-		const topbarLinks = Array.from(topbar.querySelectorAll<HTMLElement>('[data-topbar-section-id]'));
-		const heroLinks = Array.from(heroNav.querySelectorAll<HTMLElement>('[data-hero-section-id]'));
-		const pairs: MorphPair[] = [
-			{ element: topbarLogo, slot: heroLogo },
-			...topbarLinks.flatMap((link) => {
-				const slot = heroLinks.find((heroLink) => heroLink.dataset.heroSectionId === link.dataset.topbarSectionId);
-				return slot ? [{ element: link, slot }] : [];
-			}),
-		].map((pair) => ({ ...pair, dockedBox: { left: 0, top: 0, width: 1, height: 1 }, slotBox: { left: 0, top: 0, width: 1, height: 1 } }));
-
-		const dockOffset = 64;
-		let morphDistance = 1;
-		let currentProgress = -1;
-		let targetProgress = 0;
-		let frame = 0;
-
-		const easeInOut = (value: number) => value < 0.5 ? 4 * value ** 3 : 1 - (-2 * value + 2) ** 3 / 2;
-		const toBox = (rect: DOMRect, scrollY = 0): Box => ({ left: rect.left, top: rect.top + scrollY, width: rect.width || 1, height: rect.height || 1 });
-
-		const measure = () => {
-			topbar.classList.add('is-measuring');
-			pairs.forEach((pair) => { pair.element.style.transform = ''; });
-			pairs.forEach((pair) => {
-				pair.dockedBox = toBox(pair.element.getBoundingClientRect());
-				pair.slotBox = toBox(pair.slot.getBoundingClientRect(), window.scrollY);
-			});
-			topbar.classList.remove('is-measuring');
-			morphDistance = Math.max(1, hero.offsetHeight - dockOffset);
-			currentProgress = -1;
-		};
-
-		const render = (progress: number) => {
-			const eased = easeInOut(progress);
-			const isDocked = progress >= 1;
-			topbar.classList.toggle('is-morphing', !isDocked);
-			topbar.style.setProperty('--hero-progress', String(eased));
-			hero.style.setProperty('--hero-progress', String(eased));
-			pairs.forEach(({ element, dockedBox, slotBox }) => {
-				if (isDocked) {
-					element.style.transform = '';
-					return;
-				}
-				// Start from where the slot sits at the top of the page, so items glide straight into the bar instead of scrolling off first.
-				const slotTop = slotBox.top;
-				const width = slotBox.width + (dockedBox.width - slotBox.width) * eased;
-				const centerX = slotBox.left + slotBox.width / 2 + (dockedBox.left + dockedBox.width / 2 - slotBox.left - slotBox.width / 2) * eased;
-				const centerY = slotTop + slotBox.height / 2 + (dockedBox.top + dockedBox.height / 2 - slotTop - slotBox.height / 2) * eased;
-				const translateX = centerX - (dockedBox.left + dockedBox.width / 2);
-				const translateY = centerY - (dockedBox.top + dockedBox.height / 2);
-				element.style.transform = `translate3d(${translateX}px, ${translateY}px, 0) scale(${width / dockedBox.width})`;
-			});
-		};
-
-		const tick = () => {
-			frame = 0;
-			targetProgress = Math.min(1, Math.max(0, window.scrollY / morphDistance));
-			const isFirstFrame = currentProgress < 0;
-			const nextProgress = isFirstFrame || reducedMotion.matches
-				? targetProgress
-				: currentProgress + (targetProgress - currentProgress) * 0.22;
-			const settledProgress = Math.abs(targetProgress - nextProgress) < 0.001 ? targetProgress : nextProgress;
-			const hasMoved = settledProgress !== currentProgress;
-			currentProgress = settledProgress;
-			if (hasMoved) render(currentProgress);
-			if (currentProgress !== targetProgress) frame = window.requestAnimationFrame(tick);
-		};
-
-		const requestTick = () => {
-			if (!frame) frame = window.requestAnimationFrame(tick);
-		};
-
-		const remeasure = () => {
-			window.cancelAnimationFrame(frame);
-			measure();
-			tick();
-		};
-
-		measure();
-		document.documentElement.classList.add('has-hero-morph');
-		heroNav.inert = true;
-		tick();
-		topbar.classList.add('is-entering');
-		window.setTimeout(() => topbar.classList.remove('is-entering'), 1400);
-
-		window.addEventListener('scroll', requestTick, { passive: true });
-		window.addEventListener('resize', () => {
-			window.cancelAnimationFrame(frame);
-			frame = window.requestAnimationFrame(remeasure);
-		});
-		window.addEventListener('load', remeasure);
-		document.fonts?.ready.then(remeasure);
-		// The two styles lay the hero out differently (night adds the Ozubathon lockup), so the slots move with the style.
-		new MutationObserver(() => {
-			window.cancelAnimationFrame(frame);
-			frame = window.requestAnimationFrame(remeasure);
-		}).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-		[heroLogo, topbarLogo.querySelector('img')].forEach((image) => {
-			if (image instanceof HTMLImageElement && !image.complete) image.addEventListener('load', remeasure, { once: true });
-		});
-	}
-
-	// Ozubathon (night style only): count down to the start, then count the hours on air, then sign off.
-	// The lockup is display:none in the retro style, so the observer only runs the clock while it's actually on screen.
-	const ozbEvent = document.querySelector<HTMLElement>('[data-ozb]');
-	if (ozbEvent) {
-		const start = Number(ozbEvent.dataset.ozbStart);
-		const totalMs = Number(ozbEvent.dataset.ozbHours) * 3600000;
-		const label = ozbEvent.querySelector<HTMLElement>('[data-ozb-label]');
-		const countdown = ozbEvent.querySelector<HTMLElement>('[data-ozb-countdown]');
-		const progress = ozbEvent.querySelector<HTMLElement>('[data-ozb-progress]');
-		const hourOutput = ozbEvent.querySelector<HTMLElement>('[data-ozb-hour]');
-		const bar = ozbEvent.querySelector<HTMLElement>('[data-ozb-bar]');
-		const units = Array.from(ozbEvent.querySelectorAll<HTMLElement>('[data-ozb-unit]'));
-		const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-		const pad = (value: number) => String(value).padStart(2, '0');
-		let timer = 0;
-
-		const setText = (element: HTMLElement | null | undefined, text: string, flip = false) => {
-			if (!element || element.textContent === text) return;
-			element.textContent = text;
-			if (flip && !reducedMotion.matches) {
-				element.animate([{ transform: 'translateY(-40%)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 260, easing: 'cubic-bezier(0.2, 0.9, 0.3, 1.2)' });
-			}
-		};
-
-		const update = () => {
-			const now = Date.now();
-			const state = now < start ? 'soon' : now < start + totalMs ? 'live' : 'done';
-			ozbEvent.dataset.ozbState = state;
-			if (countdown) countdown.hidden = state !== 'soon';
-			if (progress) progress.hidden = state !== 'live';
-			if (state === 'soon') {
-				const left = start - now;
-				const values: Record<string, number> = {
-					days: Math.floor(left / 86400000),
-					hours: Math.floor(left / 3600000) % 24,
-					minutes: Math.floor(left / 60000) % 60,
-					seconds: Math.floor(left / 1000) % 60,
-				};
-				units.forEach((unit) => setText(unit, pad(values[unit.dataset.ozbUnit ?? ''] ?? 0), true));
-				setText(label, 'STARTS IN');
-				countdown?.setAttribute('aria-label', `Starts in ${values.days} days, ${values.hours} hours and ${values.minutes} minutes`);
-			} else if (state === 'live') {
-				const elapsed = now - start;
-				setText(label, 'LIVE NOW');
-				setText(hourOutput, pad(Math.min(totalMs / 3600000, Math.floor(elapsed / 3600000) + 1)), true);
-				bar?.style.setProperty('transform', `scaleX(${(elapsed / totalMs).toFixed(4)})`);
-			} else {
-				setText(label, 'THANK YOU FOR TUNING IN');
-			}
-		};
-
-		const run = (visible: boolean) => {
-			window.clearInterval(timer);
-			timer = 0;
-			if (!visible) return;
-			update();
-			// Align ticks to the second, so the seconds digit never lags behind the clock.
-			timer = window.setTimeout(() => {
-				update();
-				timer = window.setInterval(update, 1000);
-			}, 1000 - (Date.now() % 1000));
-		};
-
-		// The logo has no src in the markup, so the retro style (where the lockup is display:none) never downloads it.
-		const logo = ozbEvent.querySelector<HTMLImageElement>('[data-ozb-logo]');
-		let onScreen = false;
-		new IntersectionObserver((entries) => {
-			onScreen = entries.some((entry) => entry.isIntersecting);
-			if (onScreen && logo && !logo.getAttribute('src')) {
-				logo.srcset = logo.dataset.srcset ?? '';
-				logo.src = logo.dataset.src ?? '';
-			}
-			run(onScreen && !document.hidden);
-		}).observe(ozbEvent);
-		document.addEventListener('visibilitychange', () => run(onScreen && !document.hidden));
-	}
-
-	// Looping decoration (the hero sunburst, the ticker) only runs while it's on screen.
-	const loopObserver = new IntersectionObserver((entries) => {
-		entries.forEach((entry) => entry.target.classList.toggle('is-offscreen', !entry.isIntersecting));
-	});
-	document.querySelectorAll('[data-hero], [data-ozb-ticker]').forEach((element) => loopObserver.observe(element));
-
-	const topbarNavLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-topbar-section-id]'));
-	if (topbarNavLinks.length) {
-		const highlightTopbarLink = (sectionId: string) => {
-			topbarNavLinks.forEach((link) => {
-				if (link.dataset.topbarSectionId === sectionId) link.setAttribute('aria-current', 'location');
-				else link.removeAttribute('aria-current');
-			});
-			// On narrow screens the nav scrolls sideways; keep the current link in view.
-			const currentLink = topbarNavLinks.find((link) => link.dataset.topbarSectionId === sectionId);
-			const nav = currentLink?.parentElement;
-			if (currentLink && nav && nav.scrollWidth > nav.clientWidth) {
-				nav.scrollTo({
-					left: currentLink.offsetLeft - nav.offsetLeft - (nav.clientWidth - currentLink.offsetWidth) / 2,
-					behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-				});
-			}
-		};
-
-		// A section is current while it crosses the middle of the viewport; the hero clears the highlight.
-		const topbarSectionObserver = new IntersectionObserver((entries) => {
-			const currentSection = entries.find((entry) => entry.isIntersecting);
-			if (currentSection) highlightTopbarLink((currentSection.target as HTMLElement).id);
-		}, { rootMargin: '-50% 0px -50% 0px' });
-
-		document.querySelectorAll<HTMLElement>('[data-hero], .screen[id]').forEach((section) => topbarSectionObserver.observe(section));
-	}
-
-	const sectionNav = document.querySelector<HTMLElement>('[data-section-nav]');
-	if (sectionNav) {
-		const sectionLinks = Array.from(sectionNav.querySelectorAll<HTMLAnchorElement>('[data-section-id]'));
-		const topbarSectionLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-topbar-section-id]'));
-		const previousSectionLink = sectionNav.querySelector<HTMLAnchorElement>('[data-section-previous]');
-		const nextSectionLink = sectionNav.querySelector<HTMLAnchorElement>('[data-section-next]');
-		const sectionProgress = sectionNav.querySelector<HTMLElement>('[data-section-progress]');
-
-		const updateSectionNavigation = (sectionId: string) => {
-			const currentIndex = sectionLinks.findIndex((link) => link.dataset.sectionId === sectionId);
-			if (currentIndex < 0) return;
-
-			const previousSection = sectionLinks[currentIndex - 1];
-			const nextSection = sectionLinks[currentIndex + 1];
-			if (previousSectionLink) {
-				previousSectionLink.href = previousSection ? `#${previousSection.dataset.sectionId}` : '/';
-				previousSectionLink.textContent = previousSection ? `← ${previousSection.dataset.sectionLabel}` : '← ALL LOCATIONS';
-			}
-			if (nextSectionLink) {
-				nextSectionLink.href = nextSection ? `#${nextSection.dataset.sectionId}` : '/oz-bali/';
-				nextSectionLink.textContent = nextSection ? `${nextSection.dataset.sectionLabel} →` : 'NEXT: BALI →';
-			}
-			sectionProgress?.setAttribute('aria-label', `Section ${currentIndex + 1} of ${sectionLinks.length}`);
-			sectionLinks.forEach((link, linkIndex) => {
-				if (linkIndex === currentIndex) link.setAttribute('aria-current', 'step');
-				else link.removeAttribute('aria-current');
-			});
-			topbarSectionLinks.forEach((link) => {
-				if (link.dataset.topbarSectionId === sectionId) link.setAttribute('aria-current', 'location');
-				else link.removeAttribute('aria-current');
-			});
-		};
-
-		const sectionObserver = new IntersectionObserver((entries) => {
-			const visibleSection = entries
-				.filter((entry) => entry.isIntersecting)
-				.sort((first, second) => second.intersectionRatio - first.intersectionRatio)[0];
-			if (visibleSection) updateSectionNavigation((visibleSection.target as HTMLElement).id);
-		}, { threshold: 0.5 });
-
-		document.querySelectorAll<HTMLElement>('.screen[id]').forEach((section) => sectionObserver.observe(section));
-		updateSectionNavigation(window.location.hash.slice(1) || 'listen');
-	}
-
-	const youtubeCarousel = document.querySelector<HTMLElement>('[data-youtube-carousel]');
-	const youtubePlayer = youtubeCarousel?.querySelector<HTMLElement>('[data-youtube-player]');
-	const youtubeVideoButtons = youtubeCarousel?.querySelectorAll<HTMLButtonElement>('[data-youtube-video]');
-	const youtubeCurrentTitle = youtubeCarousel?.querySelector<HTMLElement>('[data-youtube-current-title]');
-	const youtubeCurrentCount = youtubeCarousel?.querySelector<HTMLElement>('[data-youtube-current-count]');
-
-	if (youtubeCarousel && youtubePlayer && youtubeVideoButtons?.length && youtubeCurrentTitle && youtubeCurrentCount) {
-		const videos = Array.from(youtubeVideoButtons, (button) => ({
-			id: button.dataset.youtubeId ?? '',
-			title: button.dataset.youtubeTitle ?? '',
-		}));
-		let currentVideoIndex = 0;
-		// The YouTube player is heavy, so a thumbnail stands in until the visitor presses play.
-		let isPlayerActivated = false;
-
-		const loadVideoIframe = (video: { id: string; title: string }, autoplay: boolean) => {
-			const iframe = document.createElement('iframe');
-			iframe.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(video.id)}${autoplay ? '?autoplay=1' : ''}`;
-			iframe.title = video.title;
-			iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
-			iframe.allowFullscreen = true;
-			iframe.referrerPolicy = 'strict-origin-when-cross-origin';
-			youtubePlayer.replaceChildren(iframe);
-		};
-
-		const showVideo = (index: number) => {
-			currentVideoIndex = (index + videos.length) % videos.length;
-			const video = videos[currentVideoIndex];
-
-			youtubePlayer.replaceChildren();
-			if (video.id && isPlayerActivated) {
-				loadVideoIframe(video, false);
-			} else if (video.id) {
-				const facade = document.createElement('button');
-				facade.type = 'button';
-				facade.className = 'youtube-facade';
-				facade.setAttribute('aria-label', `Play ${video.title}`);
-				const thumbnail = document.createElement('img');
-				thumbnail.src = `https://i.ytimg.com/vi/${encodeURIComponent(video.id)}/hqdefault.jpg`;
-				thumbnail.alt = '';
-				thumbnail.loading = 'lazy';
-				thumbnail.decoding = 'async';
-				const playIcon = document.createElement('span');
-				playIcon.className = 'preview-play';
-				playIcon.setAttribute('aria-hidden', 'true');
-				playIcon.textContent = '▶';
-				facade.append(thumbnail, playIcon);
-				facade.addEventListener('click', () => {
-					isPlayerActivated = true;
-					loadVideoIframe(video, true);
-				});
-				youtubePlayer.append(facade);
-			} else {
-				const placeholder = document.createElement('div');
-				placeholder.className = 'youtube-placeholder';
-				placeholder.textContent = `Add a YouTube video ID for "${video.title}"`;
-				youtubePlayer.append(placeholder);
-			}
-
-			youtubeCurrentTitle.textContent = video.title;
-			youtubeCurrentCount.textContent = `${String(currentVideoIndex + 1).padStart(2, '0')} / ${String(videos.length).padStart(2, '0')}`;
-			youtubeVideoButtons.forEach((button, buttonIndex) => {
-				button.setAttribute('aria-pressed', String(buttonIndex === currentVideoIndex));
-			});
-		};
-
-		youtubeCarousel.querySelector('[data-youtube-previous]')?.addEventListener('click', () => {
-			showVideo(currentVideoIndex - 1);
-		});
-		youtubeCarousel.querySelector('[data-youtube-next]')?.addEventListener('click', () => {
-			showVideo(currentVideoIndex + 1);
-		});
-		youtubeVideoButtons.forEach((button, index) => {
-			button.addEventListener('click', () => showVideo(index));
-		});
-		showVideo(0);
-	}
-
-	// Instagram and TikTok embeds pull in large third-party scripts, so load them only when the section is near.
-	const onlineSection = document.querySelector<HTMLElement>('#online');
-	if (onlineSection) {
-		const embedObserver = new IntersectionObserver((entries) => {
-			if (!entries.some((entry) => entry.isIntersecting)) return;
-			embedObserver.disconnect();
-			['https://www.instagram.com/embed.js', 'https://www.tiktok.com/embed.js'].forEach((src) => {
-				const script = document.createElement('script');
-				script.src = src;
-				script.async = true;
-				document.body.append(script);
-			});
-		}, { rootMargin: '400px 0px' });
-		embedObserver.observe(onlineSection);
-	}
-
-	const articleDialog = document.querySelector<HTMLDialogElement>('[data-article-dialog]');
-	const programDialog = document.querySelector<HTMLDialogElement>('[data-program-dialog]');
-	const activityGrid = document.querySelector<HTMLElement>('#activity-grid');
-	const activityCards = activityGrid?.querySelectorAll<HTMLElement>('[data-activity-card]');
-	if (activityGrid && activityCards?.length) {
-		const cards = Array.from(activityCards);
-		let lastLayoutWidth = 0;
-		let lastColumnCount = 0;
-
-		const layoutActivityCards = () => {
-			const gridWidth = activityGrid.clientWidth;
-			const columnCount = Number.parseInt(getComputedStyle(activityGrid).getPropertyValue('--activity-column-count'), 10) || 1;
-			if (gridWidth === lastLayoutWidth && columnCount === lastColumnCount) return;
-			lastLayoutWidth = gridWidth;
-			lastColumnCount = columnCount;
-			const columns = Array.from({ length: columnCount }, () => {
-				const column = document.createElement('div');
-				column.className = 'activity-column';
-				return column;
-			});
-
-			activityGrid.replaceChildren(...columns);
-			cards.forEach((card, index) => columns[index % columnCount].append(card));
-			const cardHeights = new Map(cards.map((card) => [card, card.getBoundingClientRect().height]));
-			const columnHeights = Array<number>(columnCount).fill(0);
-			const columnGap = Number.parseFloat(getComputedStyle(columns[0]).rowGap) || 0;
-
-			columns.forEach((column) => column.replaceChildren());
-			cards.forEach((card) => {
-				const shortestColumn = columnHeights.indexOf(Math.min(...columnHeights));
-				columns[shortestColumn].append(card);
-				columnHeights[shortestColumn] += (cardHeights.get(card) ?? 0) + columnGap;
-			});
-		};
-
-		layoutActivityCards();
-
-		let resizeFrame = 0;
-		window.addEventListener('resize', () => {
-			window.cancelAnimationFrame(resizeFrame);
-			resizeFrame = window.requestAnimationFrame(layoutActivityCards);
-		});
-	}
-
-	const announcerMarquee = document.querySelector<HTMLElement>('[data-announcer-marquee]');
-	const announcerDialog = document.querySelector<HTMLDialogElement>('[data-announcer-dialog]');
-	if (announcerMarquee) {
-		let isMarqueeVisible = false;
-		let isMarqueeFocused = false;
-		const syncMarqueePause = () => {
-			announcerMarquee.classList.toggle('is-paused', document.hidden || !isMarqueeVisible || isMarqueeFocused || Boolean(announcerDialog?.open));
-		};
-		syncMarqueePause();
-		// Only keyboard focus pauses the strip. A clicked card keeps focus (and gets it back when its popup closes),
-		// which would otherwise leave the strip stopped until the visitor clicked somewhere else.
-		announcerMarquee.addEventListener('focusin', (event) => {
-			isMarqueeFocused = event.target instanceof Element && event.target.matches(':focus-visible');
-			syncMarqueePause();
-		});
-		announcerMarquee.addEventListener('focusout', (event) => {
-			if (event.relatedTarget instanceof Node && announcerMarquee.contains(event.relatedTarget)) return;
-			isMarqueeFocused = false;
-			syncMarqueePause();
-		});
-		document.addEventListener('visibilitychange', syncMarqueePause);
-
-		// Photos scrolling in from the side would otherwise load and decode mid-animation, so fetch them all just before the section appears.
-		const preloadObserver = new IntersectionObserver((entries) => {
-			if (!entries.some((entry) => entry.isIntersecting)) return;
-			preloadObserver.disconnect();
-			announcerMarquee.querySelectorAll('img').forEach((image) => { image.loading = 'eager'; });
-		}, { rootMargin: '600px 0px' });
-		preloadObserver.observe(announcerMarquee);
-
-		// The animation keeps running off-screen unless it is paused.
-		new IntersectionObserver((entries) => {
-			isMarqueeVisible = entries.some((entry) => entry.isIntersecting);
-			syncMarqueePause();
-		}).observe(announcerMarquee);
-
-		const announcerImage = announcerDialog?.querySelector<HTMLImageElement>('[data-announcer-image]');
-		const announcerTitle = announcerDialog?.querySelector<HTMLElement>('[data-announcer-title]');
-		const announcerSummary = announcerDialog?.querySelector<HTMLElement>('[data-announcer-summary]');
-		const announcerBody = announcerDialog?.querySelector<HTMLElement>('[data-announcer-body-content]');
-		if (announcerDialog && announcerImage && announcerTitle && announcerSummary && announcerBody) {
-			const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-
-			const openAnnouncer = (card: HTMLElement) => {
-				const image = card.querySelector<HTMLImageElement>('img');
-				const name = card.querySelector('h3')?.textContent?.trim() ?? '';
-				// The card photo is already loaded, so the popup reuses it from cache instead of fetching again.
-				announcerImage.src = image?.currentSrc || image?.src || '';
-				announcerImage.alt = image?.alt || name;
-				announcerTitle.textContent = name;
-				announcerSummary.textContent = card.querySelector('p')?.textContent?.trim() ?? '';
-				announcerSummary.hidden = !announcerSummary.textContent;
-				const bodyTemplate = card.querySelector<HTMLTemplateElement>('template[data-announcer-body]');
-				announcerBody.replaceChildren(bodyTemplate?.content.cloneNode(true) ?? document.createDocumentFragment());
-				announcerBody.hidden = !announcerBody.textContent?.trim();
-				announcerDialog.classList.remove('is-closing');
-				announcerDialog.showModal();
-				syncMarqueePause();
-			};
-
-			const finishClose = (event: AnimationEvent) => {
-				if (event.target !== announcerDialog || event.pseudoElement) return;
-				announcerDialog.removeEventListener('animationend', finishClose);
-				announcerDialog.close();
-			};
-			const closeAnnouncer = () => {
-				if (!announcerDialog.open || announcerDialog.classList.contains('is-closing')) return;
-				if (reducedMotion.matches) {
-					announcerDialog.close();
-					return;
-				}
-				announcerDialog.classList.add('is-closing');
-				announcerDialog.addEventListener('animationend', finishClose);
-			};
-
-			// One delegated listener covers every card, including the duplicated marquee group.
-			announcerMarquee.addEventListener('click', (event) => {
-				const card = (event.target as Element).closest<HTMLElement>('[data-announcer-card]');
-				if (card) openAnnouncer(card);
-			});
-			announcerMarquee.addEventListener('keydown', (event) => {
-				if (event.key !== 'Enter' && event.key !== ' ') return;
-				const card = (event.target as Element).closest<HTMLElement>('[data-announcer-card]');
-				if (!card) return;
-				event.preventDefault();
-				openAnnouncer(card);
-			});
-
-			announcerDialog.querySelector('[data-announcer-close]')?.addEventListener('click', closeAnnouncer);
-			announcerDialog.addEventListener('click', (event) => {
-				if (event.target === announcerDialog) closeAnnouncer();
-			});
-			announcerDialog.addEventListener('cancel', (event) => {
-				event.preventDefault();
-				closeAnnouncer();
-			});
-			announcerDialog.addEventListener('close', () => {
-				announcerDialog.classList.remove('is-closing');
-				announcerDialog.removeEventListener('animationend', finishClose);
-				syncMarqueePause();
-				// Focus returning to a partly clipped card can scroll the clipped marquee sideways; the animation handles movement instead.
-				announcerMarquee.scrollLeft = 0;
-			});
-		}
-	}
-
-	const programCarousel = document.querySelector<HTMLElement>('[data-program-carousel]');
-	const programSlides = programCarousel?.querySelectorAll<HTMLElement>('[data-program-slide]');
-	const programButtons = programCarousel?.querySelectorAll<HTMLButtonElement>('[data-program-index]');
-	const programCount = programCarousel?.querySelector<HTMLElement>('[data-program-count]');
-
-	if (programCarousel && programSlides?.length && programButtons?.length && programCount) {
-		const programsPerPage = 3;
-		const pageCount = Math.ceil(programSlides.length / programsPerPage);
-		const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-		const autoplayDelay = 6000;
-		let currentPageIndex = 0;
-		let autoplayTimer: number | undefined;
-		let isHovered = false;
-		let isFocused = false;
-
-		const showProgramPage = (index: number) => {
-			const nextPageIndex = (index + pageCount) % pageCount;
-			if (nextPageIndex === currentPageIndex) return;
-			const direction = nextPageIndex < currentPageIndex ? -1 : 1;
-			currentPageIndex = nextPageIndex;
-			const firstProgramIndex = currentPageIndex * programsPerPage;
-			const lastProgramIndex = Math.min(firstProgramIndex + programsPerPage, programSlides.length);
-			programSlides.forEach((slide, slideIndex) => {
-				const isActive = slideIndex >= firstProgramIndex && slideIndex < lastProgramIndex;
-				slide.hidden = !isActive;
-				slide.classList.toggle('is-active', isActive);
-				slide.classList.toggle('from-next', isActive && direction > 0);
-				slide.classList.toggle('from-previous', isActive && direction < 0);
-			});
-			programButtons.forEach((button, buttonIndex) => {
-				button.setAttribute('aria-pressed', String(buttonIndex === currentPageIndex));
-			});
-			programCount.textContent = `${String(firstProgramIndex + 1).padStart(2, '0')}-${String(lastProgramIndex).padStart(2, '0')} / ${String(programSlides.length).padStart(2, '0')}`;
-		};
-
-		const stopAutoplay = () => {
-			if (autoplayTimer !== undefined) window.clearTimeout(autoplayTimer);
-			autoplayTimer = undefined;
-		};
-		const startAutoplay = () => {
-			stopAutoplay();
-			if (pageCount < 2 || reducedMotion.matches || document.hidden || isHovered || isFocused || articleDialog?.open || programDialog?.open) return;
-			autoplayTimer = window.setTimeout(() => {
-				showProgramPage(currentPageIndex + 1);
-				startAutoplay();
-			}, autoplayDelay);
-		};
-
-		programCarousel.querySelector('[data-program-previous]')?.addEventListener('click', () => {
-			showProgramPage(currentPageIndex - 1);
-			startAutoplay();
-		});
-		programCarousel.querySelector('[data-program-next]')?.addEventListener('click', () => {
-			showProgramPage(currentPageIndex + 1);
-			startAutoplay();
-		});
-		programButtons.forEach((button, index) => button.addEventListener('click', () => {
-			showProgramPage(index);
-			startAutoplay();
-		}));
-		programCarousel.addEventListener('pointerenter', () => {
-			isHovered = true;
-			stopAutoplay();
-		});
-		programCarousel.addEventListener('pointerleave', () => {
-			isHovered = false;
-			startAutoplay();
-		});
-		programCarousel.addEventListener('focusin', () => {
-			isFocused = true;
-			stopAutoplay();
-		});
-		programCarousel.addEventListener('focusout', (event) => {
-			if (event.relatedTarget instanceof Node && programCarousel.contains(event.relatedTarget)) return;
-			isFocused = false;
-			startAutoplay();
-		});
-		document.addEventListener('visibilitychange', startAutoplay);
-		reducedMotion.addEventListener('change', startAutoplay);
-		articleDialog?.addEventListener('close', startAutoplay);
-		programDialog?.addEventListener('close', startAutoplay);
-		startAutoplay();
-	}
-
-	const newsCarousel = document.querySelector<HTMLElement>('[data-news-carousel]');
-	const newsSlides = newsCarousel?.querySelectorAll<HTMLElement>('[data-news-slide]');
-	const newsPrevious = newsCarousel?.querySelector<HTMLButtonElement>('[data-news-previous]');
-	const newsNext = newsCarousel?.querySelector<HTMLButtonElement>('[data-news-next]');
-
-	if (newsSlides?.length && newsPrevious && newsNext) {
-		let currentNewsIndex = 0;
-
-		const showNewsSlide = (index: number, direction: 'next' | 'previous') => {
-			currentNewsIndex = (index + newsSlides.length) % newsSlides.length;
-			newsSlides.forEach((slide, slideIndex) => {
-				const isActive = slideIndex === currentNewsIndex;
-				slide.hidden = !isActive;
-				slide.classList.toggle('from-next', isActive && direction === 'next');
-				slide.classList.toggle('from-previous', isActive && direction === 'previous');
-			});
-		};
-
-		newsPrevious.addEventListener('click', () => showNewsSlide(currentNewsIndex - 1, 'previous'));
-		newsNext.addEventListener('click', () => showNewsSlide(currentNewsIndex + 1, 'next'));
-	}
-
-	if (window.matchMedia('(hover: hover) and (pointer: fine)').matches && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-		const tiltCards = [
-			...(programSlides ?? []),
-			...document.querySelectorAll<HTMLElement>('[data-announcer-card]'),
-		];
-		// Tilt ramps from 0 at the card's center to the max at its edges.
-		const tiltMax = 9;
-		const edgeTilt = (position: number) => (position - 0.5) * 2 * tiltMax;
-		tiltCards.forEach((card) => {
-			// Pointer events can fire several times per frame, so apply at most one tilt per frame.
-			let tiltFrame = 0;
-			let pointer = { x: 0, y: 0 };
-			card.addEventListener('pointermove', (event) => {
-				pointer = { x: event.clientX, y: event.clientY };
-				if (tiltFrame) return;
-				tiltFrame = window.requestAnimationFrame(() => {
-					tiltFrame = 0;
-					const bounds = card.getBoundingClientRect();
-					const horizontalPosition = Math.min(Math.max((pointer.x - bounds.left) / bounds.width, 0), 1);
-					const verticalPosition = Math.min(Math.max((pointer.y - bounds.top) / bounds.height, 0), 1);
-					// The pressed edge sinks away from the viewer.
-					card.style.setProperty('--card-tilt-x', `${edgeTilt(horizontalPosition)}deg`);
-					card.style.setProperty('--card-tilt-y', `${-edgeTilt(verticalPosition)}deg`);
-				});
-			});
-
-			const resetTilt = () => {
-				window.cancelAnimationFrame(tiltFrame);
-				tiltFrame = 0;
-				card.style.removeProperty('--card-tilt-x');
-				card.style.removeProperty('--card-tilt-y');
-			};
-			card.addEventListener('pointerleave', resetTilt);
-			card.addEventListener('pointercancel', resetTilt);
-		});
-	}
-
-	const articleImage = articleDialog?.querySelector<HTMLImageElement>('[data-article-image]');
-	const articleCategory = articleDialog?.querySelector<HTMLElement>('[data-article-category]');
-	const articleTitle = articleDialog?.querySelector<HTMLElement>('[data-article-title]');
-	const articleDescription = articleDialog?.querySelector<HTMLElement>('[data-article-description]');
-	const articleBody = articleDialog?.querySelector<HTMLElement>('[data-article-body-content]');
-	const articleStatus = articleDialog?.querySelector<HTMLElement>('[data-article-status]');
-	const articleMeta = articleDialog?.querySelector<HTMLElement>('[data-article-meta]');
-	const articleDate = articleDialog?.querySelector<HTMLTimeElement>('[data-article-date]');
-	const articleReadingTime = articleDialog?.querySelector<HTMLElement>('[data-article-reading-time]');
-	const articleProgress = articleDialog?.querySelector<HTMLElement>('[data-article-progress]');
-
-	const updateArticleProgress = () => {
-		if (!articleDialog || !articleProgress) return;
-		const scrollable = articleDialog.scrollHeight - articleDialog.clientHeight;
-		articleProgress.hidden = scrollable < 40;
-		articleProgress.style.setProperty('--article-progress', String(scrollable > 0 ? Math.min(1, articleDialog.scrollTop / scrollable) : 0));
-	};
-
-	const openArticle = (card: HTMLElement) => {
-		if (!articleDialog || !articleImage || !articleCategory || !articleTitle || !articleDescription || !articleBody || !articleStatus || !articleMeta || !articleDate || !articleReadingTime) return;
-		const heading = card.querySelector<HTMLElement>('h3');
-		const image = card.querySelector<HTMLImageElement>('img');
-		if (!heading || !image) return;
-
-		articleImage.src = image.currentSrc || image.src;
-		articleImage.alt = heading.textContent?.trim() ?? '';
-		articleCategory.textContent = card.querySelector('.card-index')?.textContent?.trim() ?? '';
-		articleTitle.textContent = heading.textContent?.trim() ?? '';
-		articleDescription.textContent = card.querySelector('p')?.textContent?.trim() ?? '';
-		articleDescription.hidden = !articleDescription.textContent;
-		const bodyTemplate = card.querySelector<HTMLTemplateElement>('template[data-article-body]');
-		const body = bodyTemplate?.content.cloneNode(true) ?? document.createDocumentFragment();
-		articleBody.replaceChildren(body);
-		articleBody.hidden = !articleBody.textContent?.trim();
-		const status = card.querySelector<HTMLElement>('.card-status');
-		articleStatus.textContent = status?.textContent?.trim() ?? '';
-		articleStatus.hidden = !articleStatus.textContent;
-
-		// Date comes from the card when it has one; reading time is counted from the summary and body at ~200 words a minute.
-		const date = card.querySelector<HTMLTimeElement>('time[datetime]');
-		articleDate.textContent = date?.textContent?.trim() ?? '';
-		articleDate.dateTime = date?.dateTime ?? '';
-		articleDate.hidden = !articleDate.textContent;
-		const words = `${articleDescription.textContent} ${articleBody.textContent ?? ''}`.trim().split(/\s+/).filter(Boolean).length;
-		articleReadingTime.textContent = words ? `${Math.max(1, Math.round(words / 200))} min read` : '';
-		articleMeta.hidden = articleDate.hidden && !articleReadingTime.textContent;
-
-		articleDialog.showModal();
-		// The dialog is reused, so start each article from its top.
-		articleDialog.scrollTop = 0;
-		updateArticleProgress();
-	};
-
-	document.querySelectorAll<HTMLElement>('[data-article-card]').forEach((card) => {
-		card.addEventListener('click', () => openArticle(card));
-		if (!(card instanceof HTMLButtonElement)) {
-			card.addEventListener('keydown', (event) => {
-				if (event.key !== 'Enter' && event.key !== ' ') return;
-				event.preventDefault();
-				openArticle(card);
-			});
-		}
-	});
-
-	articleDialog?.querySelector('[data-article-close]')?.addEventListener('click', () => articleDialog.close());
-	articleDialog?.addEventListener('click', (event) => {
-		if (event.target === articleDialog) articleDialog.close();
-	});
-	articleDialog?.addEventListener('scroll', updateArticleProgress, { passive: true });
-	articleImage?.addEventListener('load', updateArticleProgress);
-
-	const programImage = programDialog?.querySelector<HTMLImageElement>('[data-program-image]');
-	const programEyebrow = programDialog?.querySelector<HTMLElement>('[data-program-eyebrow]');
-	const programTitle = programDialog?.querySelector<HTMLElement>('[data-program-title]');
-	const programSchedule = programDialog?.querySelector<HTMLElement>('[data-program-schedule]');
-	const programBody = programDialog?.querySelector<HTMLElement>('[data-program-body-content]');
-	const programHostsBlock = programDialog?.querySelector<HTMLElement>('[data-program-hosts-block]');
-	const programHosts = programDialog?.querySelector<HTMLElement>('[data-program-hosts]');
-
-	if (programDialog && programImage && programEyebrow && programTitle && programSchedule && programBody && programHostsBlock && programHosts) {
-		const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-
-		const openProgram = (card: HTMLElement) => {
-			const heading = card.querySelector<HTMLElement>('h3');
-			const image = card.querySelector<HTMLImageElement>('img');
-			if (!heading || !image) return;
-			const title = heading.textContent?.trim() ?? '';
-			const imageUrl = image.currentSrc || image.src;
-
-			// The photo is shown whole and the popup takes its proportions. The card photo is already loaded, so its size is known.
-			programImage.src = imageUrl;
-			programImage.alt = image.alt || title;
-			const ratio = image.naturalWidth && image.naturalHeight ? image.naturalWidth / image.naturalHeight : 5 / 4;
-			programDialog.style.setProperty('--program-ratio', String(ratio));
-			programEyebrow.textContent = card.querySelector('.card-index')?.textContent?.trim() ?? '';
-			programTitle.textContent = title;
-
-			const meta = card.querySelector<HTMLTemplateElement>('template[data-program-meta]')?.content;
-			const slots = Array.from(meta?.querySelectorAll('[data-program-schedule-items] > li') ?? []);
-			if (slots.length) {
-				programSchedule.replaceChildren(...slots.map((slot) => slot.cloneNode(true)));
-			} else {
-				const placeholder = document.createElement('li');
-				placeholder.className = 'program-slot program-slot-tba';
-				placeholder.textContent = 'Schedule to be announced';
-				programSchedule.replaceChildren(placeholder);
-			}
-
-			const hosts = Array.from(meta?.querySelectorAll('[data-program-host-items] > li') ?? []);
-			programHosts.replaceChildren(...hosts.map((host) => host.cloneNode(true)));
-			programHostsBlock.hidden = !hosts.length;
-
-			const bodyTemplate = card.querySelector<HTMLTemplateElement>('template[data-program-body]');
-			programBody.replaceChildren(bodyTemplate?.content.cloneNode(true) ?? document.createDocumentFragment());
-			programBody.hidden = !programBody.textContent?.trim();
-
-			programDialog.classList.remove('is-closing');
-			programDialog.showModal();
-			programDialog.querySelector<HTMLElement>('.program-dialog-copy')?.scrollTo(0, 0);
-		};
-
-		const finishProgramClose = (event: AnimationEvent) => {
-			if (event.target !== programDialog || event.pseudoElement) return;
-			programDialog.removeEventListener('animationend', finishProgramClose);
-			programDialog.close();
-		};
-		const closeProgram = () => {
-			if (!programDialog.open || programDialog.classList.contains('is-closing')) return;
-			if (reducedMotion.matches) {
-				programDialog.close();
-				return;
-			}
-			programDialog.classList.add('is-closing');
-			programDialog.addEventListener('animationend', finishProgramClose);
-		};
-
-		document.querySelectorAll<HTMLElement>('[data-program-card]').forEach((card) => {
-			card.addEventListener('click', () => openProgram(card));
-			card.addEventListener('keydown', (event) => {
-				if (event.key !== 'Enter' && event.key !== ' ') return;
-				event.preventDefault();
-				openProgram(card);
-			});
-		});
-
-		programDialog.querySelector('[data-program-close]')?.addEventListener('click', closeProgram);
-		programDialog.addEventListener('click', (event) => {
-			if (event.target === programDialog) closeProgram();
-		});
-		programDialog.addEventListener('cancel', (event) => {
-			event.preventDefault();
-			closeProgram();
-		});
-		programDialog.addEventListener('close', () => {
-			programDialog.classList.remove('is-closing');
-			programDialog.removeEventListener('animationend', finishProgramClose);
-		});
-	}
-
-	const tuneInButton = document.querySelector<HTMLButtonElement>('[data-tune-in]');
-	const tuneInLabel = tuneInButton?.querySelector<HTMLElement>('[data-tune-in-label]');
-	const broadcast = document.querySelector<HTMLElement>('.broadcast');
-	const broadcastSelection = document.querySelector<HTMLElement>('[data-broadcast-selection]');
-	const broadcastModeButtons = document.querySelectorAll<HTMLButtonElement>('[data-select-broadcast]');
-	const broadcastPanels = document.querySelectorAll<HTMLElement>('[data-broadcast-panel]');
-	const broadcastEmpty = document.querySelector<HTMLElement>('[data-broadcast-empty]');
-	const listenerDialog = document.querySelector<HTMLDialogElement>('[data-listener-dialog]');
-	const listenerForm = listenerDialog?.querySelector<HTMLFormElement>('[data-listener-form]');
-	const listenerFields = listenerForm?.querySelector<HTMLElement>('[data-listener-fields]');
-	const listenerConfirmation = listenerForm?.querySelector<HTMLElement>('[data-listener-confirmation]');
-	const listenerSubmit = listenerForm?.querySelector<HTMLButtonElement>('[data-listener-submit]');
-	const dialogTitle = listenerForm?.querySelector<HTMLElement>('[data-dialog-title]');
-	const googleAuth = listenerForm?.querySelector<HTMLElement>('[data-google-auth]');
-	const googleSignIn = googleAuth?.querySelector<HTMLButtonElement>('[data-google-signin]');
-	const googleUser = googleAuth?.querySelector<HTMLElement>('[data-google-user]');
-	const googleName = googleAuth?.querySelector<HTMLElement>('[data-google-name]');
-	const googleAvatar = googleAuth?.querySelector<HTMLImageElement>('[data-google-avatar]');
-	const googleSignOut = googleAuth?.querySelector<HTMLButtonElement>('[data-google-signout]');
-	const googleAuthNote = googleAuth?.querySelector<HTMLElement>('[data-google-auth-note]');
-	const livePlayer = document.querySelector<HTMLIFrameElement>('[data-youtube-live]');
-	const audioPlayerContainer = document.querySelector<HTMLElement>('[data-audio-player]');
+	import { onEveryPage, onLeave } from '../scripts/oz-page';
+
+	// OZ Bandung and its OZ News pages navigate with the client router (src/components/StationRouter.astro), so this
+	// script runs once per visit and stays loaded while the visitor reads the news. The broadcast panels (data-station)
+	// are carried along with it, so whatever is playing keeps playing and StationDock.astro shows it as a mini player.
+	// The station therefore lives here at module level; setUpPage (further down) binds each fresh copy of the page to it.
+
+	// ---------- The station: the stream, now playing and the listener form's state ----------
+
+	type Broadcast = 'audio' | 'video';
+	const station = document.querySelector<HTMLElement>('[data-station]');
+	const broadcastPanels = station?.querySelectorAll<HTMLElement>('[data-broadcast-panel]') ?? [];
+	const livePlayer = station?.querySelector<HTMLIFrameElement>('[data-youtube-live]');
+	const audioPlayerContainer = station?.querySelector<HTMLElement>('[data-audio-player]');
 	const fallbackAudio = audioPlayerContainer?.querySelector<HTMLAudioElement>('audio');
-	const trackTitle = document.querySelector<HTMLElement>('[data-track-title]');
-	const trackArtist = document.querySelector<HTMLElement>('[data-track-artist]');
-	const listenerCount = document.querySelector<HTMLElement>('[data-listener-count]');
-	const locationInput = listenerForm?.querySelector<HTMLInputElement>('[data-location-input]');
-	const locationOptions = listenerForm?.querySelector<HTMLElement>('[data-location-options]');
-	const listenerSessionKey = 'oz-listener-details-saved';
+	const trackTitle = station?.querySelector<HTMLElement>('[data-track-title]');
+	const trackArtist = station?.querySelector<HTMLElement>('[data-track-artist]');
+	const listenerCount = station?.querySelector<HTMLElement>('[data-listener-count]');
+
+	let selectedBroadcast: Broadcast | null = null;
+	let isStreaming = false;
+	// The stream the form interrupted (or that was picked while it was required), started once the details are saved.
+	let pendingBroadcast: Broadcast | null = null;
+	let nowPlayingTimer: number | undefined;
+
+	// The tune-in controls and listener form of the page on screen; null while the visitor is on OZ News.
+	type PageControls = { render: () => void; openListenerForm: () => void };
+	let pageControls: PageControls | null = null;
+
+	// Sent details are kept on this device, so the form is only ever filled in once. A half-filled form is kept too,
+	// and comes back as the visitor left it.
+	type ListenerDetails = { name: string; age: string; gender: string; location: string };
+	const listenerDetailsKey = 'oz-listener-details';
+	const listenerDraftKey = 'oz-listener-draft';
 	// Once the form has appeared, the stream stays stopped for the rest of the session until it is saved.
 	const listenerPromptKey = 'oz-listener-form-shown';
-	let listenerDetailsSaved = false;
+
+	const readListenerDetails = (key: string): Partial<ListenerDetails> | null => {
+		try {
+			const value: unknown = JSON.parse(localStorage.getItem(key) ?? 'null');
+			return value && typeof value === 'object' ? value as Partial<ListenerDetails> : null;
+		} catch {
+			return null;
+		}
+	};
+
+	const storeListenerDetails = (key: string, details: ListenerDetails | null) => {
+		try {
+			if (details) localStorage.setItem(key, JSON.stringify(details));
+			else localStorage.removeItem(key);
+		} catch {}
+	};
+
+	let listenerDetailsSaved = readListenerDetails(listenerDetailsKey) !== null;
 	let listenerPromptShown = false;
 	try {
-		listenerDetailsSaved = sessionStorage.getItem(listenerSessionKey) === 'true';
 		listenerPromptShown = sessionStorage.getItem(listenerPromptKey) === 'true';
 	} catch {}
-	let selectedBroadcast: 'audio' | 'video' | null = null;
-	// The stream the form interrupted (or that was picked while it was required), started once the details are saved.
-	let pendingBroadcast: 'audio' | 'video' | null = null;
-	let nowPlayingTimer: number | undefined;
+	// The form came due while the visitor was on OZ News; it opens once they are back.
+	let listenerFormDue = false;
 	const listenerFormRequired = () => listenerPromptShown && !listenerDetailsSaved;
+
+	const requestListenerForm = () => {
+		if (listenerDetailsSaved) return;
+		if (pageControls) pageControls.openListenerForm();
+		else listenerFormDue = true;
+	};
 
 	const stopNowPlayingUpdates = () => {
 		if (nowPlayingTimer !== undefined) {
@@ -1695,7 +910,7 @@ const sections = [
 		}
 		void loadAudioPlayer().then((player) => {
 			// The visitor may have switched streams while the player was loading.
-			if (selectedBroadcast !== 'audio' || !broadcast?.classList.contains('is-streaming')) return;
+			if (selectedBroadcast !== 'audio' || !isStreaming) return;
 			if (player) player.play();
 			else fallbackAudio?.play().catch(() => {});
 		});
@@ -1705,10 +920,6 @@ const sections = [
 		if (audioPlayer) audioPlayer.pause();
 		else fallbackAudio?.pause();
 	};
-
-	// Fetch the player ahead of time when a visitor heads for the tune-in button.
-	tuneInButton?.addEventListener('pointerenter', () => { void loadAudioPlayer(); }, { once: true });
-	tuneInButton?.addEventListener('focus', () => { void loadAudioPlayer(); }, { once: true });
 
 	// These stay attached after the upgrade: Video.js plays through this same element.
 	fallbackAudio?.addEventListener('play', startNowPlayingUpdates);
@@ -1730,7 +941,7 @@ const sections = [
 		if (listenerPromptTimer !== undefined || listenerDetailsSaved || listenerPromptShown) return;
 		listenerPromptTimer = window.setTimeout(() => {
 			listenerPromptTimer = undefined;
-			openListenerForm();
+			requestListenerForm();
 		}, listenerPromptDelay);
 	};
 
@@ -1743,86 +954,40 @@ const sections = [
 		if (!listenerFormRequired()) return;
 		pendingBroadcast = 'audio';
 		pauseAudio();
-		openListenerForm();
+		requestListenerForm();
 	});
+
+	// data-streaming shows the mini player on OZ News (StationDock.astro).
+	const renderStation = () => {
+		if (station) {
+			if (isStreaming && selectedBroadcast) station.dataset.streaming = selectedBroadcast;
+			else delete station.dataset.streaming;
+		}
+		pageControls?.render();
+	};
 
 	const stopBroadcast = () => {
 		cancelListenerPrompt();
 		stopNowPlayingUpdates();
 		pauseAudio();
 		livePlayer?.removeAttribute('src');
-		broadcast?.classList.remove('is-streaming');
-		if (tuneInLabel) tuneInLabel.textContent = 'Tune in';
+		isStreaming = false;
 		broadcastPanels.forEach((panel) => { panel.hidden = true; });
-		if (broadcastEmpty) broadcastEmpty.hidden = false;
+		renderStation();
 	};
-
-	// Google sign-in (Firebase, see src/scripts/oz-auth.ts) is needed to send the listener form and to chat, not
-	// to tune in. The SDK is only downloaded once a visitor heads for the tune-in button or the form opens.
-	type OzAuth = import('../scripts/oz-auth').OzAuth;
-	type OzUser = import('../scripts/oz-auth').OzUser;
-	let ozAuth: OzAuth | undefined;
-	let authRequest: Promise<OzAuth | undefined> | undefined;
-
-	const renderAuth = (user: OzUser | null) => {
-		if (!googleSignIn || !googleUser || !googleName || !googleAvatar || !googleAuthNote) return;
-		googleSignIn.hidden = Boolean(user);
-		googleUser.hidden = !user;
-		googleName.textContent = user?.displayName || user?.email || '';
-		googleAvatar.hidden = !user?.photoURL;
-		if (user?.photoURL) googleAvatar.src = user.photoURL;
-		googleAuthNote.textContent = user ? '' : 'Sign in with Google to save your details.';
-		googleAuthNote.hidden = Boolean(user);
-	};
-
-	const showAuthError = (message: string) => {
-		if (!googleAuthNote) return;
-		googleAuthNote.textContent = message;
-		googleAuthNote.hidden = false;
-	};
-
-	const loadAuth = () => {
-		authRequest ??= import('../scripts/oz-auth')
-			.then(({ createOzAuth }) => {
-				ozAuth = createOzAuth();
-				ozAuth.onChange(renderAuth);
-				return ozAuth;
-			})
-			.catch(() => undefined);
-		return authRequest;
-	};
-
-	// Live chat (src/scripts/oz-chat.ts) and the Firebase SDKs it needs load as the chat comes into view.
-	// Anyone can read it; sending needs the same Google sign-in as the listener form.
-	const liveChat = document.querySelector<HTMLElement>('[data-live-chat]');
-	if (liveChat?.dataset.chatRoom) {
-		const chatRoom = liveChat.dataset.chatRoom;
-		const chatObserver = new IntersectionObserver((entries) => {
-			if (!entries.some((entry) => entry.isIntersecting)) return;
-			chatObserver.disconnect();
-			import('../scripts/oz-chat')
-				.then(({ mountOzChat }) => mountOzChat(liveChat, { room: chatRoom, loadAuth }))
-				.catch(() => {
-					const empty = liveChat.querySelector<HTMLElement>('[data-chat-empty]');
-					if (empty) empty.textContent = 'Chat could not be loaded. Please reload the page.';
-				});
-		}, { rootMargin: '200px' });
-		chatObserver.observe(liveChat);
-	}
 
 	const startBroadcast = () => {
 		if (!selectedBroadcast) return;
 		if (listenerFormRequired()) {
 			pendingBroadcast = selectedBroadcast;
-			openListenerForm();
+			requestListenerForm();
 			return;
 		}
-		broadcast?.classList.add('is-streaming');
-		if (tuneInLabel) tuneInLabel.textContent = 'Change stream';
+		isStreaming = true;
 		broadcastPanels.forEach((panel) => {
 			panel.hidden = panel.dataset.broadcastPanel !== selectedBroadcast;
 		});
-		if (broadcastEmpty) broadcastEmpty.hidden = true;
+		renderStation();
 
 		if (selectedBroadcast === 'audio') {
 			startNowPlayingUpdates();
@@ -1843,198 +1008,1100 @@ const sections = [
 		}
 	};
 
-	// The dialog has two uses: picking a stream when tuning in, and the listener form, which opens by itself
-	// once a visitor has been tuned in for a while (see scheduleListenerPrompt). Each shows only its own parts.
-	const showDialogPart = (part: 'broadcast' | 'details') => {
-		if (!listenerForm || !listenerFields || !listenerConfirmation || !listenerSubmit || !broadcastSelection || !googleAuth) return;
-		listenerForm.reset();
-		broadcastSelection.hidden = part !== 'broadcast';
-		listenerFields.hidden = part !== 'details';
-		listenerFields.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select').forEach((field) => { field.disabled = part !== 'details'; });
-		googleAuth.hidden = part !== 'details';
-		if (googleSignIn) googleSignIn.disabled = false;
-		listenerConfirmation.hidden = true;
-		listenerConfirmation.replaceChildren();
-		listenerSubmit.hidden = part !== 'details';
-		listenerSubmit.disabled = false;
-		listenerSubmit.textContent = 'Save details';
-	};
-
-	tuneInButton?.addEventListener('click', () => {
-		if (!listenerDialog || !dialogTitle) return;
-		stopBroadcast();
-		selectedBroadcast = null;
-		void loadAudioPlayer();
-		showDialogPart('broadcast');
-		dialogTitle.textContent = 'Choose how to tune in';
-		listenerDialog.showModal();
-		broadcastModeButtons[0]?.focus();
+	// The mini player's stop button on OZ News (StationDock.astro).
+	document.addEventListener('click', (event) => {
+		if (event.target instanceof Element && event.target.closest('[data-station-stop]')) stopBroadcast();
 	});
 
-	broadcastModeButtons.forEach((button) => {
-		button.addEventListener('click', () => {
-			selectedBroadcast = button.dataset.selectBroadcast === 'video' ? 'video' : 'audio';
-			listenerDialog?.close();
-			// Still inside the click, so the browser lets the stream start with sound.
-			startBroadcast();
-		});
-	});
+	// Google sign-in (Firebase, see src/scripts/oz-auth.ts) is only needed to chat, so the SDK is downloaded as the chat
+	// comes into view. Firebase keeps the visitor signed in on this device until they sign out.
+	type OzAuth = import('../scripts/oz-auth').OzAuth;
+	let ozAuth: OzAuth | undefined;
+	let authRequest: Promise<OzAuth | undefined> | undefined;
 
-	let locationAutocomplete: Promise<unknown> | undefined;
-	const loadLocationAutocomplete = () => {
-		if (!locationInput || !locationOptions) return;
-		locationAutocomplete ??= import('../scripts/oz-location-autocomplete')
-			.then(({ mountLocationAutocomplete }) => mountLocationAutocomplete(locationInput, locationOptions))
+	const loadAuth = () => {
+		authRequest ??= import('../scripts/oz-auth')
+			.then(({ createOzAuth }) => {
+				ozAuth = createOzAuth();
+				return ozAuth;
+			})
 			.catch(() => undefined);
+		return authRequest;
 	};
 
-	const fillNameFromGoogle = (user: OzUser | null) => {
-		const nameField = listenerForm?.elements.namedItem('name');
-		if (nameField instanceof HTMLInputElement && !nameField.value && user?.displayName) nameField.value = user.displayName;
-	};
+	// ---------- The page ----------
 
-	const openListenerForm = () => {
-		if (!listenerDialog || !dialogTitle || listenerDetailsSaved || listenerDialog.open) return;
-		// Stop the stream as soon as the form is due; it comes back once the details are saved.
-		if (broadcast?.classList.contains('is-streaming')) {
-			pendingBroadcast = selectedBroadcast;
-			stopBroadcast();
-		} else if (fallbackAudio && !fallbackAudio.paused) {
-			pauseAudio();
-		}
-		listenerPromptShown = true;
-		try {
-			sessionStorage.setItem(listenerPromptKey, 'true');
-		} catch {}
-		// Wait for whatever the visitor has open (an article, a program) rather than stacking on top of it.
-		const openDialog = document.querySelector<HTMLDialogElement>('dialog[open]');
-		if (openDialog) {
-			openDialog.addEventListener('close', openListenerForm, { once: true });
-			return;
-		}
-		showDialogPart('details');
-		dialogTitle.textContent = 'Tell us about you';
-		loadLocationAutocomplete();
-		void loadAuth().then(async (auth) => {
-			if (!auth) {
-				showAuthError('Google sign-in is unavailable right now. Please try again later.');
-				if (googleSignIn) googleSignIn.disabled = true;
-				return;
-			}
-			const user = await auth.ready().catch(() => null);
-			renderAuth(user);
-			fillNameFromGoogle(user);
-		});
-		listenerDialog.showModal();
-	};
+	const setUpPage = (signal: AbortSignal) => {
+		const hero = document.querySelector<HTMLElement>('[data-hero]');
+		const topbar = document.querySelector<HTMLElement>('[data-topbar]');
+		const topbarLogo = topbar?.querySelector<HTMLElement>('[data-topbar-logo]');
+		const heroLogo = hero?.querySelector<HTMLImageElement>('[data-hero-logo]');
+		const heroNav = hero?.querySelector<HTMLElement>('[data-hero-nav]');
 
-	googleSignIn?.addEventListener('click', async () => {
-		const auth = ozAuth ?? await loadAuth();
-		if (!auth) {
-			showAuthError('Google sign-in is unavailable right now. Please try again later.');
-			return;
-		}
-		googleSignIn.disabled = true;
-		try {
-			const user = await auth.signIn();
-			renderAuth(user);
-			fillNameFromGoogle(user);
-		} catch (error) {
-			const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
-			if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') return;
-			showAuthError(code === 'auth/popup-blocked'
-				? 'Your browser blocked the sign-in window. Allow pop-ups for this site and try again.'
-				: 'Google sign-in failed. Please try again.');
-		} finally {
-			googleSignIn.disabled = false;
-		}
-	});
+		if (hero && topbar && topbarLogo && heroLogo && heroNav) {
+			type Box = { left: number; top: number; width: number; height: number };
+			type MorphPair = { element: HTMLElement; slot: HTMLElement; dockedBox: Box; slotBox: Box };
 
-	googleSignOut?.addEventListener('click', () => { void ozAuth?.signOut(); });
-
-	listenerDialog?.querySelector('[data-dialog-close]')?.addEventListener('click', () => listenerDialog.close());
-
-	// Closing the form only brings the stream back once the details are saved. The close comes from a click or
-	// a key press, so the browser still lets the audio start with sound.
-	listenerDialog?.addEventListener('close', () => {
-		if (!listenerDetailsSaved || !pendingBroadcast) return;
-		selectedBroadcast = pendingBroadcast;
-		pendingBroadcast = null;
-		startBroadcast();
-	});
-
-	listenerForm?.addEventListener('submit', async (event) => {
-		event.preventDefault();
-		if (!listenerFields || !listenerConfirmation || !listenerSubmit || !dialogTitle) return;
-
-		// Once the details are saved, the button just closes the dialog.
-		if (listenerFields.hidden) {
-			listenerDialog?.close();
-			return;
-		}
-
-		if (!listenerForm.reportValidity()) return;
-		const user = ozAuth?.currentUser();
-		if (!user) {
-			showAuthError('Please sign in with Google to continue.');
-			googleSignIn?.focus();
-			return;
-		}
-		const listener = new FormData(listenerForm);
-		listenerSubmit.disabled = true;
-		listenerSubmit.textContent = 'Saving...';
-		try {
-			const response = await fetch('/api/listeners', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					name: String(listener.get('name')).trim(),
-					age: listener.get('age'),
-					gender: listener.get('gender'),
-					location: String(listener.get('location')).trim(),
-					broadcast: broadcast?.classList.contains('is-streaming') ? selectedBroadcast : null,
-					uid: user.uid,
-					email: user.email,
+			const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+			const topbarLinks = Array.from(topbar.querySelectorAll<HTMLElement>('[data-topbar-section-id]'));
+			const heroLinks = Array.from(heroNav.querySelectorAll<HTMLElement>('[data-hero-section-id]'));
+			const pairs: MorphPair[] = [
+				{ element: topbarLogo, slot: heroLogo },
+				...topbarLinks.flatMap((link) => {
+					const slot = heroLinks.find((heroLink) => heroLink.dataset.heroSectionId === link.dataset.topbarSectionId);
+					return slot ? [{ element: link, slot }] : [];
 				}),
+			].map((pair) => ({ ...pair, dockedBox: { left: 0, top: 0, width: 1, height: 1 }, slotBox: { left: 0, top: 0, width: 1, height: 1 } }));
+
+			const dockOffset = 64;
+			let morphDistance = 1;
+			let currentProgress = -1;
+			let targetProgress = 0;
+			let frame = 0;
+
+			const easeInOut = (value: number) => value < 0.5 ? 4 * value ** 3 : 1 - (-2 * value + 2) ** 3 / 2;
+			const toBox = (rect: DOMRect, scrollY = 0): Box => ({ left: rect.left, top: rect.top + scrollY, width: rect.width || 1, height: rect.height || 1 });
+
+			const measure = () => {
+				topbar.classList.add('is-measuring');
+				pairs.forEach((pair) => { pair.element.style.transform = ''; });
+				pairs.forEach((pair) => {
+					pair.dockedBox = toBox(pair.element.getBoundingClientRect());
+					pair.slotBox = toBox(pair.slot.getBoundingClientRect(), window.scrollY);
+				});
+				topbar.classList.remove('is-measuring');
+				morphDistance = Math.max(1, hero.offsetHeight - dockOffset);
+				currentProgress = -1;
+			};
+
+			const render = (progress: number) => {
+				const eased = easeInOut(progress);
+				const isDocked = progress >= 1;
+				topbar.classList.toggle('is-morphing', !isDocked);
+				topbar.style.setProperty('--hero-progress', String(eased));
+				hero.style.setProperty('--hero-progress', String(eased));
+				pairs.forEach(({ element, dockedBox, slotBox }) => {
+					if (isDocked) {
+						element.style.transform = '';
+						return;
+					}
+					// Start from where the slot sits at the top of the page, so items glide straight into the bar instead of scrolling off first.
+					const slotTop = slotBox.top;
+					const width = slotBox.width + (dockedBox.width - slotBox.width) * eased;
+					const centerX = slotBox.left + slotBox.width / 2 + (dockedBox.left + dockedBox.width / 2 - slotBox.left - slotBox.width / 2) * eased;
+					const centerY = slotTop + slotBox.height / 2 + (dockedBox.top + dockedBox.height / 2 - slotTop - slotBox.height / 2) * eased;
+					const translateX = centerX - (dockedBox.left + dockedBox.width / 2);
+					const translateY = centerY - (dockedBox.top + dockedBox.height / 2);
+					element.style.transform = `translate3d(${translateX}px, ${translateY}px, 0) scale(${width / dockedBox.width})`;
+				});
+			};
+
+			const tick = () => {
+				frame = 0;
+				targetProgress = Math.min(1, Math.max(0, window.scrollY / morphDistance));
+				const isFirstFrame = currentProgress < 0;
+				const nextProgress = isFirstFrame || reducedMotion.matches
+					? targetProgress
+					: currentProgress + (targetProgress - currentProgress) * 0.22;
+				const settledProgress = Math.abs(targetProgress - nextProgress) < 0.001 ? targetProgress : nextProgress;
+				const hasMoved = settledProgress !== currentProgress;
+				currentProgress = settledProgress;
+				if (hasMoved) render(currentProgress);
+				if (currentProgress !== targetProgress) frame = window.requestAnimationFrame(tick);
+			};
+
+			const requestTick = () => {
+				if (!frame) frame = window.requestAnimationFrame(tick);
+			};
+
+			const remeasure = () => {
+				window.cancelAnimationFrame(frame);
+				measure();
+				tick();
+			};
+
+			measure();
+			document.documentElement.classList.add('has-hero-morph');
+			heroNav.inert = true;
+			tick();
+			topbar.classList.add('is-entering');
+			window.setTimeout(() => topbar.classList.remove('is-entering'), 1400);
+
+			window.addEventListener('scroll', requestTick, { passive: true, signal });
+			window.addEventListener('resize', () => {
+				window.cancelAnimationFrame(frame);
+				frame = window.requestAnimationFrame(remeasure);
+			}, { signal });
+			window.addEventListener('load', remeasure, { signal });
+			document.fonts?.ready.then(() => {
+				if (!signal.aborted) remeasure();
 			});
-			if (!response.ok) throw new Error('Listener details could not be saved. Please try again.');
-			listenerDetailsSaved = true;
-			try {
-				sessionStorage.setItem(listenerSessionKey, 'true');
-			} catch {}
-		} catch (error) {
-			const message = document.createElement('p');
-			message.textContent = error instanceof Error ? error.message : 'Listener details could not be saved. Please try again.';
-			listenerConfirmation.replaceChildren(message);
-			listenerConfirmation.hidden = false;
+			// The two styles lay the hero out differently (night adds the Ozubathon lockup), so the slots move with the style.
+			const themeObserver = new MutationObserver(() => {
+				window.cancelAnimationFrame(frame);
+				frame = window.requestAnimationFrame(remeasure);
+			});
+			themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+			onLeave(signal, () => {
+				themeObserver.disconnect();
+				window.cancelAnimationFrame(frame);
+			});
+			[heroLogo, topbarLogo.querySelector('img')].forEach((image) => {
+				if (image instanceof HTMLImageElement && !image.complete) image.addEventListener('load', remeasure, { once: true });
+			});
+		}
+
+		// Ozubathon (night style only): count down to the start, then count the hours on air, then sign off.
+		// The lockup is display:none in the retro style, so the observer only runs the clock while it's actually on screen.
+		const ozbEvent = document.querySelector<HTMLElement>('[data-ozb]');
+		if (ozbEvent) {
+			const start = Number(ozbEvent.dataset.ozbStart);
+			const totalMs = Number(ozbEvent.dataset.ozbHours) * 3600000;
+			const label = ozbEvent.querySelector<HTMLElement>('[data-ozb-label]');
+			const countdown = ozbEvent.querySelector<HTMLElement>('[data-ozb-countdown]');
+			const progress = ozbEvent.querySelector<HTMLElement>('[data-ozb-progress]');
+			const hourOutput = ozbEvent.querySelector<HTMLElement>('[data-ozb-hour]');
+			const bar = ozbEvent.querySelector<HTMLElement>('[data-ozb-bar]');
+			const units = Array.from(ozbEvent.querySelectorAll<HTMLElement>('[data-ozb-unit]'));
+			const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+			const pad = (value: number) => String(value).padStart(2, '0');
+			let timer = 0;
+
+			const setText = (element: HTMLElement | null | undefined, text: string, flip = false) => {
+				if (!element || element.textContent === text) return;
+				element.textContent = text;
+				if (flip && !reducedMotion.matches) {
+					element.animate([{ transform: 'translateY(-40%)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 260, easing: 'cubic-bezier(0.2, 0.9, 0.3, 1.2)' });
+				}
+			};
+
+			const update = () => {
+				const now = Date.now();
+				const state = now < start ? 'soon' : now < start + totalMs ? 'live' : 'done';
+				ozbEvent.dataset.ozbState = state;
+				if (countdown) countdown.hidden = state !== 'soon';
+				if (progress) progress.hidden = state !== 'live';
+				if (state === 'soon') {
+					const left = start - now;
+					const values: Record<string, number> = {
+						days: Math.floor(left / 86400000),
+						hours: Math.floor(left / 3600000) % 24,
+						minutes: Math.floor(left / 60000) % 60,
+						seconds: Math.floor(left / 1000) % 60,
+					};
+					units.forEach((unit) => setText(unit, pad(values[unit.dataset.ozbUnit ?? ''] ?? 0), true));
+					setText(label, 'STARTS IN');
+					countdown?.setAttribute('aria-label', `Starts in ${values.days} days, ${values.hours} hours and ${values.minutes} minutes`);
+				} else if (state === 'live') {
+					const elapsed = now - start;
+					setText(label, 'LIVE NOW');
+					setText(hourOutput, pad(Math.min(totalMs / 3600000, Math.floor(elapsed / 3600000) + 1)), true);
+					bar?.style.setProperty('transform', `scaleX(${(elapsed / totalMs).toFixed(4)})`);
+				} else {
+					setText(label, 'THANK YOU FOR TUNING IN');
+				}
+			};
+
+			const run = (visible: boolean) => {
+				window.clearInterval(timer);
+				timer = 0;
+				if (!visible) return;
+				update();
+				// Align ticks to the second, so the seconds digit never lags behind the clock.
+				timer = window.setTimeout(() => {
+					update();
+					timer = window.setInterval(update, 1000);
+				}, 1000 - (Date.now() % 1000));
+			};
+
+			// The logo has no src in the markup, so the retro style (where the lockup is display:none) never downloads it.
+			const logo = ozbEvent.querySelector<HTMLImageElement>('[data-ozb-logo]');
+			let onScreen = false;
+			const clockObserver = new IntersectionObserver((entries) => {
+				onScreen = entries.some((entry) => entry.isIntersecting);
+				if (onScreen && logo && !logo.getAttribute('src')) {
+					logo.srcset = logo.dataset.srcset ?? '';
+					logo.src = logo.dataset.src ?? '';
+				}
+				run(onScreen && !document.hidden);
+			});
+			clockObserver.observe(ozbEvent);
+			document.addEventListener('visibilitychange', () => run(onScreen && !document.hidden), { signal });
+			onLeave(signal, () => {
+				clockObserver.disconnect();
+				run(false);
+			});
+		}
+
+		// Looping decoration (the hero sunburst, the ticker) only runs while it's on screen.
+		const loopObserver = new IntersectionObserver((entries) => {
+			entries.forEach((entry) => entry.target.classList.toggle('is-offscreen', !entry.isIntersecting));
+		});
+		document.querySelectorAll('[data-hero], [data-ozb-ticker]').forEach((element) => loopObserver.observe(element));
+		onLeave(signal, () => loopObserver.disconnect());
+
+		const topbarNavLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-topbar-section-id]'));
+		if (topbarNavLinks.length) {
+			const highlightTopbarLink = (sectionId: string) => {
+				topbarNavLinks.forEach((link) => {
+					if (link.dataset.topbarSectionId === sectionId) link.setAttribute('aria-current', 'location');
+					else link.removeAttribute('aria-current');
+				});
+				// On narrow screens the nav scrolls sideways; keep the current link in view.
+				const currentLink = topbarNavLinks.find((link) => link.dataset.topbarSectionId === sectionId);
+				const nav = currentLink?.parentElement;
+				if (currentLink && nav && nav.scrollWidth > nav.clientWidth) {
+					nav.scrollTo({
+						left: currentLink.offsetLeft - nav.offsetLeft - (nav.clientWidth - currentLink.offsetWidth) / 2,
+						behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+					});
+				}
+			};
+
+			// A section is current while it crosses the middle of the viewport; the hero clears the highlight.
+			const topbarSectionObserver = new IntersectionObserver((entries) => {
+				const currentSection = entries.find((entry) => entry.isIntersecting);
+				if (currentSection) highlightTopbarLink((currentSection.target as HTMLElement).id);
+			}, { rootMargin: '-50% 0px -50% 0px' });
+
+			document.querySelectorAll<HTMLElement>('[data-hero], .screen[id]').forEach((section) => topbarSectionObserver.observe(section));
+			onLeave(signal, () => topbarSectionObserver.disconnect());
+		}
+
+		const sectionNav = document.querySelector<HTMLElement>('[data-section-nav]');
+		if (sectionNav) {
+			const sectionLinks = Array.from(sectionNav.querySelectorAll<HTMLAnchorElement>('[data-section-id]'));
+			const topbarSectionLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-topbar-section-id]'));
+			const previousSectionLink = sectionNav.querySelector<HTMLAnchorElement>('[data-section-previous]');
+			const nextSectionLink = sectionNav.querySelector<HTMLAnchorElement>('[data-section-next]');
+			const sectionProgress = sectionNav.querySelector<HTMLElement>('[data-section-progress]');
+
+			const updateSectionNavigation = (sectionId: string) => {
+				const currentIndex = sectionLinks.findIndex((link) => link.dataset.sectionId === sectionId);
+				if (currentIndex < 0) return;
+
+				const previousSection = sectionLinks[currentIndex - 1];
+				const nextSection = sectionLinks[currentIndex + 1];
+				if (previousSectionLink) {
+					previousSectionLink.href = previousSection ? `#${previousSection.dataset.sectionId}` : '/';
+					previousSectionLink.textContent = previousSection ? `← ${previousSection.dataset.sectionLabel}` : '← ALL LOCATIONS';
+				}
+				if (nextSectionLink) {
+					nextSectionLink.href = nextSection ? `#${nextSection.dataset.sectionId}` : '/oz-bali/';
+					nextSectionLink.textContent = nextSection ? `${nextSection.dataset.sectionLabel} →` : 'NEXT: BALI →';
+				}
+				sectionProgress?.setAttribute('aria-label', `Section ${currentIndex + 1} of ${sectionLinks.length}`);
+				sectionLinks.forEach((link, linkIndex) => {
+					if (linkIndex === currentIndex) link.setAttribute('aria-current', 'step');
+					else link.removeAttribute('aria-current');
+				});
+				topbarSectionLinks.forEach((link) => {
+					if (link.dataset.topbarSectionId === sectionId) link.setAttribute('aria-current', 'location');
+					else link.removeAttribute('aria-current');
+				});
+			};
+
+			const sectionObserver = new IntersectionObserver((entries) => {
+				const visibleSection = entries
+					.filter((entry) => entry.isIntersecting)
+					.sort((first, second) => second.intersectionRatio - first.intersectionRatio)[0];
+				if (visibleSection) updateSectionNavigation((visibleSection.target as HTMLElement).id);
+			}, { threshold: 0.5 });
+
+			document.querySelectorAll<HTMLElement>('.screen[id]').forEach((section) => sectionObserver.observe(section));
+			onLeave(signal, () => sectionObserver.disconnect());
+			updateSectionNavigation(window.location.hash.slice(1) || 'listen');
+		}
+
+		const youtubeCarousel = document.querySelector<HTMLElement>('[data-youtube-carousel]');
+		const youtubePlayer = youtubeCarousel?.querySelector<HTMLElement>('[data-youtube-player]');
+		const youtubeVideoButtons = youtubeCarousel?.querySelectorAll<HTMLButtonElement>('[data-youtube-video]');
+		const youtubeCurrentTitle = youtubeCarousel?.querySelector<HTMLElement>('[data-youtube-current-title]');
+		const youtubeCurrentCount = youtubeCarousel?.querySelector<HTMLElement>('[data-youtube-current-count]');
+
+		if (youtubeCarousel && youtubePlayer && youtubeVideoButtons?.length && youtubeCurrentTitle && youtubeCurrentCount) {
+			const videos = Array.from(youtubeVideoButtons, (button) => ({
+				id: button.dataset.youtubeId ?? '',
+				title: button.dataset.youtubeTitle ?? '',
+			}));
+			let currentVideoIndex = 0;
+			// The YouTube player is heavy, so a thumbnail stands in until the visitor presses play.
+			let isPlayerActivated = false;
+
+			const loadVideoIframe = (video: { id: string; title: string }, autoplay: boolean) => {
+				const iframe = document.createElement('iframe');
+				iframe.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(video.id)}${autoplay ? '?autoplay=1' : ''}`;
+				iframe.title = video.title;
+				iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+				iframe.allowFullscreen = true;
+				iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+				youtubePlayer.replaceChildren(iframe);
+			};
+
+			const showVideo = (index: number) => {
+				currentVideoIndex = (index + videos.length) % videos.length;
+				const video = videos[currentVideoIndex];
+
+				youtubePlayer.replaceChildren();
+				if (video.id && isPlayerActivated) {
+					loadVideoIframe(video, false);
+				} else if (video.id) {
+					const facade = document.createElement('button');
+					facade.type = 'button';
+					facade.className = 'youtube-facade';
+					facade.setAttribute('aria-label', `Play ${video.title}`);
+					const thumbnail = document.createElement('img');
+					thumbnail.src = `https://i.ytimg.com/vi/${encodeURIComponent(video.id)}/hqdefault.jpg`;
+					thumbnail.alt = '';
+					thumbnail.loading = 'lazy';
+					thumbnail.decoding = 'async';
+					const playIcon = document.createElement('span');
+					playIcon.className = 'preview-play';
+					playIcon.setAttribute('aria-hidden', 'true');
+					playIcon.textContent = '▶';
+					facade.append(thumbnail, playIcon);
+					facade.addEventListener('click', () => {
+						isPlayerActivated = true;
+						loadVideoIframe(video, true);
+					});
+					youtubePlayer.append(facade);
+				} else {
+					const placeholder = document.createElement('div');
+					placeholder.className = 'youtube-placeholder';
+					placeholder.textContent = `Add a YouTube video ID for "${video.title}"`;
+					youtubePlayer.append(placeholder);
+				}
+
+				youtubeCurrentTitle.textContent = video.title;
+				youtubeCurrentCount.textContent = `${String(currentVideoIndex + 1).padStart(2, '0')} / ${String(videos.length).padStart(2, '0')}`;
+				youtubeVideoButtons.forEach((button, buttonIndex) => {
+					button.setAttribute('aria-pressed', String(buttonIndex === currentVideoIndex));
+				});
+			};
+
+			youtubeCarousel.querySelector('[data-youtube-previous]')?.addEventListener('click', () => {
+				showVideo(currentVideoIndex - 1);
+			});
+			youtubeCarousel.querySelector('[data-youtube-next]')?.addEventListener('click', () => {
+				showVideo(currentVideoIndex + 1);
+			});
+			youtubeVideoButtons.forEach((button, index) => {
+				button.addEventListener('click', () => showVideo(index));
+			});
+			showVideo(0);
+		}
+
+		// Instagram and TikTok embeds pull in large third-party scripts, so load them only when the section is near.
+		const onlineSection = document.querySelector<HTMLElement>('#online');
+		if (onlineSection) {
+			const embedObserver = new IntersectionObserver((entries) => {
+				if (!entries.some((entry) => entry.isIntersecting)) return;
+				embedObserver.disconnect();
+				// Back on the page after visiting OZ News, Instagram's script is still loaded and only needs to find the new
+				// embeds; TikTok's looks for them each time it runs.
+				const instagram = (window as Window & { instgrm?: { Embeds: { process: () => void } } }).instgrm;
+				instagram?.Embeds.process();
+				[instagram ? '' : 'https://www.instagram.com/embed.js', 'https://www.tiktok.com/embed.js'].filter(Boolean).forEach((src) => {
+					const script = document.createElement('script');
+					script.src = src;
+					script.async = true;
+					document.body.append(script);
+				});
+			}, { rootMargin: '400px 0px' });
+			embedObserver.observe(onlineSection);
+			onLeave(signal, () => embedObserver.disconnect());
+		}
+
+		const articleDialog = document.querySelector<HTMLDialogElement>('[data-article-dialog]');
+		const programDialog = document.querySelector<HTMLDialogElement>('[data-program-dialog]');
+		const activityGrid = document.querySelector<HTMLElement>('#activity-grid');
+		const activityCards = activityGrid?.querySelectorAll<HTMLElement>('[data-activity-card]');
+		if (activityGrid && activityCards?.length) {
+			const cards = Array.from(activityCards);
+			let lastLayoutWidth = 0;
+			let lastColumnCount = 0;
+
+			const layoutActivityCards = () => {
+				const gridWidth = activityGrid.clientWidth;
+				const columnCount = Number.parseInt(getComputedStyle(activityGrid).getPropertyValue('--activity-column-count'), 10) || 1;
+				if (gridWidth === lastLayoutWidth && columnCount === lastColumnCount) return;
+				lastLayoutWidth = gridWidth;
+				lastColumnCount = columnCount;
+				const columns = Array.from({ length: columnCount }, () => {
+					const column = document.createElement('div');
+					column.className = 'activity-column';
+					return column;
+				});
+
+				activityGrid.replaceChildren(...columns);
+				cards.forEach((card, index) => columns[index % columnCount].append(card));
+				const cardHeights = new Map(cards.map((card) => [card, card.getBoundingClientRect().height]));
+				const columnHeights = Array<number>(columnCount).fill(0);
+				const columnGap = Number.parseFloat(getComputedStyle(columns[0]).rowGap) || 0;
+
+				columns.forEach((column) => column.replaceChildren());
+				cards.forEach((card) => {
+					const shortestColumn = columnHeights.indexOf(Math.min(...columnHeights));
+					columns[shortestColumn].append(card);
+					columnHeights[shortestColumn] += (cardHeights.get(card) ?? 0) + columnGap;
+				});
+			};
+
+			layoutActivityCards();
+
+			let resizeFrame = 0;
+			window.addEventListener('resize', () => {
+				window.cancelAnimationFrame(resizeFrame);
+				resizeFrame = window.requestAnimationFrame(layoutActivityCards);
+			}, { signal });
+		}
+
+		const announcerMarquee = document.querySelector<HTMLElement>('[data-announcer-marquee]');
+		const announcerDialog = document.querySelector<HTMLDialogElement>('[data-announcer-dialog]');
+		if (announcerMarquee) {
+			let isMarqueeVisible = false;
+			let isMarqueeFocused = false;
+			const syncMarqueePause = () => {
+				announcerMarquee.classList.toggle('is-paused', document.hidden || !isMarqueeVisible || isMarqueeFocused || Boolean(announcerDialog?.open));
+			};
+			syncMarqueePause();
+			// Only keyboard focus pauses the strip. A clicked card keeps focus (and gets it back when its popup closes),
+			// which would otherwise leave the strip stopped until the visitor clicked somewhere else.
+			announcerMarquee.addEventListener('focusin', (event) => {
+				isMarqueeFocused = event.target instanceof Element && event.target.matches(':focus-visible');
+				syncMarqueePause();
+			});
+			announcerMarquee.addEventListener('focusout', (event) => {
+				if (event.relatedTarget instanceof Node && announcerMarquee.contains(event.relatedTarget)) return;
+				isMarqueeFocused = false;
+				syncMarqueePause();
+			});
+			document.addEventListener('visibilitychange', syncMarqueePause, { signal });
+
+			// Photos scrolling in from the side would otherwise load and decode mid-animation, so fetch them all just before the section appears.
+			const preloadObserver = new IntersectionObserver((entries) => {
+				if (!entries.some((entry) => entry.isIntersecting)) return;
+				preloadObserver.disconnect();
+				announcerMarquee.querySelectorAll('img').forEach((image) => { image.loading = 'eager'; });
+			}, { rootMargin: '600px 0px' });
+			preloadObserver.observe(announcerMarquee);
+
+			// The animation keeps running off-screen unless it is paused.
+			const marqueeObserver = new IntersectionObserver((entries) => {
+				isMarqueeVisible = entries.some((entry) => entry.isIntersecting);
+				syncMarqueePause();
+			});
+			marqueeObserver.observe(announcerMarquee);
+			onLeave(signal, () => {
+				preloadObserver.disconnect();
+				marqueeObserver.disconnect();
+			});
+
+			const announcerImage = announcerDialog?.querySelector<HTMLImageElement>('[data-announcer-image]');
+			const announcerTitle = announcerDialog?.querySelector<HTMLElement>('[data-announcer-title]');
+			const announcerInstagram = announcerDialog?.querySelector<HTMLAnchorElement>('[data-announcer-instagram]');
+			const announcerInstagramHandle = announcerInstagram?.querySelector<HTMLElement>('[data-announcer-instagram-handle]');
+			const announcerBody = announcerDialog?.querySelector<HTMLElement>('[data-announcer-body-content]');
+			if (announcerDialog && announcerImage && announcerTitle && announcerInstagram && announcerInstagramHandle && announcerBody) {
+				const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+				const openAnnouncer = (card: HTMLElement) => {
+					const image = card.querySelector<HTMLImageElement>('img');
+					const name = card.querySelector('h3')?.textContent?.trim() ?? '';
+					// The card photo is already loaded, so the popup reuses it from cache instead of fetching again.
+					announcerImage.src = image?.currentSrc || image?.src || '';
+					announcerImage.alt = image?.alt || name;
+					announcerTitle.textContent = name;
+					const instagram = card.dataset.instagram ?? '';
+					announcerInstagram.hidden = !instagram;
+					announcerInstagram.href = `https://www.instagram.com/${encodeURIComponent(instagram)}/`;
+					announcerInstagram.setAttribute('aria-label', `${name} on Instagram: @${instagram}`);
+					announcerInstagramHandle.textContent = `@${instagram}`;
+					const bodyTemplate = card.querySelector<HTMLTemplateElement>('template[data-announcer-body]');
+					announcerBody.replaceChildren(bodyTemplate?.content.cloneNode(true) ?? document.createDocumentFragment());
+					announcerBody.hidden = !announcerBody.textContent?.trim();
+					announcerDialog.classList.remove('is-closing');
+					announcerDialog.showModal();
+					syncMarqueePause();
+				};
+
+				const finishClose = (event: AnimationEvent) => {
+					if (event.target !== announcerDialog || event.pseudoElement) return;
+					announcerDialog.removeEventListener('animationend', finishClose);
+					announcerDialog.close();
+				};
+				const closeAnnouncer = () => {
+					if (!announcerDialog.open || announcerDialog.classList.contains('is-closing')) return;
+					if (reducedMotion.matches) {
+						announcerDialog.close();
+						return;
+					}
+					announcerDialog.classList.add('is-closing');
+					announcerDialog.addEventListener('animationend', finishClose);
+				};
+
+				// One delegated listener covers every card, including the duplicated marquee group.
+				announcerMarquee.addEventListener('click', (event) => {
+					const card = (event.target as Element).closest<HTMLElement>('[data-announcer-card]');
+					if (card) openAnnouncer(card);
+				});
+				announcerMarquee.addEventListener('keydown', (event) => {
+					if (event.key !== 'Enter' && event.key !== ' ') return;
+					const card = (event.target as Element).closest<HTMLElement>('[data-announcer-card]');
+					if (!card) return;
+					event.preventDefault();
+					openAnnouncer(card);
+				});
+
+				announcerDialog.querySelector('[data-announcer-close]')?.addEventListener('click', closeAnnouncer);
+				announcerDialog.addEventListener('click', (event) => {
+					if (event.target === announcerDialog) closeAnnouncer();
+				});
+				announcerDialog.addEventListener('cancel', (event) => {
+					event.preventDefault();
+					closeAnnouncer();
+				});
+				announcerDialog.addEventListener('close', () => {
+					announcerDialog.classList.remove('is-closing');
+					announcerDialog.removeEventListener('animationend', finishClose);
+					syncMarqueePause();
+					// Focus returning to a partly clipped card can scroll the clipped marquee sideways; the animation handles movement instead.
+					announcerMarquee.scrollLeft = 0;
+				});
+			}
+		}
+
+		const programCarousel = document.querySelector<HTMLElement>('[data-program-carousel]');
+		const programSlides = programCarousel?.querySelectorAll<HTMLElement>('[data-program-slide]');
+		const programButtons = programCarousel?.querySelectorAll<HTMLButtonElement>('[data-program-index]');
+		const programCount = programCarousel?.querySelector<HTMLElement>('[data-program-count]');
+
+		if (programCarousel && programSlides?.length && programButtons?.length && programCount) {
+			const programsPerPage = 3;
+			const pageCount = Math.ceil(programSlides.length / programsPerPage);
+			const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+			const autoplayDelay = 6000;
+			let currentPageIndex = 0;
+			let autoplayTimer: number | undefined;
+			let isHovered = false;
+			let isFocused = false;
+
+			const showProgramPage = (index: number) => {
+				const nextPageIndex = (index + pageCount) % pageCount;
+				if (nextPageIndex === currentPageIndex) return;
+				const direction = nextPageIndex < currentPageIndex ? -1 : 1;
+				currentPageIndex = nextPageIndex;
+				const firstProgramIndex = currentPageIndex * programsPerPage;
+				const lastProgramIndex = Math.min(firstProgramIndex + programsPerPage, programSlides.length);
+				programSlides.forEach((slide, slideIndex) => {
+					const isActive = slideIndex >= firstProgramIndex && slideIndex < lastProgramIndex;
+					slide.hidden = !isActive;
+					slide.classList.toggle('is-active', isActive);
+					slide.classList.toggle('from-next', isActive && direction > 0);
+					slide.classList.toggle('from-previous', isActive && direction < 0);
+				});
+				programButtons.forEach((button, buttonIndex) => {
+					button.setAttribute('aria-pressed', String(buttonIndex === currentPageIndex));
+				});
+				programCount.textContent = `${String(firstProgramIndex + 1).padStart(2, '0')}-${String(lastProgramIndex).padStart(2, '0')} / ${String(programSlides.length).padStart(2, '0')}`;
+			};
+
+			const stopAutoplay = () => {
+				if (autoplayTimer !== undefined) window.clearTimeout(autoplayTimer);
+				autoplayTimer = undefined;
+			};
+			const startAutoplay = () => {
+				stopAutoplay();
+				if (pageCount < 2 || reducedMotion.matches || document.hidden || isHovered || isFocused || articleDialog?.open || programDialog?.open) return;
+				autoplayTimer = window.setTimeout(() => {
+					showProgramPage(currentPageIndex + 1);
+					startAutoplay();
+				}, autoplayDelay);
+			};
+
+			programCarousel.querySelector('[data-program-previous]')?.addEventListener('click', () => {
+				showProgramPage(currentPageIndex - 1);
+				startAutoplay();
+			});
+			programCarousel.querySelector('[data-program-next]')?.addEventListener('click', () => {
+				showProgramPage(currentPageIndex + 1);
+				startAutoplay();
+			});
+			programButtons.forEach((button, index) => button.addEventListener('click', () => {
+				showProgramPage(index);
+				startAutoplay();
+			}));
+			programCarousel.addEventListener('pointerenter', () => {
+				isHovered = true;
+				stopAutoplay();
+			});
+			programCarousel.addEventListener('pointerleave', () => {
+				isHovered = false;
+				startAutoplay();
+			});
+			programCarousel.addEventListener('focusin', () => {
+				isFocused = true;
+				stopAutoplay();
+			});
+			programCarousel.addEventListener('focusout', (event) => {
+				if (event.relatedTarget instanceof Node && programCarousel.contains(event.relatedTarget)) return;
+				isFocused = false;
+				startAutoplay();
+			});
+			document.addEventListener('visibilitychange', startAutoplay, { signal });
+			reducedMotion.addEventListener('change', startAutoplay, { signal });
+			onLeave(signal, stopAutoplay);
+			articleDialog?.addEventListener('close', startAutoplay);
+			programDialog?.addEventListener('close', startAutoplay);
+			startAutoplay();
+		}
+
+		const newsCarousel = document.querySelector<HTMLElement>('[data-news-carousel]');
+		const newsSlides = newsCarousel?.querySelectorAll<HTMLElement>('[data-news-slide]');
+		const newsPrevious = newsCarousel?.querySelector<HTMLButtonElement>('[data-news-previous]');
+		const newsNext = newsCarousel?.querySelector<HTMLButtonElement>('[data-news-next]');
+
+		if (newsSlides?.length && newsPrevious && newsNext) {
+			let currentNewsIndex = 0;
+
+			const showNewsSlide = (index: number, direction: 'next' | 'previous') => {
+				currentNewsIndex = (index + newsSlides.length) % newsSlides.length;
+				newsSlides.forEach((slide, slideIndex) => {
+					const isActive = slideIndex === currentNewsIndex;
+					slide.hidden = !isActive;
+					slide.classList.toggle('from-next', isActive && direction === 'next');
+					slide.classList.toggle('from-previous', isActive && direction === 'previous');
+				});
+			};
+
+			newsPrevious.addEventListener('click', () => showNewsSlide(currentNewsIndex - 1, 'previous'));
+			newsNext.addEventListener('click', () => showNewsSlide(currentNewsIndex + 1, 'next'));
+		}
+
+		if (window.matchMedia('(hover: hover) and (pointer: fine)').matches && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+			const tiltCards = [
+				...(programSlides ?? []),
+				...document.querySelectorAll<HTMLElement>('[data-announcer-card]'),
+			];
+			// Tilt ramps from 0 at the card's center to the max at its edges.
+			const tiltMax = 9;
+			const edgeTilt = (position: number) => (position - 0.5) * 2 * tiltMax;
+			tiltCards.forEach((card) => {
+				// Pointer events can fire several times per frame, so apply at most one tilt per frame.
+				let tiltFrame = 0;
+				let pointer = { x: 0, y: 0 };
+				card.addEventListener('pointermove', (event) => {
+					pointer = { x: event.clientX, y: event.clientY };
+					if (tiltFrame) return;
+					tiltFrame = window.requestAnimationFrame(() => {
+						tiltFrame = 0;
+						const bounds = card.getBoundingClientRect();
+						const horizontalPosition = Math.min(Math.max((pointer.x - bounds.left) / bounds.width, 0), 1);
+						const verticalPosition = Math.min(Math.max((pointer.y - bounds.top) / bounds.height, 0), 1);
+						// The pressed edge sinks away from the viewer.
+						card.style.setProperty('--card-tilt-x', `${edgeTilt(horizontalPosition)}deg`);
+						card.style.setProperty('--card-tilt-y', `${-edgeTilt(verticalPosition)}deg`);
+					});
+				});
+
+				const resetTilt = () => {
+					window.cancelAnimationFrame(tiltFrame);
+					tiltFrame = 0;
+					card.style.removeProperty('--card-tilt-x');
+					card.style.removeProperty('--card-tilt-y');
+				};
+				card.addEventListener('pointerleave', resetTilt);
+				card.addEventListener('pointercancel', resetTilt);
+			});
+		}
+
+		const articleImage = articleDialog?.querySelector<HTMLImageElement>('[data-article-image]');
+		const articleCategory = articleDialog?.querySelector<HTMLElement>('[data-article-category]');
+		const articleTitle = articleDialog?.querySelector<HTMLElement>('[data-article-title]');
+		const articleDescription = articleDialog?.querySelector<HTMLElement>('[data-article-description]');
+		const articleBody = articleDialog?.querySelector<HTMLElement>('[data-article-body-content]');
+		const articleStatus = articleDialog?.querySelector<HTMLElement>('[data-article-status]');
+		const articleMeta = articleDialog?.querySelector<HTMLElement>('[data-article-meta]');
+		const articleDate = articleDialog?.querySelector<HTMLTimeElement>('[data-article-date]');
+		const articleReadingTime = articleDialog?.querySelector<HTMLElement>('[data-article-reading-time]');
+		const articleProgress = articleDialog?.querySelector<HTMLElement>('[data-article-progress]');
+
+		const updateArticleProgress = () => {
+			if (!articleDialog || !articleProgress) return;
+			const scrollable = articleDialog.scrollHeight - articleDialog.clientHeight;
+			articleProgress.hidden = scrollable < 40;
+			articleProgress.style.setProperty('--article-progress', String(scrollable > 0 ? Math.min(1, articleDialog.scrollTop / scrollable) : 0));
+		};
+
+		const openArticle = (card: HTMLElement) => {
+			if (!articleDialog || !articleImage || !articleCategory || !articleTitle || !articleDescription || !articleBody || !articleStatus || !articleMeta || !articleDate || !articleReadingTime) return;
+			const heading = card.querySelector<HTMLElement>('h3');
+			const image = card.querySelector<HTMLImageElement>('img');
+			if (!heading || !image) return;
+
+			articleImage.src = image.currentSrc || image.src;
+			articleImage.alt = heading.textContent?.trim() ?? '';
+			articleCategory.textContent = card.querySelector('.card-index')?.textContent?.trim() ?? '';
+			articleTitle.textContent = heading.textContent?.trim() ?? '';
+			articleDescription.textContent = card.querySelector('p')?.textContent?.trim() ?? '';
+			articleDescription.hidden = !articleDescription.textContent;
+			const bodyTemplate = card.querySelector<HTMLTemplateElement>('template[data-article-body]');
+			const body = bodyTemplate?.content.cloneNode(true) ?? document.createDocumentFragment();
+			articleBody.replaceChildren(body);
+			articleBody.hidden = !articleBody.textContent?.trim();
+			const status = card.querySelector<HTMLElement>('.card-status');
+			articleStatus.textContent = status?.textContent?.trim() ?? '';
+			articleStatus.hidden = !articleStatus.textContent;
+
+			// Date comes from the card when it has one; reading time is counted from the summary and body at ~200 words a minute.
+			const date = card.querySelector<HTMLTimeElement>('time[datetime]');
+			articleDate.textContent = date?.textContent?.trim() ?? '';
+			articleDate.dateTime = date?.dateTime ?? '';
+			articleDate.hidden = !articleDate.textContent;
+			const words = `${articleDescription.textContent} ${articleBody.textContent ?? ''}`.trim().split(/\s+/).filter(Boolean).length;
+			articleReadingTime.textContent = words ? `${Math.max(1, Math.round(words / 200))} min read` : '';
+			articleMeta.hidden = articleDate.hidden && !articleReadingTime.textContent;
+
+			articleDialog.showModal();
+			// The dialog is reused, so start each article from its top.
+			articleDialog.scrollTop = 0;
+			updateArticleProgress();
+		};
+
+		document.querySelectorAll<HTMLElement>('[data-article-card]').forEach((card) => {
+			card.addEventListener('click', () => openArticle(card));
+			if (!(card instanceof HTMLButtonElement)) {
+				card.addEventListener('keydown', (event) => {
+					if (event.key !== 'Enter' && event.key !== ' ') return;
+					event.preventDefault();
+					openArticle(card);
+				});
+			}
+		});
+
+		articleDialog?.querySelector('[data-article-close]')?.addEventListener('click', () => articleDialog.close());
+		articleDialog?.addEventListener('click', (event) => {
+			if (event.target === articleDialog) articleDialog.close();
+		});
+		articleDialog?.addEventListener('scroll', updateArticleProgress, { passive: true });
+		articleImage?.addEventListener('load', updateArticleProgress);
+
+		const programImage = programDialog?.querySelector<HTMLImageElement>('[data-program-image]');
+		const programEyebrow = programDialog?.querySelector<HTMLElement>('[data-program-eyebrow]');
+		const programTitle = programDialog?.querySelector<HTMLElement>('[data-program-title]');
+		const programSchedule = programDialog?.querySelector<HTMLElement>('[data-program-schedule]');
+		const programBody = programDialog?.querySelector<HTMLElement>('[data-program-body-content]');
+		const programHostsBlock = programDialog?.querySelector<HTMLElement>('[data-program-hosts-block]');
+		const programHosts = programDialog?.querySelector<HTMLElement>('[data-program-hosts]');
+
+		if (programDialog && programImage && programEyebrow && programTitle && programSchedule && programBody && programHostsBlock && programHosts) {
+			const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+			const openProgram = (card: HTMLElement) => {
+				const heading = card.querySelector<HTMLElement>('h3');
+				const image = card.querySelector<HTMLImageElement>('img');
+				if (!heading || !image) return;
+				const title = heading.textContent?.trim() ?? '';
+				const imageUrl = image.currentSrc || image.src;
+
+				// The photo is shown whole and the popup takes its proportions. The card photo is already loaded, so its size is known.
+				programImage.src = imageUrl;
+				programImage.alt = image.alt || title;
+				const ratio = image.naturalWidth && image.naturalHeight ? image.naturalWidth / image.naturalHeight : 5 / 4;
+				programDialog.style.setProperty('--program-ratio', String(ratio));
+				programEyebrow.textContent = card.querySelector('.card-index')?.textContent?.trim() ?? '';
+				programTitle.textContent = title;
+
+				const meta = card.querySelector<HTMLTemplateElement>('template[data-program-meta]')?.content;
+				const slots = Array.from(meta?.querySelectorAll('[data-program-schedule-items] > li') ?? []);
+				if (slots.length) {
+					programSchedule.replaceChildren(...slots.map((slot) => slot.cloneNode(true)));
+				} else {
+					const placeholder = document.createElement('li');
+					placeholder.className = 'program-slot program-slot-tba';
+					placeholder.textContent = 'Schedule to be announced';
+					programSchedule.replaceChildren(placeholder);
+				}
+
+				const hosts = Array.from(meta?.querySelectorAll('[data-program-host-items] > li') ?? []);
+				programHosts.replaceChildren(...hosts.map((host) => host.cloneNode(true)));
+				programHostsBlock.hidden = !hosts.length;
+
+				const bodyTemplate = card.querySelector<HTMLTemplateElement>('template[data-program-body]');
+				programBody.replaceChildren(bodyTemplate?.content.cloneNode(true) ?? document.createDocumentFragment());
+				programBody.hidden = !programBody.textContent?.trim();
+
+				programDialog.classList.remove('is-closing');
+				programDialog.showModal();
+				programDialog.querySelector<HTMLElement>('.program-dialog-copy')?.scrollTo(0, 0);
+			};
+
+			const finishProgramClose = (event: AnimationEvent) => {
+				if (event.target !== programDialog || event.pseudoElement) return;
+				programDialog.removeEventListener('animationend', finishProgramClose);
+				programDialog.close();
+			};
+			const closeProgram = () => {
+				if (!programDialog.open || programDialog.classList.contains('is-closing')) return;
+				if (reducedMotion.matches) {
+					programDialog.close();
+					return;
+				}
+				programDialog.classList.add('is-closing');
+				programDialog.addEventListener('animationend', finishProgramClose);
+			};
+
+			document.querySelectorAll<HTMLElement>('[data-program-card]').forEach((card) => {
+				card.addEventListener('click', () => openProgram(card));
+				card.addEventListener('keydown', (event) => {
+					if (event.key !== 'Enter' && event.key !== ' ') return;
+					event.preventDefault();
+					openProgram(card);
+				});
+			});
+
+			programDialog.querySelector('[data-program-close]')?.addEventListener('click', closeProgram);
+			programDialog.addEventListener('click', (event) => {
+				if (event.target === programDialog) closeProgram();
+			});
+			programDialog.addEventListener('cancel', (event) => {
+				event.preventDefault();
+				closeProgram();
+			});
+			programDialog.addEventListener('close', () => {
+				programDialog.classList.remove('is-closing');
+				programDialog.removeEventListener('animationend', finishProgramClose);
+			});
+		}
+
+		// ---------- This page's side of the station: tune in, the listener form and the chat ----------
+
+		const tuneInButton = document.querySelector<HTMLButtonElement>('[data-tune-in]');
+		const tuneInLabel = tuneInButton?.querySelector<HTMLElement>('[data-tune-in-label]');
+		const broadcast = document.querySelector<HTMLElement>('.broadcast');
+		const broadcastSelection = document.querySelector<HTMLElement>('[data-broadcast-selection]');
+		const broadcastModeButtons = document.querySelectorAll<HTMLButtonElement>('[data-select-broadcast]');
+		const listenerDialog = document.querySelector<HTMLDialogElement>('[data-listener-dialog]');
+		const listenerForm = listenerDialog?.querySelector<HTMLFormElement>('[data-listener-form]');
+		const listenerFields = listenerForm?.querySelector<HTMLElement>('[data-listener-fields]');
+		const listenerConfirmation = listenerForm?.querySelector<HTMLElement>('[data-listener-confirmation]');
+		const listenerSubmit = listenerForm?.querySelector<HTMLButtonElement>('[data-listener-submit]');
+		const dialogTitle = listenerForm?.querySelector<HTMLElement>('[data-dialog-title]');
+		const locationInput = listenerForm?.querySelector<HTMLInputElement>('[data-location-input]');
+		const locationOptions = listenerForm?.querySelector<HTMLElement>('[data-location-options]');
+
+		// Fetch the player ahead of time when a visitor heads for the tune-in button.
+		tuneInButton?.addEventListener('pointerenter', () => { void loadAudioPlayer(); }, { once: true });
+		tuneInButton?.addEventListener('focus', () => { void loadAudioPlayer(); }, { once: true });
+
+		// Live chat (src/scripts/oz-chat.ts) and the Firebase SDKs it needs load as the chat comes into view.
+		// Anyone can read it; sending needs a Google sign-in.
+		const liveChat = document.querySelector<HTMLElement>('[data-live-chat]');
+		if (liveChat?.dataset.chatRoom) {
+			const chatRoom = liveChat.dataset.chatRoom;
+			const chatObserver = new IntersectionObserver((entries) => {
+				if (!entries.some((entry) => entry.isIntersecting)) return;
+				chatObserver.disconnect();
+				import('../scripts/oz-chat')
+					.then(({ mountOzChat }) => mountOzChat(liveChat, { room: chatRoom, loadAuth, signal }))
+					.catch(() => {
+						const empty = liveChat.querySelector<HTMLElement>('[data-chat-empty]');
+						if (empty) empty.textContent = 'Chat could not be loaded. Please reload the page.';
+					});
+			}, { rootMargin: '200px' });
+			chatObserver.observe(liveChat);
+			onLeave(signal, () => chatObserver.disconnect());
+		}
+
+		// The dialog has two uses: picking a stream when tuning in, and the listener form, which opens by itself
+		// once a visitor has been tuned in for a while (see scheduleListenerPrompt). Each shows only its own parts.
+		const showDialogPart = (part: 'broadcast' | 'details') => {
+			if (!listenerForm || !listenerFields || !listenerConfirmation || !listenerSubmit || !broadcastSelection) return;
+			listenerForm.reset();
+			broadcastSelection.hidden = part !== 'broadcast';
+			listenerFields.hidden = part !== 'details';
+			listenerFields.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select').forEach((field) => { field.disabled = part !== 'details'; });
+			listenerConfirmation.hidden = true;
+			listenerConfirmation.replaceChildren();
+			listenerSubmit.hidden = part !== 'details';
 			listenerSubmit.disabled = false;
 			listenerSubmit.textContent = 'Save details';
-			return;
-		}
-		listenerSubmit.disabled = false;
-		const details = [
-			['Name', listener.get('name')],
-			['Age', listener.get('age')],
-			['Gender', listener.get('gender')],
-			['Location', listener.get('location')],
-		] as const;
-		const message = document.createElement('p');
-		message.textContent = 'Thanks for listening to OZ Radio Bandung.';
-		const summary = document.createElement('dl');
-		details.forEach(([label, value]) => {
-			const term = document.createElement('dt');
-			term.textContent = label;
-			const description = document.createElement('dd');
-			description.textContent = String(value ?? '');
-			summary.append(term, description);
+		};
+
+		tuneInButton?.addEventListener('click', () => {
+			if (!listenerDialog || !dialogTitle) return;
+			stopBroadcast();
+			selectedBroadcast = null;
+			void loadAudioPlayer();
+			showDialogPart('broadcast');
+			dialogTitle.textContent = 'Choose how to tune in';
+			listenerDialog.showModal();
+			broadcastModeButtons[0]?.focus();
 		});
-		listenerConfirmation.replaceChildren(message, summary);
-		listenerFields.hidden = true;
-		listenerFields.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select').forEach((field) => { field.disabled = true; });
-		if (googleAuth) googleAuth.hidden = true;
-		listenerConfirmation.hidden = false;
-		listenerSubmit.textContent = 'Done';
-		dialogTitle.textContent = 'You’re all set';
+
+		broadcastModeButtons.forEach((button) => {
+			button.addEventListener('click', () => {
+				selectedBroadcast = button.dataset.selectBroadcast === 'video' ? 'video' : 'audio';
+				listenerDialog?.close();
+				// Still inside the click, so the browser lets the stream start with sound.
+				startBroadcast();
+			});
+		});
+
+		let locationAutocomplete: Promise<unknown> | undefined;
+		const loadLocationAutocomplete = () => {
+			if (!locationInput || !locationOptions) return;
+			locationAutocomplete ??= import('../scripts/oz-location-autocomplete')
+				.then(({ mountLocationAutocomplete }) => mountLocationAutocomplete(locationInput, locationOptions))
+				.catch(() => undefined);
+		};
+
+		const readListenerForm = (formElement: HTMLFormElement): ListenerDetails => {
+			const form = new FormData(formElement);
+			const text = (name: string) => String(form.get(name) ?? '').trim();
+			return { name: text('name'), age: text('age'), gender: text('gender'), location: text('location') };
+		};
+
+		// Brings back what the visitor entered before; a signed-in chatter's Google name stands in for an empty name.
+		const fillListenerForm = () => {
+			if (!listenerForm) return;
+			const details = { ...readListenerDetails(listenerDetailsKey) ?? readListenerDetails(listenerDraftKey) ?? {} };
+			details.name ||= ozAuth?.currentUser()?.displayName ?? '';
+			for (const [name, value] of Object.entries(details)) {
+				const field = listenerForm.elements.namedItem(name);
+				if ((field instanceof HTMLInputElement || field instanceof HTMLSelectElement) && typeof value === 'string') field.value = value;
+			}
+		};
+
+		const openListenerForm = () => {
+			if (!listenerDialog || !dialogTitle || listenerDetailsSaved || listenerDialog.open) return;
+			// Stop the stream as soon as the form is due; it comes back once the details are saved.
+			if (isStreaming) {
+				pendingBroadcast = selectedBroadcast;
+				stopBroadcast();
+			} else if (fallbackAudio && !fallbackAudio.paused) {
+				pauseAudio();
+			}
+			listenerPromptShown = true;
+			try {
+				sessionStorage.setItem(listenerPromptKey, 'true');
+			} catch {}
+			// Wait for whatever the visitor has open (an article, a program) rather than stacking on top of it.
+			const openDialog = document.querySelector<HTMLDialogElement>('dialog[open]');
+			if (openDialog) {
+				openDialog.addEventListener('close', openListenerForm, { once: true });
+				return;
+			}
+			showDialogPart('details');
+			fillListenerForm();
+			dialogTitle.textContent = 'Tell us about you';
+			loadLocationAutocomplete();
+			listenerDialog.showModal();
+		};
+
+		listenerDialog?.querySelector('[data-dialog-close]')?.addEventListener('click', () => listenerDialog.close());
+
+		// Closing the form only brings the stream back once the details are saved. The close comes from a click or
+		// a key press, so the browser still lets the audio start with sound.
+		listenerDialog?.addEventListener('close', () => {
+			if (!listenerDetailsSaved || !pendingBroadcast) return;
+			selectedBroadcast = pendingBroadcast;
+			pendingBroadcast = null;
+			startBroadcast();
+		});
+
+		// Keep a half-filled form, so closing the dialog or leaving the page doesn't lose it.
+		const saveListenerDraft = () => {
+			if (listenerForm && !listenerFields?.hidden) storeListenerDetails(listenerDraftKey, readListenerForm(listenerForm));
+		};
+		listenerForm?.addEventListener('input', saveListenerDraft);
+		listenerForm?.addEventListener('change', saveListenerDraft);
+
+		listenerForm?.addEventListener('submit', async (event) => {
+			event.preventDefault();
+			if (!listenerFields || !listenerConfirmation || !listenerSubmit || !dialogTitle) return;
+
+			// Once the details are saved, the button just closes the dialog.
+			if (listenerFields.hidden) {
+				listenerDialog?.close();
+				return;
+			}
+
+			if (!listenerForm.reportValidity()) return;
+			const details = readListenerForm(listenerForm);
+			// No sign-in needed. A visitor who is signed in for the chat has their Google account noted with the details.
+			const user = ozAuth?.currentUser();
+			listenerSubmit.disabled = true;
+			listenerSubmit.textContent = 'Saving...';
+			try {
+				const response = await fetch('/api/listeners', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						...details,
+						broadcast: isStreaming ? selectedBroadcast : null,
+						uid: user?.uid,
+						email: user?.email ?? undefined,
+					}),
+				});
+				if (!response.ok) throw new Error('Listener details could not be saved. Please try again.');
+				listenerDetailsSaved = true;
+				storeListenerDetails(listenerDetailsKey, details);
+				storeListenerDetails(listenerDraftKey, null);
+			} catch (error) {
+				const message = document.createElement('p');
+				message.textContent = error instanceof Error ? error.message : 'Listener details could not be saved. Please try again.';
+				listenerConfirmation.replaceChildren(message);
+				listenerConfirmation.hidden = false;
+				listenerSubmit.disabled = false;
+				listenerSubmit.textContent = 'Save details';
+				return;
+			}
+			listenerSubmit.disabled = false;
+			const summaryItems = [
+				['Name', details.name],
+				['Age', details.age],
+				['Gender', details.gender],
+				['Location', details.location],
+			] as const;
+			const message = document.createElement('p');
+			message.textContent = 'Thanks for listening to OZ Radio Bandung.';
+			const summary = document.createElement('dl');
+			summaryItems.forEach(([label, value]) => {
+				const term = document.createElement('dt');
+				term.textContent = label;
+				const description = document.createElement('dd');
+				description.textContent = value;
+				summary.append(term, description);
+			});
+			listenerConfirmation.replaceChildren(message, summary);
+			listenerFields.hidden = true;
+			listenerFields.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select').forEach((field) => { field.disabled = true; });
+			listenerConfirmation.hidden = false;
+			listenerSubmit.textContent = 'Done';
+			dialogTitle.textContent = 'You’re all set';
+		});
+
+		// Hand this page's controls to the station, and catch up with it: a stream may still be playing from OZ News,
+		// or the listener form may have come due there.
+		pageControls = {
+			render: () => {
+				broadcast?.classList.toggle('is-streaming', isStreaming);
+				if (tuneInLabel) tuneInLabel.textContent = isStreaming ? 'Change stream' : 'Tune in';
+			},
+			openListenerForm,
+		};
+		onLeave(signal, () => { pageControls = null; });
+		pageControls.render();
+		if (listenerFormDue) {
+			listenerFormDue = false;
+			openListenerForm();
+		}
+	};
+
+	onEveryPage((signal) => {
+		// The script stays loaded on the OZ News pages too, which have none of this page's parts.
+		if (document.querySelector('[data-hero]')) setUpPage(signal);
 	});
 </script>
 
@@ -2463,6 +2530,11 @@ const sections = [
 	.broadcast-panel {
 		position: relative;
 		z-index: 1;
+	}
+
+	/* The station wrapper only exists to be carried to OZ News; here its panels sit straight in the broadcast box. */
+	.station {
+		display: contents;
 	}
 
 	.broadcast-layout {
@@ -3368,13 +3440,6 @@ const sections = [
 		cursor: pointer;
 	}
 
-	.google-auth {
-		display: grid;
-		gap: 10px;
-		padding-top: 14px;
-		border-top: 1px solid var(--c-line);
-	}
-
 	.google-signin {
 		min-height: 42px;
 		display: flex;
@@ -3411,7 +3476,6 @@ const sections = [
 		font-size: 12px;
 	}
 
-	.google-auth[hidden],
 	.google-user[hidden],
 	.google-signin[hidden] {
 		display: none;
@@ -3449,13 +3513,6 @@ const sections = [
 	.google-signout:hover,
 	.google-signout:focus-visible {
 		color: var(--c-text);
-	}
-
-	.google-auth-note {
-		margin: 0;
-		color: var(--c-muted);
-		font-size: 11px;
-		line-height: 1.5;
 	}
 
 	.listener-confirmation p {
@@ -3906,17 +3963,14 @@ const sections = [
 		letter-spacing: 0.12em;
 	}
 
-	.announcer-card-copy h3,
-	.announcer-card-copy p {
+	.announcer-card-copy h3 {
 		opacity: 0;
 		transform: translateY(8px);
 		transition: opacity 180ms ease, transform 180ms ease;
 	}
 
 	.announcer-card[data-announcer-card]:hover h3,
-	.announcer-card[data-announcer-card]:hover p,
-	.announcer-card[data-announcer-card]:focus-visible h3,
-	.announcer-card[data-announcer-card]:focus-visible p {
+	.announcer-card[data-announcer-card]:focus-visible h3 {
 		opacity: 1;
 		transform: translateY(0);
 	}
@@ -3925,13 +3979,6 @@ const sections = [
 		margin: 8px 0 5px;
 		font-size: clamp(17px, 2.1vw, 24px);
 		letter-spacing: -0.02em;
-	}
-
-	.announcer-card-copy p {
-		margin: 0;
-		color: rgb(255 255 243 / 75%);
-		font-size: 10px;
-		line-height: 1.5;
 	}
 
 	@keyframes announcer-scroll {
@@ -4034,12 +4081,35 @@ const sections = [
 		line-height: 1.05;
 	}
 
-	.announcer-dialog-summary {
-		margin: 0;
+	.announcer-dialog-instagram {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		max-width: 100%;
 		color: var(--c-text-2);
 		font-size: 14px;
 		font-weight: 700;
-		line-height: 1.6;
+		line-height: 1.4;
+		text-decoration: none;
+		transition: color 160ms ease;
+	}
+
+	.announcer-dialog-instagram svg {
+		flex: none;
+	}
+
+	.announcer-dialog-instagram span {
+		overflow-wrap: anywhere;
+	}
+
+	.announcer-dialog-instagram:hover,
+	.announcer-dialog-instagram:focus-visible {
+		color: var(--c-link);
+	}
+
+	.announcer-dialog-instagram:hover span {
+		text-decoration: underline;
+		text-underline-offset: 3px;
 	}
 
 	.announcer-dialog-body {
@@ -5927,13 +5997,11 @@ const sections = [
 
 		.announcer-card,
 		.announcer-card img,
-		.announcer-card-copy h3,
-		.announcer-card-copy p {
+		.announcer-card-copy h3 {
 			transition: none;
 		}
 
-		.announcer-card-copy h3,
-		.announcer-card-copy p {
+		.announcer-card-copy h3 {
 			opacity: 1;
 			transform: none;
 		}
@@ -6305,10 +6373,6 @@ const sections = [
 		background: var(--c-bg);
 	}
 
-	:global(:root[data-theme='night']) .bandung-page {
-		counter-reset: oz-band;
-	}
-
 	:global(:root[data-theme='night']) .bg-art {
 		display: none;
 	}
@@ -6320,7 +6384,6 @@ const sections = [
 		overflow: visible;
 		padding-block: calc(clamp(40px, 9vh, 112px) + 64px) clamp(64px, 11vh, 136px);
 		border-bottom: 1px solid var(--c-line);
-		counter-increment: oz-band;
 		contain-intrinsic-size: auto 900px;
 	}
 
@@ -6760,19 +6823,6 @@ const sections = [
 		margin-bottom: 12px;
 	}
 
-	:global(:root[data-theme='night']) .section-heading .eyebrow::before {
-		padding: 3px 9px 2px 7px;
-		border-radius: 999px;
-		background: var(--c-accent);
-		color: var(--c-on-accent);
-		font-family: var(--font-tango);
-		font-size: 1.15em;
-		font-style: italic;
-		font-weight: 700;
-		letter-spacing: 0;
-		content: counter(oz-band, decimal-leading-zero);
-	}
-
 	:global(:root[data-theme='night']) .section-heading h2 {
 		max-width: 960px;
 		color: var(--c-text);
@@ -6845,10 +6895,8 @@ const sections = [
 	:global(:root[data-theme='night']) .contact-intro p,
 	:global(:root[data-theme='night']) .calendar-event div span,
 	:global(:root[data-theme='night']) .contact-item small,
-	:global(:root[data-theme='night']) .google-auth-note,
 	:global(:root[data-theme='night']) .listener-confirmation p,
-	:global(:root[data-theme='night']) .listener-confirmation dd,
-	:global(:root[data-theme='night']) .announcer-card-copy p {
+	:global(:root[data-theme='night']) .listener-confirmation dd {
 		line-height: 1.6;
 	}
 
@@ -7046,11 +7094,6 @@ const sections = [
 
 	:global(:root[data-theme='night']) .screen-dark .eyebrow {
 		color: #3D2A05;
-	}
-
-	:global(:root[data-theme='night']) .screen-dark .section-heading .eyebrow::before {
-		background: var(--ozb-ink);
-		color: var(--c-accent);
 	}
 
 	:global(:root[data-theme='night']) .screen-dark .section-heading::after {

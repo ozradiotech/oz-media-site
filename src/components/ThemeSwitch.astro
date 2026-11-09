@@ -314,11 +314,13 @@ const menuId = 'theme-menu-list';
 </style>
 
 <script>
+	import { onEveryPage } from '../scripts/oz-page';
+
 	type Theme = 'retro' | 'night' | 'day';
 	const THEME_KEY = 'oz-theme';
 	const THEME_COLORS: Record<Theme, string> = { retro: '#FFFFF3', night: '#0E0D0B', day: '#FBF5E6' };
 	const root = document.documentElement;
-	const menus = Array.from(document.querySelectorAll<HTMLElement>('[data-theme-menu]'));
+	let menus: HTMLElement[] = [];
 
 	const current = (): Theme => (root.dataset.theme !== 'night' ? 'retro' : root.dataset.tone === 'light' ? 'day' : 'night');
 	const isTheme = (value: unknown): value is Theme => value === 'retro' || value === 'night' || value === 'day';
@@ -368,87 +370,89 @@ const menuId = 'theme-menu-list';
 		transition.finished.finally(() => root.classList.remove('is-theme-switching'));
 	};
 
-	menus.forEach((menu) => {
-		const trigger = menu.querySelector<HTMLButtonElement>('[data-theme-trigger]');
-		const items = Array.from(menu.querySelectorAll<HTMLButtonElement>('[data-theme-option]'));
-		if (!trigger || !items.length) return;
+	onEveryPage((signal) => {
+		menus = Array.from(document.querySelectorAll<HTMLElement>('[data-theme-menu]'));
+		menus.forEach((menu) => {
+			const trigger = menu.querySelector<HTMLButtonElement>('[data-theme-trigger]');
+			const items = Array.from(menu.querySelectorAll<HTMLButtonElement>('[data-theme-option]'));
+			if (!trigger || !items.length) return;
 
-		const isOpen = () => menu.classList.contains('is-open');
+			const isOpen = () => menu.classList.contains('is-open');
 
-		const focusItem = (index: number) => items[(index + items.length) % items.length].focus();
+			const focusItem = (index: number) => items[(index + items.length) % items.length].focus();
 
-		const open = (focus: 'checked' | 'first' | 'last' | 'none' = 'none') => {
-			menu.classList.add('is-open');
-			trigger.setAttribute('aria-expanded', 'true');
-			if (focus === 'checked') focusItem(Math.max(0, items.findIndex((item) => item.getAttribute('aria-checked') === 'true')));
-			else if (focus === 'first') focusItem(0);
-			else if (focus === 'last') focusItem(-1);
-		};
+			const open = (focus: 'checked' | 'first' | 'last' | 'none' = 'none') => {
+				menu.classList.add('is-open');
+				trigger.setAttribute('aria-expanded', 'true');
+				if (focus === 'checked') focusItem(Math.max(0, items.findIndex((item) => item.getAttribute('aria-checked') === 'true')));
+				else if (focus === 'first') focusItem(0);
+				else if (focus === 'last') focusItem(-1);
+			};
 
-		const close = (returnFocus = false) => {
-			if (!isOpen()) return;
-			menu.classList.remove('is-open');
-			trigger.setAttribute('aria-expanded', 'false');
-			if (returnFocus) trigger.focus();
-		};
+			const close = (returnFocus = false) => {
+				if (!isOpen()) return;
+				menu.classList.remove('is-open');
+				trigger.setAttribute('aria-expanded', 'false');
+				if (returnFocus) trigger.focus();
+			};
 
-		trigger.addEventListener('click', (event) => {
-			if (isOpen()) close();
-			// A keyboard "click" (detail 0) moves focus into the menu; a pointer click leaves it on the trigger.
-			else open(event.detail === 0 ? 'checked' : 'none');
-		});
-
-		trigger.addEventListener('keydown', (event) => {
-			if (event.key === 'ArrowDown') {
-				event.preventDefault();
-				open('checked');
-			} else if (event.key === 'ArrowUp') {
-				event.preventDefault();
-				open('last');
-			} else if (event.key === 'Escape') {
-				close();
-			}
-		});
-
-		items.forEach((item, index) => {
-			item.addEventListener('click', () => {
-				const theme = item.dataset.themeOption;
-				close(true);
-				if (isTheme(theme)) choose(theme, trigger);
+			trigger.addEventListener('click', (event) => {
+				if (isOpen()) close();
+				// A keyboard "click" (detail 0) moves focus into the menu; a pointer click leaves it on the trigger.
+				else open(event.detail === 0 ? 'checked' : 'none');
 			});
 
-			item.addEventListener('keydown', (event) => {
-				const keys: Record<string, () => void> = {
-					ArrowDown: () => focusItem(index + 1),
-					ArrowUp: () => focusItem(index - 1),
-					Home: () => focusItem(0),
-					End: () => focusItem(-1),
-					Escape: () => close(true),
-				};
-				if (event.key === 'Tab') {
+			trigger.addEventListener('keydown', (event) => {
+				if (event.key === 'ArrowDown') {
+					event.preventDefault();
+					open('checked');
+				} else if (event.key === 'ArrowUp') {
+					event.preventDefault();
+					open('last');
+				} else if (event.key === 'Escape') {
 					close();
-					return;
 				}
-				const action = keys[event.key];
-				if (!action) return;
-				event.preventDefault();
-				action();
+			});
+
+			items.forEach((item, index) => {
+				item.addEventListener('click', () => {
+					const theme = item.dataset.themeOption;
+					close(true);
+					if (isTheme(theme)) choose(theme, trigger);
+				});
+
+				item.addEventListener('keydown', (event) => {
+					const keys: Record<string, () => void> = {
+						ArrowDown: () => focusItem(index + 1),
+						ArrowUp: () => focusItem(index - 1),
+						Home: () => focusItem(0),
+						End: () => focusItem(-1),
+						Escape: () => close(true),
+					};
+					if (event.key === 'Tab') {
+						close();
+						return;
+					}
+					const action = keys[event.key];
+					if (!action) return;
+					event.preventDefault();
+					action();
+				});
+			});
+
+			// Close on a press outside, or when focus leaves the menu.
+			document.addEventListener('pointerdown', (event) => {
+				if (isOpen() && !menu.contains(event.target as Node)) close();
+			}, { signal });
+			menu.addEventListener('focusout', (event) => {
+				if (isOpen() && !menu.contains(event.relatedTarget as Node | null) && event.relatedTarget) close();
 			});
 		});
-
-		// Close on a press outside, or when focus leaves the menu.
-		document.addEventListener('pointerdown', (event) => {
-			if (isOpen() && !menu.contains(event.target as Node)) close();
-		});
-		menu.addEventListener('focusout', (event) => {
-			if (isOpen() && !menu.contains(event.relatedTarget as Node | null) && event.relatedTarget) close();
-		});
+		sync();
 	});
 
 	// Keep other open tabs in step.
 	window.addEventListener('storage', (event) => {
 		if (event.key === THEME_KEY && isTheme(event.newValue)) apply(event.newValue);
 	});
-
-	sync();
 </script>

@@ -1,7 +1,7 @@
 ---
 name: Gebeg
 order: 18
-summary: Summary
+instagram: instagramprofile
 image: /uploads/Gebeg.webp
 imageAlt: Gebeg
 ---

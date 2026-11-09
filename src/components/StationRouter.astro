@@ -1,0 +1,34 @@
+---
+// Goes in <head> on OZ Bandung and its OZ News pages. They navigate between each other with Astro's client router
+// instead of full page loads, so the station player (data-station in oz-bandung.astro) keeps playing: it is carried
+// from page to page, and the news pages show it in StationDock.astro. Pages without the router (home, OZ Bali) still
+// load normally, with the cross-document transitions in src/styles/page-transitions.css.
+import { ClientRouter } from 'astro:transitions';
+---
+
+<ClientRouter />
+<script is:inline>
+	(() => {
+		// The OZ Bandung logo glides between the station's top bar and the news masthead, as it does on full page loads
+		// (see the pageswap/pagereveal handlers in oz-bandung.astro).
+		const nameTopbarLogo = () => document.querySelector('[data-topbar-logo]')?.style.setProperty('view-transition-name', 'oz-bandung-logo');
+		let transition;
+		document.addEventListener('astro:before-preparation', nameTopbarLogo);
+		document.addEventListener('astro:before-swap', (event) => {
+			transition = event.viewTransition;
+			// An empty mini player slot (a news page opened directly) must not replace the real player on the next page.
+			document.querySelector('[data-station-placeholder]')?.removeAttribute('data-astro-transition-persist');
+		});
+		document.addEventListener('astro:after-swap', () => {
+			if (!document.querySelector('[data-topbar-logo]')) return;
+			if (window.scrollY >= 1) {
+				nameTopbarLogo();
+				return;
+			}
+			// At the top the static hero logo is the target (see page-transitions.css).
+			const root = document.documentElement;
+			root.classList.add('vt-arriving', 'vt-arrived');
+			transition?.finished.finally(() => root.classList.remove('vt-arriving'));
+		});
+	})();
+</script>

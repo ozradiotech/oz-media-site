@@ -31,7 +31,10 @@ const announcers = defineCollection({
 		name: z.string(),
 		visible,
 		order: z.number().int().default(0),
-		...cardFields,
+		image: cardFields.image,
+		imageAlt: cardFields.imageAlt,
+		// Instagram handle, shown in the profile popup. "@name", "name" and a profile link all work.
+		instagram: z.string().default(''),
 	}),
 });
 

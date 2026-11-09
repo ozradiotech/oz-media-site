@@ -95,11 +95,14 @@ const river = rest.slice(2);
 </NewsLayout>
 
 <script>
+	import { onEveryPage } from '../../../scripts/oz-page';
+
 	// The sort control only appears once this script runs, since it does nothing without it.
-	const sort = document.querySelector<HTMLElement>('[data-news-sort]');
-	const select = sort?.querySelector<HTMLSelectElement>('[data-news-sort-select]');
-	const river = document.querySelector<HTMLElement>('[data-news-river]');
-	if (sort && select && river) {
+	onEveryPage(() => {
+		const sort = document.querySelector<HTMLElement>('[data-news-sort]');
+		const select = sort?.querySelector<HTMLSelectElement>('[data-news-sort-select]');
+		const river = document.querySelector<HTMLElement>('[data-news-river]');
+		if (!sort || !select || !river) return;
 		sort.hidden = false;
 		select.addEventListener('change', () => {
 			const items = Array.from(river.children) as HTMLElement[];
@@ -110,5 +113,5 @@ const river = rest.slice(2);
 			});
 			river.append(...items);
 		});
-	}
+	});
 </script>

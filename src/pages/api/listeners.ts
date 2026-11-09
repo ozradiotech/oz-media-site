@@ -27,7 +27,8 @@ export const POST: APIRoute = async ({ request }) => {
 	const trimmedLocation = typeof location === 'string' ? location.trim() : '';
 	// The stream playing when the form was sent, if any: tuning in no longer waits for the form.
 	const normalizedBroadcast = typeof broadcast === 'string' ? broadcast.trim().toLowerCase() : null;
-	// The Google account the listener signed in with. Sent by the browser, so treat it as unverified.
+	// The Google account, when the listener happens to be signed in (for the chat); the form doesn't need one.
+	// Sent by the browser, so treat it as unverified.
 	const googleUid = typeof uid === 'string' ? uid.trim() : '';
 	const googleEmail = typeof email === 'string' ? email.trim() : '';
 
@@ -37,7 +38,7 @@ export const POST: APIRoute = async ({ request }) => {
 		!genders.has(trimmedGender) ||
 		!trimmedLocation || trimmedLocation.length > 100 ||
 		(normalizedBroadcast !== null && normalizedBroadcast !== 'audio' && normalizedBroadcast !== 'video') ||
-		!googleUid || googleUid.length > 128 ||
+		googleUid.length > 128 ||
 		googleEmail.length > 254
 	) {
 		return new Response('Invalid listener details.', { status: 400 });
@@ -49,8 +50,8 @@ export const POST: APIRoute = async ({ request }) => {
 		gender: trimmedGender,
 		location: trimmedLocation,
 		broadcast: normalizedBroadcast,
-		googleUid,
-		googleEmail,
+		googleUid: googleUid || null,
+		googleEmail: googleEmail || null,
 		createdAt: new Date().toISOString(),
 	};
 	// Vercel's filesystem is read-only, so accept the details there without storing them.

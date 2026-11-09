@@ -1,14 +1,17 @@
 ---
 // Shell for the OZ News pages: the newsroom index and each article. It carries OZ Bandung's three styles
-// (Retro, Ozubathon Dark and Light, via data-page="bandung"), a masthead sized like the station's top bar
-// and the shared site footer.
+// (Retro, Ozubathon Dark and Light, via data-page="bandung"), a masthead sized like the station's top bar,
+// the shared site footer and the mini player that keeps OZ Bandung's stream going while the visitor reads.
 import { Font } from 'astro:assets';
 import '../styles/typography.css';
 import '../styles/page-transitions.css';
 import '../styles/retro.css';
 import '../styles/ozubathon.css';
 import '../styles/news.css';
+import '../styles/oz-audio-player.css';
 import ThemeHead from '../components/ThemeHead.astro';
+import StationRouter from '../components/StationRouter.astro';
+import StationDock from '../components/StationDock.astro';
 import ThemeSwitch from '../components/ThemeSwitch.astro';
 import SiteFooter from '../components/SiteFooter.astro';
 import { newsIndexPath } from '../lib/news';
@@ -39,6 +42,7 @@ const pageTitle = path === newsIndexPath ? 'OZ News · OZ Radio Bandung' : `${ti
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<ThemeHead />
+		<StationRouter />
 		<title>{pageTitle}</title>
 		<meta name="description" content={description} />
 		<link rel="canonical" href={absolute(path)} />
@@ -81,13 +85,17 @@ const pageTitle = path === newsIndexPath ? 'OZ News · OZ Radio Bandung' : `${ti
 		</main>
 
 		<SiteFooter topHref="#news-main" />
+		<StationDock />
 
 		{readingProgress && (
 			<script>
+				import { onEveryPage } from '../scripts/oz-page';
+
 				// The line under the masthead fills as the reader works through the article body.
-				const progress = document.querySelector<HTMLElement>('[data-reading-progress]');
-				const story = document.querySelector<HTMLElement>('[data-story]');
-				if (progress && story) {
+				onEveryPage((signal) => {
+					const progress = document.querySelector<HTMLElement>('[data-reading-progress]');
+					const story = document.querySelector<HTMLElement>('[data-story]');
+					if (!progress || !story) return;
 					let queued = false;
 					const update = () => {
 						queued = false;
@@ -101,10 +109,10 @@ const pageTitle = path === newsIndexPath ? 'OZ News · OZ Radio Bandung' : `${ti
 						queued = true;
 						requestAnimationFrame(update);
 					};
-					addEventListener('scroll', queue, { passive: true });
-					addEventListener('resize', queue);
+					addEventListener('scroll', queue, { passive: true, signal });
+					addEventListener('resize', queue, { signal });
 					update();
-				}
+				});
 			</script>
 		)}
 	</body>

@@ -1,7 +1,7 @@
 ---
 name: Kiming
 order: 17
-summary: Summary
+instagram: instagramprofile
 image: /uploads/Kiming.webp
 imageAlt: Kiming
 ---

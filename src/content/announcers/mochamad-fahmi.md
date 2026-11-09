@@ -1,7 +1,7 @@
 ---
 name: Amoy
 order: 10
-summary: Mochamad Fahmi
+instagram: instagramprofile
 image: /uploads/Mochamad Fahmi.webp
 ---
 Deskripsi

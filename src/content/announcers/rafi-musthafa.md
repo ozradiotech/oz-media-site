@@ -1,7 +1,7 @@
 ---
 name: Ramus Pramega
 order: 14
-summary: Rafi Musthafa
+instagram: instagramprofile
 image: /uploads/Rafi Musthafa.webp
 ---
 Deskripsi

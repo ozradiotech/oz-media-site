@@ -1,7 +1,7 @@
 ---
 name: Firman Oktaviawan
 order: 6
-summary: Summary
+instagram: instagramprofile
 image: /uploads/Firman Oktaviawan.webp
 imageAlt: ""
 ---
