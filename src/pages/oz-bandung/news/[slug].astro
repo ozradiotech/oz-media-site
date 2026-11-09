@@ -164,6 +164,7 @@ const structuredData = {
 
 <script>
 	import { onEveryPage } from '../../../scripts/oz-page';
+	import { track } from '../../../scripts/oz-track';
 
 	// Share links are filled in the browser so they carry the page's real address, wherever it is hosted.
 	onEveryPage(() => document.querySelectorAll<HTMLElement>('[data-share]').forEach((share) => {
@@ -174,8 +175,11 @@ const structuredData = {
 			x: `https://x.com/intent/post?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`,
 			facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
 		};
+		// GA4's own share event; item_id is the article's path.
+		const trackShare = (method: string) => track('share', { method, content_type: 'article', item_id: location.pathname });
 		share.querySelectorAll<HTMLAnchorElement>('[data-share-network]').forEach((link) => {
 			link.href = links[link.dataset.shareNetwork ?? ''] ?? url;
+			link.addEventListener('click', () => trackShare(link.dataset.shareNetwork ?? 'other'));
 		});
 
 		const status = share.querySelector<HTMLElement>('[data-share-status]');
@@ -183,6 +187,7 @@ const structuredData = {
 		share.querySelector('[data-share-copy]')?.addEventListener('click', async () => {
 			try {
 				await navigator.clipboard.writeText(url);
+				trackShare('copy_link');
 				if (status) status.textContent = 'Link copied';
 			} catch {
 				if (status) status.textContent = 'Copy failed';

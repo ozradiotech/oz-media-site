@@ -774,6 +774,7 @@ const sections = [
 
 <script>
 	import { onEveryPage, onLeave } from '../scripts/oz-page';
+	import { track } from '../scripts/oz-track';
 
 	// OZ Bandung and its OZ News pages navigate with the client router (src/components/StationRouter.astro), so this
 	// script runs once per visit and stays loaded while the visitor reads the news. The broadcast panels (data-station)
@@ -925,6 +926,24 @@ const sections = [
 		else fallbackAudio?.pause();
 	};
 
+	// GA4 events (src/scripts/oz-track.ts). The mini player on OZ News is the same element, so `source` tells them apart.
+	const playerSource = () => (station?.closest('.station-dock') ? 'mini_player' : 'station_page');
+	// stream_start counts sound actually starting, once per run of playback (not each rebuffer).
+	let audioStarted = false;
+	fallbackAudio?.addEventListener('playing', () => {
+		if (audioStarted) return;
+		audioStarted = true;
+		track('stream_start', { stream_type: 'audio', source: playerSource() });
+	});
+	fallbackAudio?.addEventListener('pause', () => { audioStarted = false; });
+	fallbackAudio?.addEventListener('ended', () => { audioStarted = false; });
+	// The Video.js play button, on the station page or in the mini player.
+	station?.addEventListener('click', (event) => {
+		if (event.target instanceof Element && event.target.closest('.vjs-play-control') && fallbackAudio?.paused) {
+			track('play_click', { stream_type: 'audio', source: playerSource() });
+		}
+	});
+
 	// These stay attached after the upgrade: Video.js plays through this same element.
 	fallbackAudio?.addEventListener('play', startNowPlayingUpdates);
 	fallbackAudio?.addEventListener('pause', stopNowPlayingUpdates);
@@ -1008,13 +1027,16 @@ const sections = [
 			playerUrl.searchParams.set('rel', '0');
 			livePlayer.src = playerUrl.toString();
 			// The embed doesn't report playback, so watching counts from when the livestream is picked.
+			track('stream_start', { stream_type: 'video', source: playerSource() });
 			scheduleListenerPrompt();
 		}
 	};
 
 	// The mini player's stop button on OZ News (StationDock.astro).
 	document.addEventListener('click', (event) => {
-		if (event.target instanceof Element && event.target.closest('[data-station-stop]')) stopBroadcast();
+		if (!(event.target instanceof Element) || !event.target.closest('[data-station-stop]')) return;
+		track('stream_stop', { stream_type: selectedBroadcast ?? undefined, source: 'mini_player' });
+		stopBroadcast();
 	});
 
 	// Google sign-in (Firebase, see src/scripts/oz-auth.ts) is only needed to chat, so the SDK is downloaded as the chat
@@ -1946,6 +1968,7 @@ const sections = [
 		broadcastModeButtons.forEach((button) => {
 			button.addEventListener('click', () => {
 				selectedBroadcast = button.dataset.selectBroadcast === 'video' ? 'video' : 'audio';
+				track('play_click', { stream_type: selectedBroadcast, source: 'tune_in' });
 				listenerDialog?.close();
 				// Still inside the click, so the browser lets the stream start with sound.
 				startBroadcast();
@@ -1999,6 +2022,7 @@ const sections = [
 			showDialogPart('details');
 			fillListenerForm();
 			dialogTitle.textContent = 'Tell us about you';
+			track('listener_form_view', { stream_type: pendingBroadcast ?? undefined });
 			loadLocationAutocomplete();
 			listenerDialog.showModal();
 		};
@@ -2050,6 +2074,7 @@ const sections = [
 				});
 				if (!response.ok) throw new Error('Listener details could not be saved. Please try again.');
 				listenerDetailsSaved = true;
+				track('listener_form_submit', { stream_type: pendingBroadcast ?? undefined, signed_in: Boolean(user) });
 				storeListenerDetails(listenerDetailsKey, details);
 				storeListenerDetails(listenerDraftKey, null);
 			} catch (error) {

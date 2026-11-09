@@ -8,7 +8,7 @@ import { consentEnabled } from '../lib/analytics-config';
 {consentEnabled && (
 	<section class="consent-banner" data-consent aria-labelledby="consent-title" hidden>
 		<h2 class="consent-title" id="consent-title">Cookies</h2>
-		<p>OZ Radio uses Google Analytics cookies to see how the site is used, so we can make it better. They are only set if you allow them.</p>
+		<p>OZ Radio uses Google Analytics cookies to see how the site is used, so we can make it better. They are only set if you allow them. <a href="/privacy-policy">Privacy policy</a></p>
 		<div class="consent-actions">
 			<button class="consent-button" type="button" data-consent-choice="denied">Decline</button>
 			<button class="consent-button consent-button-accept" type="button" data-consent-choice="granted">Accept</button>
@@ -96,6 +96,21 @@ import { consentEnabled } from '../lib/analytics-config';
 		color: #D8D8CC;
 		font-size: 13px;
 		line-height: 1.55;
+	}
+
+	.consent-banner a {
+		color: #FFFFF3;
+		font-weight: 700;
+		text-underline-offset: 3px;
+	}
+
+	.consent-banner a:hover {
+		color: #F2BD57;
+	}
+
+	.consent-banner a:focus-visible {
+		outline: 2px solid #F2BD57;
+		outline-offset: 2px;
 	}
 
 	.consent-actions {

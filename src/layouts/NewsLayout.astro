@@ -29,13 +29,25 @@ interface Props {
 	article?: { publishedAt?: Date; section: string };
 	/** Shows the reading progress line under the masthead. */
 	readingProgress?: boolean;
+	/** The masthead's section label, OZ News by default (the privacy policy uses its own). */
+	section?: { name: string; accent: string; href: string };
 }
 
-const { title, description, path, image, imageAlt = '', article, readingProgress = false } = Astro.props;
+const {
+	title,
+	description,
+	path,
+	image,
+	imageAlt = '',
+	article,
+	readingProgress = false,
+	section = { name: 'OZ', accent: 'News', href: newsIndexPath },
+} = Astro.props;
+const isNews = section.href === newsIndexPath;
 
 // Share previews want absolute URLs; they become absolute once `site` is set in astro.config.mjs.
 const absolute = (value: string) => (Astro.site ? new URL(value, Astro.site).href : value);
-const pageTitle = path === newsIndexPath ? 'OZ News · OZ Radio Bandung' : `${title} | OZ News · OZ Radio Bandung`;
+const pageTitle = path === newsIndexPath ? 'OZ News · OZ Radio Bandung' : isNews ? `${title} | OZ News · OZ Radio Bandung` : `${title} · OZ Radio`;
 ---
 
 <!doctype html>
@@ -73,7 +85,7 @@ const pageTitle = path === newsIndexPath ? 'OZ News · OZ Radio Bandung' : `${ti
 		<header class="news-masthead">
 			<div class="news-masthead-inner">
 				<a class="news-masthead-logo" href="/oz-bandung" aria-label="OZ Radio Bandung home" data-sticker><img src="/images/logo-oz-bandung.png" alt="OZ Radio Bandung" width="1246" height="648" /></a>
-				<a class="news-masthead-section" href={newsIndexPath} aria-current={path === newsIndexPath ? 'page' : undefined}>OZ <span>News</span></a>
+				<a class="news-masthead-section" href={section.href} aria-current={path === section.href ? 'page' : undefined}>{section.name} <span>{section.accent}</span></a>
 				<nav class="news-masthead-nav" aria-label="OZ Radio Bandung">
 					<a href="/oz-bandung#listen"><span class="news-live-dot" aria-hidden="true"></span>LISTEN LIVE</a>
 					<a class="news-masthead-station" href="/oz-bandung">STATION</a>

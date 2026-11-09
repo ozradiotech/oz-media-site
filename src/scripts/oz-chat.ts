@@ -1,6 +1,7 @@
 import { getDatabase, goOffline, goOnline, limitToLast, onChildAdded, onChildRemoved, onValue, orderByKey, query, ref } from 'firebase/database';
 import type { OzAuth, OzUser } from './oz-auth';
 import { getAppCheckToken, getOzFirebaseApp, isChatConfigured } from './oz-firebase';
+import { track } from './oz-track';
 
 // Live chat. Anyone can read it straight from the Realtime Database; sending, reporting and moderating go
 // through /api/chat and /api/chat-mod (see src/lib/chat-server.ts), which check the signed-in Google account.
@@ -378,10 +379,12 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth, signal }:
 
 		try {
 			const { id } = await callApi('/api/chat', { text });
+			track('chat_message_send', { status: 'sent' });
 			// The real message may already be here if the database was quicker than the response.
 			if (id && !items.has(id)) pending.set(id, placeholder);
 			else placeholder.remove();
 		} catch (error) {
+			track('chat_message_send', { status: 'failed' });
 			placeholder.remove();
 			cooldownUntil = 0;
 			if (!input.value) input.value = text;
@@ -444,11 +447,16 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth, signal }:
 	signIn.addEventListener('click', async () => {
 		if (!auth) return;
 		signIn.disabled = true;
+		track('chat_sign_in', { status: 'attempt' });
 		try {
 			await auth.signIn();
+			// GA4's own event for a sign-in.
+			track('login', { method: 'Google' });
 		} catch (error) {
 			const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
-			if (code !== 'auth/popup-closed-by-user' && code !== 'auth/cancelled-popup-request') {
+			const cancelled = code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request';
+			track('chat_sign_in', { status: cancelled ? 'cancelled' : 'failed', error_code: typeof code === 'string' ? code : 'unknown' });
+			if (!cancelled) {
 				console.warn('Google sign-in failed:', error);
 				showStatus(code === 'auth/popup-blocked'
 					? 'Your browser blocked the sign-in window. Allow pop-ups for this site and try again.'
@@ -462,6 +470,7 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth, signal }:
 	});
 
 	signOut?.addEventListener('click', () => {
+		track('chat_sign_out');
 		void auth?.signOut();
 	});
 

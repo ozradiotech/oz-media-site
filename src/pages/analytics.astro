@@ -3,6 +3,7 @@ import { Font } from 'astro:assets';
 import '../styles/typography.css';
 import '../styles/retro.css';
 import { getCollection } from 'astro:content';
+import { getVisibleNews, newsIndexPath, newsPath } from '../lib/news';
 
 // Not linked from anywhere yet; reach it by typing /analytics.
 const entries = (await getCollection('analytics'))
@@ -71,6 +72,30 @@ const listenerBreakdowns = [
 	{ chart: 'listener-stream', title: 'Tuned in to', style: 'pie' },
 	{ chart: 'listener-location', title: 'Top locations', style: 'bar' },
 ];
+
+// Campaign links: the address the links point at, and the pages offered in the page field.
+const siteUrl = Astro.site?.origin ?? 'https://ozradio.id';
+const campaignPages = [
+	{ path: '/oz-bandung', label: 'OZ Radio Bandung' },
+	{ path: '/oz-bandung#listen', label: 'OZ Radio Bandung · Listen live' },
+	{ path: newsIndexPath, label: 'OZ News' },
+	{ path: '/', label: 'All stations' },
+	{ path: '/oz-bali', label: 'OZ Radio Bali' },
+	...(await getVisibleNews()).map((entry) => ({ path: newsPath(entry), label: `News · ${entry.data.title}` })),
+];
+// Where a link is posted; utm_medium follows from it (and can still be changed).
+const campaignSources = [
+	{ value: 'instagram', medium: 'social' },
+	{ value: 'tiktok', medium: 'social' },
+	{ value: 'youtube', medium: 'social' },
+	{ value: 'facebook', medium: 'social' },
+	{ value: 'threads', medium: 'social' },
+	{ value: 'x', medium: 'social' },
+	{ value: 'whatsapp', medium: 'messaging' },
+	{ value: 'email', medium: 'email' },
+];
+const campaignMediums = ['social', 'paid_social', 'messaging', 'email', 'referral'];
+const campaignPlacements = ['bio', 'post', 'reel', 'story', 'video', 'live', 'comment', 'ad'];
 
 const monthLabel = (month: string) =>
 	new Date(`${month}-01T00:00:00Z`).toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
@@ -257,6 +282,47 @@ const monthLabel = (month: string) =>
 						))}
 					</>
 				)}
+			</section>
+			<section class="panel" aria-labelledby="campaign-title" data-campaign-panel data-site-url={siteUrl}>
+				<div class="panel-heading">
+					<h2 id="campaign-title">CAMPAIGN LINKS</h2>
+					<button class="action-button" type="button" data-export-campaigns>Export CSV</button>
+				</div>
+				<p class="panel-note">Share these links on Instagram, TikTok and other platforms instead of the plain address, so Google Analytics can tell which post brought each visit (Reports → Acquisition → Traffic acquisition, by session campaign). Every part is made lowercase with hyphens, so one campaign is always counted as one.</p>
+				<form class="campaign-form" data-campaign-form>
+					<label class="filter filter-wide">Page
+						<input name="page" list="campaign-pages" value="/oz-bandung" required autocomplete="off" />
+					</label>
+					<datalist id="campaign-pages">
+						{campaignPages.map((page) => <option value={page.path}>{page.label}</option>)}
+					</datalist>
+					<label class="filter">Source
+						<input name="source" list="campaign-sources" value="instagram" required autocomplete="off" />
+					</label>
+					<datalist id="campaign-sources">
+						{campaignSources.map((source) => <option value={source.value} data-medium={source.medium}></option>)}
+					</datalist>
+					<label class="filter">Medium
+						<select name="medium">
+							{campaignMediums.map((medium) => <option value={medium}>{medium}</option>)}
+						</select>
+					</label>
+					<label class="filter">Campaign
+						<input name="campaign" required placeholder="e.g. ozubathon-2026" autocomplete="off" />
+					</label>
+					<label class="filter">Placement
+						<select name="content">
+							<option value="">None</option>
+							{campaignPlacements.map((placement) => <option value={placement}>{placement}</option>)}
+						</select>
+					</label>
+				</form>
+				<div class="campaign-result">
+					<output class="campaign-url" data-campaign-url aria-live="polite">Give the campaign a name to get its link.</output>
+					<button class="action-button" type="button" data-campaign-copy disabled>Copy link</button>
+				</div>
+				<div class="chart-table record-table" data-campaign-list></div>
+				<p class="chart-note">Copied links are listed here in this browser only. Export them to keep them or share them with the team.</p>
 			</section>
 		</main>
 
@@ -461,7 +527,8 @@ const monthLabel = (month: string) =>
 	}
 
 	select,
-	input[type='date'] {
+	input[type='date'],
+	.campaign-form input {
 		min-height: 36px;
 		padding: 6px 10px;
 		font: inherit;
@@ -578,8 +645,73 @@ const monthLabel = (month: string) =>
 		max-height: 480px;
 	}
 
-	.record-table :global(th),
-	.record-table :global(td) {
+	.panel-note {
+		max-width: 75ch;
+		margin: -8px 0 0;
+		color: var(--ink-secondary);
+		font-size: 14px;
+		line-height: 1.55;
+	}
+
+	.campaign-form {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr));
+		gap: 12px;
+	}
+
+	.campaign-form .filter-wide {
+		grid-column: 1 / -1;
+	}
+
+	.campaign-form input,
+	.campaign-form select {
+		width: 100%;
+		min-width: 0;
+	}
+
+	.campaign-form input:focus-visible {
+		outline: 3px solid var(--accent);
+		outline-offset: 2px;
+	}
+
+	.campaign-result {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 12px;
+	}
+
+	.campaign-url {
+		min-width: 0;
+		flex: 1 1 320px;
+		padding: 10px 12px;
+		background: var(--surface);
+		border: 1px dashed var(--line);
+		border-radius: 8px;
+		color: var(--ink);
+		font-family: ui-monospace, monospace;
+		font-size: 13px;
+		overflow-wrap: anywhere;
+	}
+
+	.campaign-url:empty {
+		display: none;
+	}
+
+	.record-table :global(.campaign-remove) {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: var(--ink-secondary);
+		font: inherit;
+		font-size: 12px;
+		text-decoration: underline;
+		cursor: pointer;
+	}
+
+	/* Listed records read left to right, unlike the number tables (.chart-table, later in this file). */
+	.chart-table.record-table :global(th),
+	.chart-table.record-table :global(td) {
 		text-align: left;
 	}
 
@@ -1473,5 +1605,124 @@ const monthLabel = (month: string) =>
 				});
 			})
 			.catch(() => showGate('Google sign-in could not be loaded. Please reload the page.', { signIn: false }));
+	}
+
+	/* ---------- Campaign links ---------- */
+
+	// Builds links with UTM parameters for social posts. GA treats "Instagram" and "instagram" as two sources, so
+	// every part is normalised the same way: lowercase, words joined by hyphens.
+	const campaignPanel = document.querySelector<HTMLElement>('[data-campaign-panel]');
+	if (campaignPanel) {
+		type CampaignLink = { createdAt: string; url: string; page: string; source: string; medium: string; campaign: string; content: string };
+
+		const siteUrl = campaignPanel.dataset.siteUrl ?? location.origin;
+		const form = campaignPanel.querySelector<HTMLFormElement>('[data-campaign-form]')!;
+		const output = campaignPanel.querySelector<HTMLOutputElement>('[data-campaign-url]')!;
+		const copyButton = campaignPanel.querySelector<HTMLButtonElement>('[data-campaign-copy]')!;
+		const list = campaignPanel.querySelector<HTMLElement>('[data-campaign-list]')!;
+		const field = (name: string) => form.elements.namedItem(name) as HTMLInputElement | HTMLSelectElement;
+		const storageKey = 'oz-campaign-links';
+		const created = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+		const slug = (value: string) => value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+		// Accepts a path ("/oz-bandung") or a full link to this site, and keeps any #section.
+		const pagePath = (value: string) => {
+			try {
+				const url = new URL(value.trim() || '/', siteUrl);
+				return url.origin === new URL(siteUrl).origin ? `${url.pathname}${url.hash}` : null;
+			} catch {
+				return null;
+			}
+		};
+
+		let links: CampaignLink[] = [];
+		try {
+			links = JSON.parse(localStorage.getItem(storageKey) ?? '[]');
+		} catch {}
+		const saveLinks = () => {
+			try {
+				localStorage.setItem(storageKey, JSON.stringify(links));
+			} catch {}
+		};
+
+		let current: CampaignLink | null = null;
+		const build = () => {
+			const path = pagePath(field('page').value);
+			const source = slug(field('source').value);
+			const campaign = slug(field('campaign').value);
+			const medium = field('medium').value;
+			const content = field('content').value;
+			if (!path) {
+				current = null;
+				output.textContent = `The page must be on ${new URL(siteUrl).host}.`;
+			} else if (!source || !campaign) {
+				current = null;
+				output.textContent = !source ? 'Pick where the link will be posted.' : 'Give the campaign a name to get its link.';
+			} else {
+				const [pathname, hash = ''] = path.split('#');
+				const url = new URL(pathname, siteUrl);
+				url.searchParams.set('utm_source', source);
+				url.searchParams.set('utm_medium', medium);
+				url.searchParams.set('utm_campaign', campaign);
+				if (content) url.searchParams.set('utm_content', content);
+				url.hash = hash;
+				current = { createdAt: new Date().toISOString(), url: url.href, page: path, source, medium, campaign, content };
+				output.textContent = url.href;
+			}
+			copyButton.disabled = !current;
+		};
+
+		const renderLinks = () => {
+			list.innerHTML = links.length
+				? `<table><thead><tr>${['Copied', 'Campaign', 'Source', 'Medium', 'Placement', 'Link', ''].map((heading) => `<th scope="col">${heading}</th>`).join('')}</tr></thead><tbody>${links.map((link, index) => `<tr>${[
+					created.format(new Date(link.createdAt)),
+					link.campaign,
+					link.source,
+					link.medium,
+					link.content || '—',
+					link.url,
+				].map((cell) => `<td>${escapeHtml(cell)}</td>`).join('')}<td><button class="campaign-remove" type="button" data-remove="${index}">Remove</button></td></tr>`).join('')}</tbody></table>`
+				: '';
+		};
+
+		// Picking a known source sets its usual medium.
+		field('source').addEventListener('input', () => {
+			const option = form.querySelector<HTMLOptionElement>(`#campaign-sources option[value="${CSS.escape(slug(field('source').value))}"]`);
+			if (option?.dataset.medium) field('medium').value = option.dataset.medium;
+		});
+		form.addEventListener('input', build);
+		form.addEventListener('change', build);
+		form.addEventListener('submit', (event) => event.preventDefault());
+
+		copyButton.addEventListener('click', async () => {
+			if (!current) return;
+			try {
+				await navigator.clipboard.writeText(current.url);
+				copyButton.textContent = 'Copied';
+			} catch {
+				copyButton.textContent = 'Copy failed: select the link instead';
+			}
+			window.setTimeout(() => { copyButton.textContent = 'Copy link'; }, 2000);
+			links = [current, ...links.filter((link) => link.url !== current!.url)].slice(0, 200);
+			saveLinks();
+			renderLinks();
+		});
+
+		list.addEventListener('click', (event) => {
+			const button = event.target instanceof Element ? event.target.closest<HTMLButtonElement>('[data-remove]') : null;
+			if (!button) return;
+			links.splice(Number(button.dataset.remove), 1);
+			saveLinks();
+			renderLinks();
+		});
+
+		campaignPanel.querySelector('[data-export-campaigns]')?.addEventListener('click', () => {
+			downloadCsv('campaign-links', ['Copied at (UTC)', 'Link', 'Page', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content'],
+				links.map((link) => [link.createdAt, link.url, link.page, link.source, link.medium, link.campaign, link.content]));
+		});
+
+		build();
+		renderLinks();
 	}
 </script>

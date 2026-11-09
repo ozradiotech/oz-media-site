@@ -1,0 +1,128 @@
+---
+// The privacy policy, linked from the footers and the cookie banner. It describes what the site actually does;
+// when that changes (a new form, a new tracker, a new embed), update the matching section and `updated`.
+import NewsLayout from '../layouts/NewsLayout.astro';
+import { consentEnabled } from '../lib/analytics-config';
+
+export const prerender = true;
+
+const updated = new Date('2026-11-09T00:00:00+07:00');
+const updatedLabel = updated.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' });
+const contactEmail = 'ozmedianet.id@gmail.com';
+const whatsapp = 'https://wa.me/6285111391031';
+---
+
+<NewsLayout
+	title="Privacy Policy"
+	description="What ozradio.id collects when you listen, chat or fill in the listener form, why, and how to change or remove it."
+	path="/privacy-policy"
+	section={{ name: 'Privacy', accent: 'Policy', href: '/privacy-policy' }}
+>
+	<article class="story privacy">
+		<header class="story-header">
+			<nav class="news-crumbs" aria-label="Breadcrumb">
+				<a href="/">OZ Radio</a>
+				<span aria-hidden="true">/</span>
+				<span>Privacy Policy</span>
+			</nav>
+			<p class="news-kicker">OZ MEDIA</p>
+			<h1 class="story-headline">Privacy Policy</h1>
+			<p class="story-standfirst">What we collect when you listen, chat or fill in the listener form on ozradio.id, why we collect it, and how to change or remove it.</p>
+			<p class="privacy-updated">Last updated <time datetime={updated.toISOString().slice(0, 10)}>{updatedLabel}</time></p>
+		</header>
+
+		<div class="story-body">
+			<h2>Who we are</h2>
+			<p>ozradio.id is run by OZ Media, the company behind OZ Radio Bandung (103.1 FM) and OZ Radio Bali (101.2 FM). We decide how the information described here is used. You can reach us at <a href={`mailto:${contactEmail}`}>{contactEmail}</a>, on <a href={whatsapp} target="_blank" rel="noopener noreferrer">WhatsApp</a>, or at our studio, Jl. Setrasari II No.14, Kota Bandung, Jawa Barat 40152.</p>
+
+			<h2>The short version</h2>
+			<ul>
+				<li>You can listen and read without giving us anything about yourself.</li>
+				<li>Analytics cookies are only set if you click <strong>Accept</strong> in the cookie banner. You can change your mind at any time.</li>
+				<li>The listener form and the live chat are optional. What you enter there is used to understand our audience and to run the chat, not for advertising, and we don't sell it.</li>
+			</ul>
+
+			<h2>What we collect, and why</h2>
+
+			<h3>The listener form</h3>
+			<p>After you've been listening for a little while, OZ Radio Bandung asks for your name, age range, gender and city. We also note which stream you were tuned in to (audio or the livestream), and when you sent the form. If you happen to be signed in to the live chat at the time, your Google account's email address and account ID are saved with it. You don't need to sign in to send the form.</p>
+			<p>We use these details to understand who listens to OZ Radio, in totals and breakdowns such as how many listeners are in each age range. They are stored on our own server, and only OZ Media staff given access to our analytics can see them. Your browser also remembers that you've sent the form (and anything you typed before sending it), so you aren't asked again.</p>
+
+			<h3>The live chat</h3>
+			<p>Anyone can read the chat. To send messages you sign in with Google, through Google's Firebase sign-in. We then receive your Google account's name, profile photo, email address and a unique account ID. Your name, photo and messages are shown publicly in the chat. You stay signed in on that device until you choose <strong>Sign out</strong>.</p>
+			<p>Chat messages are removed automatically after about 24 hours. To keep the chat safe we also keep reports of messages, mutes and bans, and a record of moderators' actions, for as long as they're needed to moderate the chat. Messages go through a word filter before they're posted.</p>
+
+			<h3>Analytics cookies (Google Analytics)</h3>
+			<p>If you click <strong>Accept</strong> in the cookie banner, we use Google Analytics 4 to see how the site is used: which pages are visited, how people arrive (for example from Google, Instagram or TikTok), what kind of device and browser they use, their approximate location (city or region, worked out from the IP address), and actions such as pressing play, starting a stream, signing in to the chat, sharing an article or sending the listener form. Google Analytics sets cookies named <code>_ga</code> to recognise a returning browser. We never send it your name, email address or what you typed into the form or chat.</p>
+			<p>If you click <strong>Decline</strong>, or don't choose, Google Analytics isn't loaded at all and no analytics cookies are set. Choosing <strong>Cookie settings</strong> in the footer brings the banner back; declining there turns Google Analytics off and deletes its cookies. Google processes this data on our behalf; see <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google's privacy policy</a>.</p>
+			{consentEnabled && <p><button class="privacy-cookie-button" type="button" data-consent-open>Open cookie settings</button></p>}
+
+			<h3>Listening to the stream</h3>
+			<p>When you listen, your browser connects to our streaming server, which, like any web server, receives your IP address and basic details of your device and browser to deliver the audio. We use this to count how many people are listening at a time.</p>
+
+			<h3>Things stored in your browser</h3>
+			<p>Some settings are kept in your browser's local storage rather than in cookies, and stay on your device: the site style you picked, your cookie choice, whether you've sent the listener form, and links you've built in our staff tools. Clearing your browser's site data removes them.</p>
+
+			<h3>Content from other services</h3>
+			<p>Some pages show content from other services, which receive your IP address and may set their own cookies under their own policies:</p>
+			<ul>
+				<li><strong>YouTube</strong> plays our livestream and videos, using YouTube's privacy-enhanced mode. The player only loads when you choose to watch.</li>
+				<li><strong>Instagram</strong> and <strong>TikTok</strong> posts are shown in the Online section of OZ Radio Bandung, and load when you scroll near that section.</li>
+			</ul>
+
+			<h2>Who we share it with</h2>
+			<p>We don't sell personal information. We share it only with:</p>
+			<ul>
+				<li>Google, which provides chat sign-in and the chat database (Firebase) and, if you accept cookies, Google Analytics.</li>
+				<li>The company that hosts our server.</li>
+				<li>Authorities, when Indonesian law requires us to.</li>
+			</ul>
+
+			<h2>Your rights</h2>
+			<p>Under Indonesia's Personal Data Protection Law (UU No. 27 Tahun 2022) you can ask us to show you the personal information we hold about you, correct it, delete it, or stop using it, and you can withdraw your consent at any time. Withdrawing consent doesn't affect what was done before. To make a request, email <a href={`mailto:${contactEmail}`}>{contactEmail}</a> with the name you used and, for the chat, the Google account you signed in with. We may ask you to confirm it's you.</p>
+
+			<h2>Children</h2>
+			<p>If you're under 18, please ask a parent or guardian before filling in the listener form or joining the chat.</p>
+
+			<h2>Keeping it safe</h2>
+			<p>The site only works over an encrypted connection (HTTPS). Listener form details are only shown to staff who sign in with an approved Google account, and chat messages can only be sent through our own server, which checks every sign-in.</p>
+
+			<h2>Changes to this policy</h2>
+			<p>When we change how we handle personal information, we'll update this page and the date at the top.</p>
+		</div>
+	</article>
+</NewsLayout>
+
+<style>
+	.privacy-updated {
+		margin: 12px 0 0;
+		color: var(--c-muted);
+		font-size: 13px;
+	}
+
+	.privacy-cookie-button {
+		min-height: 40px;
+		padding: 0 18px;
+		border: 1.5px solid var(--c-outline);
+		border-radius: 999px;
+		background: var(--c-surface);
+		color: var(--c-text);
+		font: inherit;
+		font-size: 14px;
+		font-weight: 700;
+		cursor: pointer;
+	}
+
+	.privacy-cookie-button:hover {
+		background: var(--c-accent-soft);
+	}
+
+	.privacy-cookie-button:focus-visible {
+		outline: 2px solid var(--c-accent);
+		outline-offset: 2px;
+	}
+
+	.privacy :global(code) {
+		font-size: 0.9em;
+	}
+</style>

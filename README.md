@@ -269,6 +269,32 @@ The ID is baked in at build time, so on the server add it to `.env` and run `scr
 
 Google's script only loads after a visitor clicks **Accept** in the cookie banner (`ConsentBanner.astro`); until then, or after **Decline**, nothing is sent and no `_ga` cookies are set. The choice is kept in the browser (`oz-analytics-consent`), and **Cookie settings** in the footers brings the banner back. The banner and notice also show on the dev server so they can be tried out, but GA never loads there.
 
+#### Events
+
+Besides page views, the site sends these GA4 events through `track()` in `src/scripts/oz-track.ts` (only with consent; on the dev server they are logged to the browser console instead). Parameters never carry names, emails or locations.
+
+| Event | When | Parameters |
+| --- | --- | --- |
+| `play_click` | A stream is picked in the tune-in dialog, or the player's play button is pressed | `stream_type` (`audio`/`video`), `source` (`tune_in`, `station_page`, `mini_player`) |
+| `stream_start` | Audio actually starts playing (once per run of playback), or the livestream is opened | `stream_type`, `source` |
+| `stream_stop` | The mini player's stop button | `stream_type`, `source` |
+| `listener_form_view` / `listener_form_submit` | The listener form opens / is sent | `stream_type`, `signed_in` (submit only) |
+| `chat_sign_in` | Chat sign-in pressed, and how it ended | `status` (`attempt`, `cancelled`, `failed`), `error_code` |
+| `login` | Chat sign-in succeeded (GA4's own event) | `method` (`Google`) |
+| `chat_sign_out` | Sign out in the chat | |
+| `chat_message_send` | A chat message is sent | `status` (`sent`, `failed`) |
+| `share` | An article is shared (GA4's own event) | `method` (`whatsapp`, `x`, `facebook`, `copy_link`), `content_type`, `item_id` (the article path) |
+
+To break reports down by a parameter, register it once in GA4 under **Admin → Custom definitions → Create custom dimension** (event scope): `stream_type`, `source`, `status`, `error_code`, `signed_in`.
+
+#### Campaign links
+
+The **Campaign links** panel on `/analytics` builds links with `utm_source`, `utm_medium`, `utm_campaign` and `utm_content` for posts on Instagram, TikTok and elsewhere, all lowercase so GA counts each campaign once. Visits from them show in GA4 under **Reports → Acquisition → Traffic acquisition** (session campaign). Copied links are listed in that browser and can be exported to CSV.
+
+### Privacy policy
+
+`src/pages/privacy-policy.astro` describes what the site collects. Update it, and its `updated` date, whenever that changes: a new form field, a new tracker, a new embed.
+
 ## Brand palette
 
 | Colour | Hex |

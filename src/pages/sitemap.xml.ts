@@ -5,7 +5,7 @@ import { getVisibleNews, newsIndexPath, newsPath } from '../lib/news';
 // Add new public pages to staticPaths; /admin and /analytics stay out on purpose.
 export const prerender = true;
 
-const staticPaths = ['/', '/oz-bandung', '/oz-bali', newsIndexPath];
+const staticPaths = ['/', '/oz-bandung', '/oz-bali', newsIndexPath, '/privacy-policy'];
 
 const escapeXml = (value: string) =>
 	value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
