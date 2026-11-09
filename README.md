@@ -291,6 +291,16 @@ To break reports down by a parameter, register it once in GA4 under **Admin → 
 
 The **Campaign links** panel on `/analytics` builds links with `utm_source`, `utm_medium`, `utm_campaign` and `utm_content` for posts on Instagram, TikTok and elsewhere, all lowercase so GA counts each campaign once. Visits from them show in GA4 under **Reports → Acquisition → Traffic acquisition** (session campaign). Copied links are listed in that browser and can be exported to CSV.
 
+### Radio listening
+
+Our own listening stats, kept on our server and separate from GA4. `src/scripts/oz-radio-tracker.ts` reports what the station player does to `/api/track`, which checks every event and appends it to `data/events/YYYY-MM.jsonl` (git-ignored, like `data/listeners.jsonl`). The **Radio listening** panel on `/analytics` (analytics role) summarises them for the chosen dates, and exports sessions, daily totals or raw events as CSV.
+
+- A **listening session** runs from the moment sound starts until it stops: a pause, the mini player's stop button, changing stream, an error the player couldn't recover from, the listener form taking over, or the page closing. While sound plays the browser checks in every minute, so a session from a closed tab still has its length (to within a minute).
+- Recorded: play presses, starts (and the wait between pressing play and hearing sound), listening time, buffering and reconnects, errors, what ended the session, and device type, OS and browser read from the User-Agent. Not recorded: names, IP addresses, the User-Agent itself, cookies.
+- **Returning listeners** need a lasting random ID (`oz-listener-id` in local storage), which is only kept and sent for visitors who accepted the cookie banner; declining deletes it. Everyone else is counted anonymously.
+- The livestream is a YouTube embed, which doesn't report playback, so a livestream session runs from opening it until it's closed.
+- Event types and allowed values live in `src/lib/radio-events.ts`; the summaries in `src/lib/radio-stats.ts`.
+
 ### Privacy policy
 
 `src/pages/privacy-policy.astro` describes what the site collects. Update it, and its `updated` date, whenever that changes: a new form field, a new tracker, a new embed.

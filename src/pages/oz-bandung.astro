@@ -775,6 +775,8 @@ const sections = [
 <script>
 	import { onEveryPage, onLeave } from '../scripts/oz-page';
 	import { track } from '../scripts/oz-track';
+	import { radioTracker } from '../scripts/oz-radio-tracker';
+	import type { EndReason, PlaySource } from '../lib/radio-events';
 
 	// OZ Bandung and its OZ News pages navigate with the client router (src/components/StationRouter.astro), so this
 	// script runs once per visit and stays loaded while the visitor reads the news. The broadcast panels (data-station)
@@ -900,7 +902,14 @@ const sections = [
 		audioPlayerRequest ??= import('../scripts/oz-audio-player')
 			.then(({ createOzAudioPlayer }) => {
 				audioPlayerContainer.closest('.audio-bar')?.classList.add('has-videojs');
-				audioPlayer = createOzAudioPlayer(fallbackAudio, streamUrl);
+				audioPlayer = createOzAudioPlayer(fallbackAudio, streamUrl, {
+					// Video.js gave up reconnecting: the session ends in an error.
+					onStateChange: (state) => {
+						if (state !== 'error') return;
+						radioTracker.error('audio', 'offline');
+						radioTracker.end('error');
+					},
+				});
 				syncAudioPlayerTrack();
 				return audioPlayer;
 			})
@@ -926,23 +935,46 @@ const sections = [
 		else fallbackAudio?.pause();
 	};
 
-	// GA4 events (src/scripts/oz-track.ts). The mini player on OZ News is the same element, so `source` tells them apart.
-	const playerSource = () => (station?.closest('.station-dock') ? 'mini_player' : 'station_page');
-	// stream_start counts sound actually starting, once per run of playback (not each rebuffer).
-	let audioStarted = false;
+	// Analytics: GA4 events (src/scripts/oz-track.ts, only with cookie consent) and our own listening stats
+	// (src/scripts/oz-radio-tracker.ts). The mini player on OZ News is this same element, so `source` tells them apart.
+	const playerSource = (): PlaySource => (station?.closest('.station-dock') ? 'mini_player' : 'station_page');
+	const playClicked = (stream: Broadcast, source: PlaySource) => {
+		track('play_click', { stream_type: stream, source });
+		radioTracker.click(stream, source);
+	};
+	// Where the current run of audio was started from.
+	let audioSource: PlaySource = 'station_page';
+
+	// Sound playing: a new listening session, or the current one back after a stall.
 	fallbackAudio?.addEventListener('playing', () => {
-		if (audioStarted) return;
-		audioStarted = true;
-		track('stream_start', { stream_type: 'audio', source: playerSource() });
+		if (radioTracker.isListening('audio')) {
+			radioTracker.resumed();
+			return;
+		}
+		radioTracker.start('audio', audioSource);
+		track('stream_start', { stream_type: 'audio', source: audioSource });
 	});
-	fallbackAudio?.addEventListener('pause', () => { audioStarted = false; });
-	fallbackAudio?.addEventListener('ended', () => { audioStarted = false; });
-	// The Video.js play button, on the station page or in the mini player.
+	fallbackAudio?.addEventListener('waiting', () => radioTracker.interrupted('buffering'));
+	// A live stream "ends" when its connection drops, and browsers pause on errors too; the player then reconnects
+	// (see src/scripts/oz-audio-player.ts), so those are interruptions. Any other pause is the listener's.
+	fallbackAudio?.addEventListener('ended', () => radioTracker.interrupted('reconnect'));
+	fallbackAudio?.addEventListener('pause', () => {
+		if (fallbackAudio.error || fallbackAudio.ended) radioTracker.interrupted('reconnect');
+		else radioTracker.end('pause');
+	});
+	const mediaErrors: Record<number, string> = { 1: 'aborted', 2: 'network', 3: 'decode', 4: 'not_supported' };
+	fallbackAudio?.addEventListener('error', () => {
+		radioTracker.error('audio', mediaErrors[fallbackAudio.error?.code ?? 0] ?? 'unknown');
+		radioTracker.interrupted('reconnect');
+	});
+	// The Video.js play button, on the station page or in the mini player. Caught on the way down (capture), before
+	// the button toggles playback, so `paused` still tells a press of play from a press of pause.
 	station?.addEventListener('click', (event) => {
 		if (event.target instanceof Element && event.target.closest('.vjs-play-control') && fallbackAudio?.paused) {
-			track('play_click', { stream_type: 'audio', source: playerSource() });
+			audioSource = playerSource();
+			playClicked('audio', audioSource);
 		}
-	});
+	}, { capture: true });
 
 	// These stay attached after the upgrade: Video.js plays through this same element.
 	fallbackAudio?.addEventListener('play', startNowPlayingUpdates);
@@ -976,6 +1008,7 @@ const sections = [
 	fallbackAudio?.addEventListener('play', () => {
 		if (!listenerFormRequired()) return;
 		pendingBroadcast = 'audio';
+		radioTracker.end('listener_form');
 		pauseAudio();
 		requestListenerForm();
 	});
@@ -989,7 +1022,9 @@ const sections = [
 		pageControls?.render();
 	};
 
-	const stopBroadcast = () => {
+	// `reason` is what ends the listening session, if one is running.
+	const stopBroadcast = (reason: EndReason) => {
+		radioTracker.end(reason);
 		cancelListenerPrompt();
 		stopNowPlayingUpdates();
 		pauseAudio();
@@ -1026,8 +1061,9 @@ const sections = [
 			playerUrl.searchParams.set('playsinline', '1');
 			playerUrl.searchParams.set('rel', '0');
 			livePlayer.src = playerUrl.toString();
-			// The embed doesn't report playback, so watching counts from when the livestream is picked.
-			track('stream_start', { stream_type: 'video', source: playerSource() });
+			// The embed doesn't report playback, so watching counts from when the livestream is picked until it's closed.
+			radioTracker.start('video', 'tune_in');
+			track('stream_start', { stream_type: 'video', source: 'tune_in' });
 			scheduleListenerPrompt();
 		}
 	};
@@ -1036,7 +1072,7 @@ const sections = [
 	document.addEventListener('click', (event) => {
 		if (!(event.target instanceof Element) || !event.target.closest('[data-station-stop]')) return;
 		track('stream_stop', { stream_type: selectedBroadcast ?? undefined, source: 'mini_player' });
-		stopBroadcast();
+		stopBroadcast('stop');
 	});
 
 	// Google sign-in (Firebase, see src/scripts/oz-auth.ts) is only needed to chat, so the SDK is downloaded as the chat
@@ -1956,7 +1992,7 @@ const sections = [
 
 		tuneInButton?.addEventListener('click', () => {
 			if (!listenerDialog || !dialogTitle) return;
-			stopBroadcast();
+			stopBroadcast('switch');
 			selectedBroadcast = null;
 			void loadAudioPlayer();
 			showDialogPart('broadcast');
@@ -1968,7 +2004,8 @@ const sections = [
 		broadcastModeButtons.forEach((button) => {
 			button.addEventListener('click', () => {
 				selectedBroadcast = button.dataset.selectBroadcast === 'video' ? 'video' : 'audio';
-				track('play_click', { stream_type: selectedBroadcast, source: 'tune_in' });
+				if (selectedBroadcast === 'audio') audioSource = 'tune_in';
+				playClicked(selectedBroadcast, 'tune_in');
 				listenerDialog?.close();
 				// Still inside the click, so the browser lets the stream start with sound.
 				startBroadcast();
@@ -2005,8 +2042,9 @@ const sections = [
 			// Stop the stream as soon as the form is due; it comes back once the details are saved.
 			if (isStreaming) {
 				pendingBroadcast = selectedBroadcast;
-				stopBroadcast();
+				stopBroadcast('listener_form');
 			} else if (fallbackAudio && !fallbackAudio.paused) {
+				radioTracker.end('listener_form');
 				pauseAudio();
 			}
 			listenerPromptShown = true;

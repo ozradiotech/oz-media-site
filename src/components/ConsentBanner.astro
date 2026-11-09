@@ -8,7 +8,7 @@ import { consentEnabled } from '../lib/analytics-config';
 {consentEnabled && (
 	<section class="consent-banner" data-consent aria-labelledby="consent-title" hidden>
 		<h2 class="consent-title" id="consent-title">Cookies</h2>
-		<p>OZ Radio uses Google Analytics cookies to see how the site is used, so we can make it better. They are only set if you allow them. <a href="/privacy-policy">Privacy policy</a></p>
+		<p>OZ Radio uses Google Analytics cookies and a random listener ID to see how the site is used and how many listeners come back, so we can make it better. They are only set if you allow them. <a href="/privacy-policy">Privacy policy</a></p>
 		<div class="consent-actions">
 			<button class="consent-button" type="button" data-consent-choice="denied">Decline</button>
 			<button class="consent-button consent-button-accept" type="button" data-consent-choice="granted">Accept</button>
@@ -17,7 +17,7 @@ import { consentEnabled } from '../lib/analytics-config';
 )}
 
 <script>
-	import { consentEventName, consentStorageKey } from '../lib/analytics-config';
+	import { consentEventName, consentStorageKey, listenerIdStorageKey } from '../lib/analytics-config';
 	import { onEveryPage } from '../scripts/oz-page';
 
 	const banner = () => document.querySelector<HTMLElement>('[data-consent]');
@@ -33,6 +33,7 @@ import { consentEnabled } from '../lib/analytics-config';
 	const choose = (choice: 'granted' | 'denied') => {
 		try {
 			localStorage.setItem(consentStorageKey, choice);
+			if (choice === 'denied') localStorage.removeItem(listenerIdStorageKey);
 		} catch {}
 		window.dispatchEvent(new CustomEvent(consentEventName, { detail: choice }));
 		const element = banner();

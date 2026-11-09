@@ -15,5 +15,8 @@ export const consentEnabled = analyticsEnabled || import.meta.env.DEV;
 /** Where the visitor's choice is kept: 'granted' or 'denied'. */
 export const consentStorageKey = 'oz-analytics-consent';
 
+/** The random listener id kept for returning-listener counts (src/scripts/oz-radio-tracker.ts); only with consent. */
+export const listenerIdStorageKey = 'oz-listener-id';
+
 /** Fired on window with the choice as `detail` when the visitor picks in the banner. */
 export const consentEventName = 'oz-analytics-consent';

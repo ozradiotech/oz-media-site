@@ -65,6 +65,22 @@ const platforms = [
 	},
 ];
 
+// Radio listening (private): filled in by the script once the visitor is signed in.
+const radioTrends = [
+	{ chart: 'radio-daily', title: 'Day by day', style: 'line', metrics: [['sessions', 'Listening sessions'], ['listeningHours', 'Listening hours'], ['playClicks', 'Play clicks'], ['errors', 'Stream errors']] },
+	{ chart: 'radio-hours', title: 'When sessions start (WIB)', style: 'bar', metrics: undefined },
+];
+const radioBreakdowns = [
+	{ chart: 'radio-lengths', title: 'How long people listen', style: 'bar' },
+	{ chart: 'radio-ends', title: 'How sessions ended', style: 'doughnut' },
+	{ chart: 'radio-devices', title: 'Sessions by device', style: 'doughnut' },
+	{ chart: 'radio-device-hours', title: 'Listening hours by device', style: 'pie' },
+	{ chart: 'radio-streams', title: 'Audio or livestream', style: 'pie' },
+	{ chart: 'radio-sources', title: 'Where play was pressed', style: 'pie' },
+	{ chart: 'radio-browsers', title: 'Browsers', style: 'bar' },
+	{ chart: 'radio-errors', title: 'Stream errors', style: 'table' },
+];
+
 // Listener form breakdowns on the private panel, filled in by the script once the visitor is signed in.
 const listenerBreakdowns = [
 	{ chart: 'listener-gender', title: 'Gender', style: 'doughnut' },
@@ -158,51 +174,104 @@ const monthLabel = (month: string) =>
 				</article>
 			</section>
 
-			<section class="panel" aria-labelledby="listeners-title" data-listener-panel>
+			<section class="panel private-panel" aria-labelledby="private-title" data-private>
 				<div class="panel-heading">
-					<h2 id="listeners-title">LISTENER FORMS</h2>
+					<h2 id="private-title">PRIVATE ANALYTICS</h2>
 					<p class="account" data-account hidden>
 						<span data-account-email></span>
 						<button class="text-button" type="button" data-sign-out>Sign out</button>
 					</p>
 				</div>
 				<div class="gate" data-gate>
-					<p class="gate-message" data-gate-message aria-live="polite">Listener details are private. Sign in with a Google account that has analytics access.</p>
+					<p class="gate-message" data-gate-message aria-live="polite">Listener forms and radio listening are private. Sign in with a Google account that has analytics access.</p>
 					<button class="action-button" type="button" data-sign-in>Sign in with Google</button>
 				</div>
-				<div class="private-body" data-private-body hidden>
-					<div class="toolbar">
-						<div class="filters">
-							<label class="filter">From<input type="date" data-listener-from /></label>
-							<label class="filter">To<input type="date" data-listener-to /></label>
-						</div>
-						<button class="action-button" type="button" data-export-listeners>Export CSV</button>
+				<div class="toolbar" data-private-toolbar hidden>
+					<div class="filters">
+						<label class="filter">From<input type="date" data-range-from /></label>
+						<label class="filter">To<input type="date" data-range-to /></label>
 					</div>
-					<p class="chart-note" data-listener-status aria-live="polite"></p>
-					<div class="tiles" data-listener-tiles></div>
-					<div class="chart-grid">
-						{listenerBreakdowns.map((card) => (
-							<article class="chart-card" data-chart={card.chart} data-style={card.style}>
-								<header class="chart-card-header">
-									<h3>{card.title}</h3>
-									<div class="chart-controls">
-										<div class="style-switch" role="group" aria-label="Chart style">
-											{breakdownStyles.map((style) => <button type="button" data-style-option={style.value} aria-pressed={style.value === card.style ? 'true' : 'false'}>{style.label}</button>)}
-										</div>
-									</div>
-								</header>
-								<p class="chart-total" data-chart-total></p>
-								<div class="chart-body chart-body-square"><canvas></canvas><div class="chart-table" hidden></div></div>
-							</article>
-						))}
-						<article class="chart-card chart-card-wide">
+					<p class="chart-note" data-private-status aria-live="polite"></p>
+				</div>
+			</section>
+
+			<section class="panel" aria-labelledby="radio-title" data-radio-panel hidden>
+				<div class="panel-heading">
+					<h2 id="radio-title">RADIO LISTENING</h2>
+					<div class="chart-controls">
+						<button class="action-button" type="button" data-export-radio="sessions">Sessions CSV</button>
+						<button class="action-button" type="button" data-export-radio="daily">Daily CSV</button>
+						<button class="action-button" type="button" data-export-radio="events">Raw events CSV</button>
+					</div>
+				</div>
+				<p class="panel-note">From our own listening stats, separate from Google Analytics. A listening session runs from the moment sound starts until it stops. Returning listeners are only known for visitors who accepted analytics cookies.</p>
+				<div class="tiles" data-radio-tiles></div>
+				<div class="chart-grid">
+					{radioTrends.map((card) => (
+						<article class="chart-card chart-card-wide" data-chart={card.chart} data-style={card.style}>
 							<header class="chart-card-header">
-								<h3>Forms sent</h3>
+								<h3>{card.title}</h3>
+								<div class="chart-controls">
+									{card.metrics && (
+										<label class="filter filter-compact"><span class="visually-hidden">Metric</span>
+											<select data-metric-select>
+												{card.metrics.map(([value, label]) => <option value={value}>{label}</option>)}
+											</select>
+										</label>
+									)}
+									<div class="style-switch" role="group" aria-label="Chart style">
+										{trendStyles.map((style) => <button type="button" data-style-option={style.value} aria-pressed={style.value === card.style ? 'true' : 'false'}>{style.label}</button>)}
+									</div>
+								</div>
 							</header>
-							<div class="chart-table record-table" data-listener-table></div>
-							<p class="chart-note">Times are Jakarta time (WIB). The export has every column, including the Google account of listeners who were signed in.</p>
+							<div class="chart-body"><canvas></canvas><div class="chart-table" hidden></div></div>
 						</article>
-					</div>
+					))}
+					{radioBreakdowns.map((card) => (
+						<article class="chart-card" data-chart={card.chart} data-style={card.style}>
+							<header class="chart-card-header">
+								<h3>{card.title}</h3>
+								<div class="chart-controls">
+									<div class="style-switch" role="group" aria-label="Chart style">
+										{breakdownStyles.map((style) => <button type="button" data-style-option={style.value} aria-pressed={style.value === card.style ? 'true' : 'false'}>{style.label}</button>)}
+									</div>
+								</div>
+							</header>
+							<p class="chart-total" data-chart-total></p>
+							<div class="chart-body chart-body-square"><canvas></canvas><div class="chart-table" hidden></div></div>
+						</article>
+					))}
+				</div>
+			</section>
+
+			<section class="panel" aria-labelledby="listeners-title" data-listener-panel hidden>
+				<div class="panel-heading">
+					<h2 id="listeners-title">LISTENER FORMS</h2>
+					<button class="action-button" type="button" data-export-listeners>Export CSV</button>
+				</div>
+				<div class="tiles" data-listener-tiles></div>
+				<div class="chart-grid">
+					{listenerBreakdowns.map((card) => (
+						<article class="chart-card" data-chart={card.chart} data-style={card.style}>
+							<header class="chart-card-header">
+								<h3>{card.title}</h3>
+								<div class="chart-controls">
+									<div class="style-switch" role="group" aria-label="Chart style">
+										{breakdownStyles.map((style) => <button type="button" data-style-option={style.value} aria-pressed={style.value === card.style ? 'true' : 'false'}>{style.label}</button>)}
+									</div>
+								</div>
+							</header>
+							<p class="chart-total" data-chart-total></p>
+							<div class="chart-body chart-body-square"><canvas></canvas><div class="chart-table" hidden></div></div>
+						</article>
+					))}
+					<article class="chart-card chart-card-wide">
+						<header class="chart-card-header">
+							<h3>Forms sent</h3>
+						</header>
+						<div class="chart-table record-table" data-listener-table></div>
+						<p class="chart-note">Times are Jakarta time (WIB). The export has every column, including the Google account of listeners who were signed in.</p>
+					</article>
 				</div>
 			</section>
 
@@ -601,7 +670,8 @@ const monthLabel = (month: string) =>
 
 	.account[hidden],
 	.gate[hidden],
-	.private-body[hidden],
+	.panel[hidden],
+	.toolbar[hidden],
 	.action-button[hidden] {
 		display: none;
 	}
@@ -626,11 +696,6 @@ const monthLabel = (month: string) =>
 	.gate-message code {
 		font-size: 13px;
 		overflow-wrap: anywhere;
-	}
-
-	.private-body {
-		display: grid;
-		gap: 20px;
 	}
 
 	.toolbar {
@@ -1385,12 +1450,113 @@ const monthLabel = (month: string) =>
 		renderAll();
 	}
 
-	/* ---------- Listener forms (private) ---------- */
+	/* ---------- Private analytics: sign-in and date range ---------- */
 
-	// Listener details are personal data, so they come from /api/analytics/listeners, which only answers Google
-	// accounts with the analytics role (scripts/chat-admin.mjs analytics <email>).
+	// Listener forms hold personal details and radio listening is internal, so both come from /api/analytics/*, which
+	// only answers Google accounts with the analytics role (scripts/chat-admin.mjs analytics <email>). One sign-in and
+	// one date range serve both panels.
+	const privateArea = document.querySelector<HTMLElement>('[data-private]');
 	const listenerPanel = document.querySelector<HTMLElement>('[data-listener-panel]');
-	if (listenerPanel) {
+	const radioPanel = document.querySelector<HTMLElement>('[data-radio-panel]');
+	if (privateArea && listenerPanel && radioPanel) {
+		const gate = privateArea.querySelector<HTMLElement>('[data-gate]')!;
+		const gateMessage = privateArea.querySelector<HTMLElement>('[data-gate-message]')!;
+		const signInButton = privateArea.querySelector<HTMLButtonElement>('[data-sign-in]')!;
+		const account = privateArea.querySelector<HTMLElement>('[data-account]')!;
+		const accountEmail = privateArea.querySelector<HTMLElement>('[data-account-email]')!;
+		const toolbar = privateArea.querySelector<HTMLElement>('[data-private-toolbar]')!;
+		const fromInput = privateArea.querySelector<HTMLInputElement>('[data-range-from]')!;
+		const toInput = privateArea.querySelector<HTMLInputElement>('[data-range-to]')!;
+		const status = privateArea.querySelector<HTMLElement>('[data-private-status]')!;
+		const cards = new Map([...document.querySelectorAll<HTMLElement>('[data-listener-panel] .chart-card[data-chart], [data-radio-panel] .chart-card[data-chart]')]
+			.map((root) => [root.dataset.chart!, new ChartCard(root)]));
+
+		// The last 30 days, in Jakarta dates, until changed.
+		const jakartaDate = (time: number) => new Date(time + 7 * 3_600_000).toISOString().slice(0, 10);
+		toInput.value = jakartaDate(Date.now());
+		fromInput.value = jakartaDate(Date.now() - 29 * 86_400_000);
+
+		let auth: OzAuth | undefined;
+
+		class AccessError extends Error {
+			constructor(readonly status: number, message: string) {
+				super(message);
+			}
+		}
+
+		const showGate = (message: string, { signIn = true } = {}) => {
+			gate.hidden = false;
+			toolbar.hidden = true;
+			listenerPanel.hidden = true;
+			radioPanel.hidden = true;
+			gateMessage.innerHTML = message;
+			signInButton.hidden = !signIn;
+		};
+
+		// The token carries the roles, so a refusal is retried once with a fresh token: an account granted access
+		// after signing in doesn't have to sign out and back in.
+		const request = async (path: string, extra: Record<string, string> = {}) => {
+			const params = new URLSearchParams(extra);
+			if (fromInput.value) params.set('from', fromInput.value);
+			if (toInput.value) params.set('to', toInput.value);
+			let response: Response | undefined;
+			for (const refresh of [false, true]) {
+				const token = await auth?.idToken(refresh);
+				if (!token) throw new AccessError(401, 'Please sign in to see the analytics.');
+				response = await fetch(`${path}?${params}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+				if (response.status !== 403) break;
+			}
+			if (!response!.ok) {
+				const { error } = await response!.json().catch(() => ({})) as { error?: string };
+				throw new AccessError(response!.status, error ?? 'The analytics could not be loaded.');
+			}
+			return response!;
+		};
+
+		const downloadFrom = async (button: HTMLButtonElement, path: string, extra: Record<string, string>) => {
+			button.disabled = true;
+			try {
+				const response = await request(path, { ...extra, format: 'csv' });
+				const url = URL.createObjectURL(await response.blob());
+				const fileName = /filename="([^"]+)"/.exec(response.headers.get('Content-Disposition') ?? '')?.[1] ?? 'oz-export.csv';
+				const link = Object.assign(document.createElement('a'), { href: url, download: fileName });
+				document.body.append(link);
+				link.click();
+				link.remove();
+				window.setTimeout(() => URL.revokeObjectURL(url), 0);
+			} catch (error) {
+				status.textContent = error instanceof Error ? error.message : 'The export failed.';
+			} finally {
+				button.disabled = false;
+			}
+		};
+
+		// Counts per value, biggest first, with the rest folded into "Other" past `limit`.
+		const countBy = (values: string[], limit = Infinity) => {
+			const counts = new Map<string, number>();
+			values.forEach((value) => counts.set(value, (counts.get(value) ?? 0) + 1));
+			return foldOther([...counts].sort((a, b) => b[1] - a[1]), limit);
+		};
+		const foldOther = (sorted: [string, number][], limit: number) => {
+			if (sorted.length <= limit) return sorted;
+			const other = sorted.slice(limit - 1).reduce((sum, [, count]) => sum + count, 0);
+			return [...sorted.slice(0, limit - 1), ['Other', other] as [string, number]];
+		};
+		const fromRecord = (record: Record<string, number>, labels: Record<string, string> = {}, limit = Infinity) =>
+			foldOther(Object.entries(record).sort((a, b) => b[1] - a[1]).map(([key, value]) => [labels[key] ?? key, value] as [string, number]), limit);
+
+		const tile = (label: string, value: string, note = '') =>
+			`<div class="tile"><span class="tile-label">${escapeHtml(label)}</span><strong class="tile-value">${escapeHtml(value)}</strong>${note ? `<span class="tile-note">${escapeHtml(note)}</span>` : ''}</div>`;
+
+		const drawBreakdown = (id: string, pairs: [string, number][], valueLabel: string) => {
+			const card = cards.get(id);
+			if (!card) return;
+			card.render = () => card.breakdown(pairs.map(([label]) => label), pairs.map(([, value]) => value), palette, valueLabel);
+			card.render();
+		};
+
+		/* ----- Listener forms ----- */
+
 		type ListenerRecord = {
 			createdAt: string;
 			name: string;
@@ -1402,67 +1568,9 @@ const monthLabel = (month: string) =>
 			googleEmail: string | null;
 		};
 
-		const gate = listenerPanel.querySelector<HTMLElement>('[data-gate]')!;
-		const gateMessage = listenerPanel.querySelector<HTMLElement>('[data-gate-message]')!;
-		const signInButton = listenerPanel.querySelector<HTMLButtonElement>('[data-sign-in]')!;
-		const account = listenerPanel.querySelector<HTMLElement>('[data-account]')!;
-		const accountEmail = listenerPanel.querySelector<HTMLElement>('[data-account-email]')!;
-		const body = listenerPanel.querySelector<HTMLElement>('[data-private-body]')!;
-		const fromInput = listenerPanel.querySelector<HTMLInputElement>('[data-listener-from]')!;
-		const toInput = listenerPanel.querySelector<HTMLInputElement>('[data-listener-to]')!;
-		const exportButton = listenerPanel.querySelector<HTMLButtonElement>('[data-export-listeners]')!;
-		const status = listenerPanel.querySelector<HTMLElement>('[data-listener-status]')!;
-		const tiles = listenerPanel.querySelector<HTMLElement>('[data-listener-tiles]')!;
-		const table = listenerPanel.querySelector<HTMLElement>('[data-listener-table]')!;
-		const cards = new Map([...listenerPanel.querySelectorAll<HTMLElement>('.chart-card[data-chart]')].map((root) => [root.dataset.chart!, new ChartCard(root)]));
-
+		const listenerTiles = listenerPanel.querySelector<HTMLElement>('[data-listener-tiles]')!;
+		const listenerTable = listenerPanel.querySelector<HTMLElement>('[data-listener-table]')!;
 		const sentAt = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jakarta', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-		let auth: OzAuth | undefined;
-		let records: ListenerRecord[] = [];
-
-		class AccessError extends Error {
-			constructor(readonly status: number, message: string) {
-				super(message);
-			}
-		}
-
-		const showGate = (message: string, { signIn = true } = {}) => {
-			gate.hidden = false;
-			body.hidden = true;
-			gateMessage.innerHTML = message;
-			signInButton.hidden = !signIn;
-		};
-
-		// The token carries the roles, so a refusal is retried once with a fresh token: an account granted access
-		// after signing in doesn't have to sign out and back in.
-		const request = async (format?: 'csv') => {
-			const params = new URLSearchParams();
-			if (fromInput.value) params.set('from', fromInput.value);
-			if (toInput.value) params.set('to', toInput.value);
-			if (format) params.set('format', format);
-			let response: Response | undefined;
-			for (const refresh of [false, true]) {
-				const token = await auth?.idToken(refresh);
-				if (!token) throw new AccessError(401, 'Please sign in to see the analytics.');
-				response = await fetch(`/api/analytics/listeners?${params}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
-				if (response.status !== 403) break;
-			}
-			if (!response!.ok) {
-				const { error } = await response!.json().catch(() => ({})) as { error?: string };
-				throw new AccessError(response!.status, error ?? 'The listener forms could not be loaded.');
-			}
-			return response!;
-		};
-
-		// Counts per value, biggest first, with the rest folded into "Other" past `limit`.
-		const countBy = (values: string[], limit = Infinity) => {
-			const counts = new Map<string, number>();
-			values.forEach((value) => counts.set(value, (counts.get(value) ?? 0) + 1));
-			const sorted = [...counts].sort((a, b) => b[1] - a[1]);
-			if (sorted.length <= limit) return sorted;
-			const other = sorted.slice(limit - 1).reduce((sum, [, count]) => sum + count, 0);
-			return [...sorted.slice(0, limit - 1), ['Other', other] as [string, number]];
-		};
 
 		// The first records stored an exact age; they are counted in their range.
 		const ageRange = (age: string) => {
@@ -1480,37 +1588,27 @@ const monthLabel = (month: string) =>
 			return clean ? clean.toLowerCase().replace(/(^|[\s,(-])\p{L}/gu, (letter) => letter.toUpperCase()) : 'Not given';
 		};
 
-		const tile = (label: string, value: string, note = '') =>
-			`<div class="tile"><span class="tile-label">${escapeHtml(label)}</span><strong class="tile-value">${escapeHtml(value)}</strong>${note ? `<span class="tile-note">${escapeHtml(note)}</span>` : ''}</div>`;
-
-		const renderListeners = () => {
+		const renderListeners = (records: ListenerRecord[]) => {
 			const total = records.length;
 			const signedIn = records.filter((record) => record.googleUid).length;
 			const ages = countBy(records.map((record) => ageRange(record.age)));
 			const places = countBy(records.map((record) => placeName(record.location)), 8);
-			const latest = records[0] ? sentAt.format(new Date(records[0].createdAt)) : '—';
-			tiles.innerHTML = [
+			listenerTiles.innerHTML = [
 				tile('Forms sent', formatNumber(total)),
 				tile('Signed in with Google', formatNumber(signedIn), total ? `${Math.round((signedIn / total) * 100)}% of forms` : ''),
 				tile('Most common age', ages[0]?.[0] ?? '—'),
 				tile('Top location', places[0]?.[0] ?? '—'),
-				tile('Latest form', latest),
+				tile('Latest form', records[0] ? sentAt.format(new Date(records[0].createdAt)) : '—'),
 			].join('');
 
-			const draw = (id: string, pairs: [string, number][], valueLabel: string) => {
-				const card = cards.get(id);
-				if (!card) return;
-				card.render = () => card.breakdown(pairs.map(([label]) => label), pairs.map(([, count]) => count), palette, valueLabel);
-				card.render();
-			};
-			draw('listener-gender', countBy(records.map((record) => record.gender || 'Not given')), 'Forms');
+			drawBreakdown('listener-gender', countBy(records.map((record) => record.gender || 'Not given')), 'Forms');
 			// Age ranges keep their natural order rather than their size.
 			const ageOrder: string[] = [...ageRanges, 'Not given'];
-			draw('listener-age', [...ages].sort((a, b) => ageOrder.indexOf(a[0]) - ageOrder.indexOf(b[0])), 'Forms');
-			draw('listener-stream', countBy(records.map((record) => record.broadcast === 'video' ? 'Livestream' : record.broadcast === 'audio' ? 'Audio stream' : 'Not playing')), 'Forms');
-			draw('listener-location', places, 'Forms');
+			drawBreakdown('listener-age', [...ages].sort((a, b) => ageOrder.indexOf(a[0]) - ageOrder.indexOf(b[0])), 'Forms');
+			drawBreakdown('listener-stream', countBy(records.map((record) => record.broadcast === 'video' ? 'Livestream' : record.broadcast === 'audio' ? 'Audio stream' : 'Not playing')), 'Forms');
+			drawBreakdown('listener-location', places, 'Forms');
 
-			table.innerHTML = total
+			listenerTable.innerHTML = total
 				? `<table><thead><tr>${['Sent', 'Name', 'Age', 'Gender', 'Location', 'Tuned in to', 'Google account'].map((heading) => `<th scope="col">${heading}</th>`).join('')}</tr></thead><tbody>${records.map((record) => `<tr>${[
 					sentAt.format(new Date(record.createdAt)),
 					record.name,
@@ -1523,14 +1621,109 @@ const monthLabel = (month: string) =>
 				: '<p class="chart-note">No forms in this period.</p>';
 		};
 
-		const loadListeners = async () => {
+		/* ----- Radio listening ----- */
+
+		type RadioSummary = {
+			totals: {
+				playClicks: number;
+				streamStarts: number;
+				listeningHours: number;
+				medianMinutes: number;
+				averageMinutes: number;
+				medianWaitSeconds: number;
+				errors: number;
+				interruptions: number;
+				knownListeners: number;
+				returningListeners: number;
+				anonymousSessions: number;
+			};
+			daily: { day: string; playClicks: number; sessions: number; listeningHours: number; errors: number }[];
+			hourOfDay: number[];
+			sessionLengths: [string, number][];
+			endReasons: Record<string, number>;
+			devices: Record<string, number>;
+			deviceHours: Record<string, number>;
+			streams: Record<string, number>;
+			sources: Record<string, number>;
+			browsers: Record<string, number>;
+			errorCodes: Record<string, number>;
+		};
+
+		const radioTiles = radioPanel.querySelector<HTMLElement>('[data-radio-tiles]')!;
+		const endLabels: Record<string, string> = {
+			pause: 'Paused',
+			stop: 'Mini player stop',
+			switch: 'Changed stream',
+			error: 'Stream failed',
+			listener_form: 'Listener form',
+			page_close: 'Left the site',
+			unknown: 'Unknown (tab lost)',
+		};
+		const deviceLabels: Record<string, string> = { mobile: 'Mobile', tablet: 'Tablet', desktop: 'Desktop' };
+		const streamLabels: Record<string, string> = { audio: 'Audio stream', video: 'Livestream' };
+		const sourceLabels: Record<string, string> = { tune_in: 'Tune-in dialog', station_page: 'Player on station page', mini_player: 'Mini player on OZ News' };
+		const errorLabels: Record<string, string> = { network: 'Network dropped', decode: 'Could not decode', not_supported: 'Format not supported', aborted: 'Aborted', offline: 'Gave up reconnecting' };
+		const formatHours = (hours: number) => (hours >= 10 ? formatNumber(Math.round(hours)) : hours >= 1 ? hours.toFixed(1) : `${Math.round(hours * 60)} min`);
+		const formatMinutes = (minutes: number) => (minutes >= 60 ? `${(minutes / 60).toFixed(1)} h` : `${minutes.toFixed(minutes < 10 ? 1 : 0)} min`);
+		const shortDay = (day: string) => new Date(`${day}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+
+		const renderRadio = (summary: RadioSummary) => {
+			const { totals } = summary;
+			const mobileShare = totals.streamStarts ? Math.round((((summary.devices.mobile ?? 0) + (summary.devices.tablet ?? 0)) / totals.streamStarts) * 100) : 0;
+			radioTiles.innerHTML = [
+				tile('Listening sessions', formatNumber(totals.streamStarts)),
+				tile('Hours listened', formatHours(totals.listeningHours)),
+				tile('Typical session', formatMinutes(totals.medianMinutes), `Median. Average ${formatMinutes(totals.averageMinutes)}`),
+				tile('Play presses that started', totals.playClicks ? `${Math.min(100, Math.round((totals.streamStarts / totals.playClicks) * 100))}%` : '—', `${formatNumber(totals.playClicks)} presses`),
+				tile('Wait for sound', totals.medianWaitSeconds ? `${totals.medianWaitSeconds.toFixed(1)} s` : '—', 'Median, from pressing play'),
+				tile('On phones and tablets', totals.streamStarts ? `${mobileShare}%` : '—', 'Of sessions'),
+				tile('Returning listeners', formatNumber(totals.returningListeners), `Of ${formatNumber(totals.knownListeners)} known (accepted cookies)`),
+				tile('Stream errors', formatNumber(totals.errors), `${formatNumber(totals.interruptions)} interruptions`),
+			].join('');
+
+			const daily = cards.get('radio-daily');
+			if (daily) {
+				const select = daily.root.querySelector<HTMLSelectElement>('[data-metric-select]')!;
+				daily.render = () => {
+					const key = select.value as 'sessions' | 'listeningHours' | 'playClicks' | 'errors';
+					const label = select.selectedOptions[0]?.textContent ?? key;
+					const format: Format = key === 'listeningHours' ? (value) => (typeof value === 'number' ? formatHours(value) : '—') : formatNumber;
+					daily.trend(summary.daily.map((day) => shortDay(day.day)), [{ label, values: summary.daily.map((day) => day[key]) }], [palette[0]], format);
+				};
+				select.onchange = () => daily.render();
+				daily.render();
+			}
+			const hours = cards.get('radio-hours');
+			if (hours) {
+				hours.render = () => hours.trend(Array.from({ length: 24 }, (_, hour) => `${String(hour).padStart(2, '0')}:00`), [{ label: 'Sessions started', values: summary.hourOfDay }], [palette[1]]);
+				hours.render();
+			}
+
+			drawBreakdown('radio-lengths', summary.sessionLengths, 'Sessions');
+			drawBreakdown('radio-ends', fromRecord(summary.endReasons, endLabels), 'Sessions');
+			drawBreakdown('radio-devices', fromRecord(summary.devices, deviceLabels), 'Sessions');
+			drawBreakdown('radio-device-hours', fromRecord(Object.fromEntries(Object.entries(summary.deviceHours).map(([device, value]) => [device, Number(value.toFixed(2))])), deviceLabels), 'Hours');
+			drawBreakdown('radio-streams', fromRecord(summary.streams, streamLabels), 'Sessions');
+			drawBreakdown('radio-sources', fromRecord(summary.sources, sourceLabels), 'Sessions');
+			drawBreakdown('radio-browsers', fromRecord(summary.browsers, {}, 6), 'Sessions');
+			drawBreakdown('radio-errors', fromRecord(summary.errorCodes, errorLabels), 'Errors');
+		};
+
+		/* ----- Loading ----- */
+
+		const load = async () => {
 			status.textContent = 'Loading…';
 			try {
-				const data = await (await request()).json() as { records: ListenerRecord[] };
-				records = data.records;
+				const [listeners, radio] = await Promise.all([
+					request('/api/analytics/listeners').then((response) => response.json() as Promise<{ records: ListenerRecord[] }>),
+					request('/api/analytics/radio').then((response) => response.json() as Promise<RadioSummary>),
+				]);
 				gate.hidden = true;
-				body.hidden = false;
-				renderListeners();
+				toolbar.hidden = false;
+				listenerPanel.hidden = false;
+				radioPanel.hidden = false;
+				renderListeners(listeners.records);
+				renderRadio(radio);
 				status.textContent = `Updated ${new Date().toLocaleTimeString('en-GB')}`;
 			} catch (error) {
 				if (error instanceof AccessError && error.status === 403) {
@@ -1539,30 +1732,19 @@ const monthLabel = (month: string) =>
 				} else if (error instanceof AccessError && error.status === 401) {
 					showGate(escapeHtml(error.message));
 				} else {
-					status.textContent = error instanceof Error ? error.message : 'The listener forms could not be loaded.';
+					status.textContent = error instanceof Error ? error.message : 'The analytics could not be loaded.';
 				}
 			}
 		};
 
-		fromInput.addEventListener('change', loadListeners);
-		toInput.addEventListener('change', loadListeners);
+		fromInput.addEventListener('change', load);
+		toInput.addEventListener('change', load);
 
-		exportButton.addEventListener('click', async () => {
-			exportButton.disabled = true;
-			try {
-				const response = await request('csv');
-				const url = URL.createObjectURL(await response.blob());
-				const fileName = /filename="([^"]+)"/.exec(response.headers.get('Content-Disposition') ?? '')?.[1] ?? csvFileName('listeners');
-				const link = Object.assign(document.createElement('a'), { href: url, download: fileName });
-				document.body.append(link);
-				link.click();
-				link.remove();
-				window.setTimeout(() => URL.revokeObjectURL(url), 0);
-			} catch (error) {
-				status.textContent = error instanceof Error ? error.message : 'The export failed.';
-			} finally {
-				exportButton.disabled = false;
-			}
+		listenerPanel.querySelector<HTMLButtonElement>('[data-export-listeners]')?.addEventListener('click', (event) => {
+			void downloadFrom(event.currentTarget as HTMLButtonElement, '/api/analytics/listeners', {});
+		});
+		radioPanel.querySelectorAll<HTMLButtonElement>('[data-export-radio]').forEach((button) => {
+			button.addEventListener('click', () => void downloadFrom(button, '/api/analytics/radio', { table: button.dataset.exportRadio ?? 'sessions' }));
 		});
 
 		signInButton.addEventListener('click', async () => {
@@ -1585,13 +1767,13 @@ const monthLabel = (month: string) =>
 			}
 		});
 
-		listenerPanel.querySelector('[data-sign-out]')?.addEventListener('click', () => { void auth?.signOut(); });
+		privateArea.querySelector('[data-sign-out]')?.addEventListener('click', () => { void auth?.signOut(); });
 
 		signInButton.disabled = true;
 		import('../scripts/oz-auth')
 			.then(async ({ createOzAuth, isAuthConfigured }) => {
 				if (!isAuthConfigured) {
-					showGate('Google sign-in is not set up on this site, so the listener forms cannot be shown.', { signIn: false });
+					showGate('Google sign-in is not set up on this site, so the private analytics cannot be shown.', { signIn: false });
 					return;
 				}
 				auth = createOzAuth();
@@ -1600,8 +1782,8 @@ const monthLabel = (month: string) =>
 				auth.onChange((user) => {
 					account.hidden = !user;
 					accountEmail.textContent = user?.email ?? '';
-					if (user) void loadListeners();
-					else showGate('Listener details are private. Sign in with a Google account that has analytics access.');
+					if (user) void load();
+					else showGate('Listener forms and radio listening are private. Sign in with a Google account that has analytics access.');
 				});
 			})
 			.catch(() => showGate('Google sign-in could not be loaded. Please reload the page.', { signIn: false }));

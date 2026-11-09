@@ -466,6 +466,8 @@ videojs.registerPlugin('ozWaveform', function (this: Player, options?: Record<st
 	return this.addChild('OzWaveform', options) as OzWaveform;
 });
 
+export type OzPlayerState = PlayerState;
+
 export type OzAudioPlayer = {
 	play: () => void;
 	pause: () => void;
@@ -478,6 +480,8 @@ export type OzAudioPlayerOptions = {
 	// The visualizer's shape. A station theme class (e.g. 'vjs-oz-bali') restyles the rest of the player.
 	visualizer?: OzVisualizer;
 	className?: string;
+	/** Told each time the live badge changes: connecting, live, idle (paused), or error (gave up reconnecting). */
+	onStateChange?: (state: PlayerState) => void;
 };
 
 // Upgrades an <audio> element into the OZ player. Its native events keep firing, so listeners
@@ -485,7 +489,7 @@ export type OzAudioPlayerOptions = {
 export const createOzAudioPlayer = (
 	media: HTMLAudioElement,
 	streamUrl: string,
-	{ visualizer = 'bars', className }: OzAudioPlayerOptions = {},
+	{ visualizer = 'bars', className, onStateChange }: OzAudioPlayerOptions = {},
 ): OzAudioPlayer => {
 	// The stream is served with CORS headers, which the waveform's audio analysis needs.
 	media.crossOrigin = 'anonymous';
@@ -509,7 +513,10 @@ export const createOzAudioPlayer = (
 		.ozWaveform({ shape: visualizer });
 	const trackInfo = player.getChild('OzTrackInfo') as OzTrackInfo | undefined;
 	const liveBadge = player.getChild('ControlBar')?.getChild('OzLiveBadge') as OzLiveBadge | undefined;
-	const showState = (state: PlayerState) => liveBadge?.showState(state);
+	const showState = (state: PlayerState) => {
+		liveBadge?.showState(state);
+		onStateChange?.(state);
+	};
 
 	let wantsPlayback = false;
 	let isOffline = false;
