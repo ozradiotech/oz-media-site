@@ -4,6 +4,8 @@ import '../styles/typography.css';
 import '../styles/page-transitions.css';
 import '../styles/retro.css';
 import ThemeHead from '../components/ThemeHead.astro';
+import GoogleAnalytics from '../components/GoogleAnalytics.astro';
+import ConsentBanner from '../components/ConsentBanner.astro';
 import ThemeSwitch from '../components/ThemeSwitch.astro';
 const locations = [
 	{ name: 'Bandung', href: '/oz-bandung/', logo: '/images/logo-oz-bandung.png', transitionName: 'oz-bandung-logo' },
@@ -17,6 +19,7 @@ const locations = [
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<ThemeHead />
+		<GoogleAnalytics />
 		<meta name="description" content="Location select for OZ Radio" />
 		<Font cssVariable="--font-tango" preload={[{ style: 'normal' }]} />
 		<Font cssVariable="--font-jakarta" preload={[{ style: 'normal' }]} />
@@ -56,6 +59,7 @@ const locations = [
 				</nav>
 			</section>
 		</main>
+		<ConsentBanner />
 	</body>
 </html>
 

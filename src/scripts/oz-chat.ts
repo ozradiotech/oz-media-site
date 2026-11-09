@@ -449,9 +449,12 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth, signal }:
 		} catch (error) {
 			const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
 			if (code !== 'auth/popup-closed-by-user' && code !== 'auth/cancelled-popup-request') {
+				console.warn('Google sign-in failed:', error);
 				showStatus(code === 'auth/popup-blocked'
 					? 'Your browser blocked the sign-in window. Allow pop-ups for this site and try again.'
-					: 'Google sign-in failed. Please try again.');
+					: code === 'auth/unauthorized-domain'
+						? 'Google sign-in is not enabled on this address yet.'
+						: 'Google sign-in failed. Please try again.');
 			}
 		} finally {
 			signIn.disabled = false;

@@ -3,6 +3,9 @@ import { Font } from 'astro:assets';
 import '../styles/typography.css';
 import '../styles/page-transitions.css';
 import '../styles/oz-audio-player-bali.css';
+import GoogleAnalytics from '../components/GoogleAnalytics.astro';
+import ConsentBanner from '../components/ConsentBanner.astro';
+import { consentEnabled } from '../lib/analytics-config';
 
 // OZ Bali is audio-only for now. The title, artist and listener count are read from the same Icecast mount,
 // so they always follow whichever stream this points at.
@@ -16,6 +19,7 @@ const nowPlayingUrl = `/api/now-playing?mount=${encodeURIComponent(new URL(audio
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="theme-color" content="#4A1835" />
+		<GoogleAnalytics />
 		<meta name="description" content="Listen live to ozradio bali 101.2 fm, your friendly station from the island." />
 		<Font cssVariable="--font-tango" preload={[{ style: 'normal' }]} />
 		<Font cssVariable="--font-jakarta" preload={[{ style: 'normal' }]} />
@@ -79,8 +83,12 @@ const nowPlayingUrl = `/api/now-playing?mount=${encodeURIComponent(new URL(audio
 					<a href="/">All stations</a>
 				</nav>
 				<p class="fine">ozradio bali, 101.2 fm</p>
+				{consentEnabled && (
+					<p class="fine cookie-note">Analytics cookies are only set if you allow them. <button type="button" data-consent-open>Cookie settings</button></p>
+				)}
 			</footer>
 		</main>
+		<ConsentBanner />
 	</body>
 </html>
 
@@ -433,6 +441,28 @@ const nowPlayingUrl = `/api/now-playing?mount=${encodeURIComponent(new URL(audio
 		margin: 0;
 		color: rgb(252 232 200 / 72%);
 		font-size: 13px;
+	}
+
+	.cookie-note {
+		margin-top: -10px;
+		font-size: 12px;
+	}
+
+	.cookie-note button {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: var(--bali-sand);
+		font: inherit;
+		font-weight: 700;
+		text-decoration: underline;
+		text-underline-offset: 3px;
+		cursor: pointer;
+	}
+
+	.cookie-note button:focus-visible {
+		outline: 2px solid var(--bali-gold);
+		outline-offset: 3px;
 	}
 
 	/* Page-load sequence: the arcs open, the sun rises from the horizon, then the logo lands. */

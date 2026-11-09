@@ -1,0 +1,161 @@
+---
+// Asks once whether Google Analytics may set cookies (see GoogleAnalytics.astro), and comes back from the
+// "Cookie settings" button in the footers ([data-consent-open]). Goes at the end of <body> on the public pages.
+// Its colours are its own, so it looks the same on OZ Bali, which doesn't use the site styles.
+import { consentEnabled } from '../lib/analytics-config';
+---
+
+{consentEnabled && (
+	<section class="consent-banner" data-consent aria-labelledby="consent-title" hidden>
+		<h2 class="consent-title" id="consent-title">Cookies</h2>
+		<p>OZ Radio uses Google Analytics cookies to see how the site is used, so we can make it better. They are only set if you allow them.</p>
+		<div class="consent-actions">
+			<button class="consent-button" type="button" data-consent-choice="denied">Decline</button>
+			<button class="consent-button consent-button-accept" type="button" data-consent-choice="granted">Accept</button>
+		</div>
+	</section>
+)}
+
+<script>
+	import { consentEventName, consentStorageKey } from '../lib/analytics-config';
+	import { onEveryPage } from '../scripts/oz-page';
+
+	const banner = () => document.querySelector<HTMLElement>('[data-consent]');
+
+	const storedChoice = () => {
+		try {
+			return localStorage.getItem(consentStorageKey);
+		} catch {
+			return null;
+		}
+	};
+
+	const choose = (choice: 'granted' | 'denied') => {
+		try {
+			localStorage.setItem(consentStorageKey, choice);
+		} catch {}
+		window.dispatchEvent(new CustomEvent(consentEventName, { detail: choice }));
+		const element = banner();
+		if (element) element.hidden = true;
+	};
+
+	// The banner is part of each page, so it is set up again after every client-side navigation.
+	onEveryPage(() => {
+		const element = banner();
+		if (!element) return;
+		element.hidden = storedChoice() !== null;
+		element.querySelectorAll<HTMLButtonElement>('[data-consent-choice]').forEach((button) => {
+			button.addEventListener('click', () => choose(button.dataset.consentChoice === 'granted' ? 'granted' : 'denied'));
+		});
+	});
+
+	// "Cookie settings" in the footers brings the banner back to change the choice.
+	document.addEventListener('click', (event) => {
+		if (!(event.target instanceof Element) || !event.target.closest('[data-consent-open]')) return;
+		const element = banner();
+		if (!element) return;
+		element.hidden = false;
+		element.querySelector<HTMLButtonElement>(storedChoice() === 'granted' ? '[data-consent-choice="denied"]' : '[data-consent-choice="granted"]')?.focus();
+	});
+</script>
+
+<style>
+	.consent-banner {
+		position: fixed;
+		z-index: 70;
+		bottom: 20px;
+		left: 20px;
+		width: min(400px, calc(100% - 40px));
+		display: grid;
+		gap: 12px;
+		padding: 18px 18px 16px;
+		border: 1px solid rgb(255 255 243 / 16%);
+		border-radius: 14px;
+		background: #141412;
+		color: #FFFFF3;
+		box-shadow: 0 18px 44px -18px rgb(0 0 0 / 60%);
+		font-family: var(--font-jakarta, Arial, sans-serif);
+		animation: consent-in 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+	}
+
+	.consent-banner[hidden] {
+		display: none;
+	}
+
+	.consent-title {
+		margin: 0;
+		color: #F2BD57;
+		font-size: 10px;
+		font-weight: 700;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+	}
+
+	.consent-banner p {
+		margin: 0;
+		color: #D8D8CC;
+		font-size: 13px;
+		line-height: 1.55;
+	}
+
+	.consent-actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: 8px;
+	}
+
+	.consent-button {
+		min-height: 38px;
+		padding: 0 16px;
+		border: 1px solid rgb(255 255 243 / 30%);
+		border-radius: 999px;
+		background: transparent;
+		color: #FFFFF3;
+		font: inherit;
+		font-size: 13px;
+		font-weight: 700;
+		cursor: pointer;
+		transition: background-color 160ms ease, border-color 160ms ease;
+	}
+
+	.consent-button:hover {
+		border-color: #FFFFF3;
+	}
+
+	.consent-button-accept {
+		border-color: #F2BD57;
+		background: #F2BD57;
+		color: #141412;
+	}
+
+	.consent-button-accept:hover {
+		border-color: #F8D99C;
+		background: #F8D99C;
+	}
+
+	.consent-button:focus-visible {
+		outline: 2px solid #F2BD57;
+		outline-offset: 2px;
+	}
+
+	@media (max-width: 560px) {
+		.consent-banner {
+			bottom: 12px;
+			left: 12px;
+			width: calc(100% - 24px);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.consent-banner {
+			animation: none;
+		}
+	}
+
+	@keyframes consent-in {
+		from {
+			opacity: 0;
+			translate: 0 16px;
+		}
+	}
+</style>

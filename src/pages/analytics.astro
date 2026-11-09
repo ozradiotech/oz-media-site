@@ -64,6 +64,14 @@ const platforms = [
 	},
 ];
 
+// Listener form breakdowns on the private panel, filled in by the script once the visitor is signed in.
+const listenerBreakdowns = [
+	{ chart: 'listener-gender', title: 'Gender', style: 'doughnut' },
+	{ chart: 'listener-age', title: 'Age range', style: 'bar' },
+	{ chart: 'listener-stream', title: 'Tuned in to', style: 'pie' },
+	{ chart: 'listener-location', title: 'Top locations', style: 'bar' },
+];
+
 const monthLabel = (month: string) =>
 	new Date(`${month}-01T00:00:00Z`).toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 ---
@@ -85,7 +93,7 @@ const monthLabel = (month: string) =>
 				<a class="wordmark" href="/oz-bandung" aria-label="Back to OZ Radio Bandung"><img src="/images/logo-oz-bandung.png" alt="OZ Radio Bandung" width="1246" height="648" /></a>
 				<div>
 					<h1>ANALYTICS</h1>
-					<p class="page-subtitle">Live radio listeners and monthly social media numbers.</p>
+					<p class="page-subtitle">Live radio listeners, listener forms and monthly social media numbers.</p>
 				</div>
 			</header>
 
@@ -117,11 +125,60 @@ const monthLabel = (month: string) =>
 							<div class="style-switch" role="group" aria-label="Chart style">
 								{trendStyles.map((style) => <button type="button" data-style-option={style.value} aria-pressed={style.value === 'area' ? 'true' : 'false'}>{style.label}</button>)}
 							</div>
+							<button class="action-button" type="button" data-export-live>Export CSV</button>
 						</div>
 					</header>
 					<div class="chart-body"><canvas aria-label="Listener count over time"></canvas><div class="chart-table" hidden></div></div>
 					<p class="chart-note">Sampled every 10 seconds. History is kept only in this tab.</p>
 				</article>
+			</section>
+
+			<section class="panel" aria-labelledby="listeners-title" data-listener-panel>
+				<div class="panel-heading">
+					<h2 id="listeners-title">LISTENER FORMS</h2>
+					<p class="account" data-account hidden>
+						<span data-account-email></span>
+						<button class="text-button" type="button" data-sign-out>Sign out</button>
+					</p>
+				</div>
+				<div class="gate" data-gate>
+					<p class="gate-message" data-gate-message aria-live="polite">Listener details are private. Sign in with a Google account that has analytics access.</p>
+					<button class="action-button" type="button" data-sign-in>Sign in with Google</button>
+				</div>
+				<div class="private-body" data-private-body hidden>
+					<div class="toolbar">
+						<div class="filters">
+							<label class="filter">From<input type="date" data-listener-from /></label>
+							<label class="filter">To<input type="date" data-listener-to /></label>
+						</div>
+						<button class="action-button" type="button" data-export-listeners>Export CSV</button>
+					</div>
+					<p class="chart-note" data-listener-status aria-live="polite"></p>
+					<div class="tiles" data-listener-tiles></div>
+					<div class="chart-grid">
+						{listenerBreakdowns.map((card) => (
+							<article class="chart-card" data-chart={card.chart} data-style={card.style}>
+								<header class="chart-card-header">
+									<h3>{card.title}</h3>
+									<div class="chart-controls">
+										<div class="style-switch" role="group" aria-label="Chart style">
+											{breakdownStyles.map((style) => <button type="button" data-style-option={style.value} aria-pressed={style.value === card.style ? 'true' : 'false'}>{style.label}</button>)}
+										</div>
+									</div>
+								</header>
+								<p class="chart-total" data-chart-total></p>
+								<div class="chart-body chart-body-square"><canvas></canvas><div class="chart-table" hidden></div></div>
+							</article>
+						))}
+						<article class="chart-card chart-card-wide">
+							<header class="chart-card-header">
+								<h3>Forms sent</h3>
+							</header>
+							<div class="chart-table record-table" data-listener-table></div>
+							<p class="chart-note">Times are Jakarta time (WIB). The export has every column, including the Google account of listeners who were signed in.</p>
+						</article>
+					</div>
+				</div>
 			</section>
 
 			<section class="panel social-panel" aria-labelledby="social-title">
@@ -141,6 +198,7 @@ const monthLabel = (month: string) =>
 									<option value="all">All months</option>
 								</select>
 							</label>
+							<button class="action-button" type="button" data-export-social>Export CSV</button>
 						</div>
 					)}
 				</div>
@@ -390,6 +448,7 @@ const monthLabel = (month: string) =>
 	.filters {
 		display: flex;
 		flex-wrap: wrap;
+		align-items: end;
 		gap: 12px;
 	}
 
@@ -401,7 +460,8 @@ const monthLabel = (month: string) =>
 		color: var(--ink-secondary);
 	}
 
-	select {
+	select,
+	input[type='date'] {
 		min-height: 36px;
 		padding: 6px 10px;
 		font: inherit;
@@ -412,6 +472,115 @@ const monthLabel = (month: string) =>
 		border: var(--box-border);
 		border-radius: 8px;
 		cursor: pointer;
+	}
+
+	.action-button,
+	.text-button {
+		font: inherit;
+		font-weight: 700;
+		color: var(--ink);
+		cursor: pointer;
+	}
+
+	.action-button {
+		min-height: 36px;
+		padding: 6px 14px;
+		font-size: 14px;
+		background: var(--accent);
+		border: var(--box-border);
+		border-radius: 8px;
+		box-shadow: 3px 3px 0 var(--ink);
+	}
+
+	.action-button:hover {
+		background: var(--accent-soft);
+	}
+
+	.action-button:active {
+		box-shadow: none;
+		transform: translate(3px, 3px);
+	}
+
+	.action-button:disabled {
+		cursor: wait;
+		opacity: 0.6;
+	}
+
+	.text-button {
+		padding: 4px 0;
+		font-size: 13px;
+		background: none;
+		border: 0;
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+
+	.action-button:focus-visible,
+	.text-button:focus-visible,
+	input[type='date']:focus-visible {
+		outline: 3px solid var(--accent);
+		outline-offset: 2px;
+	}
+
+	.account {
+		display: inline-flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 4px 12px;
+		margin: 0;
+		font-size: 13px;
+		color: var(--ink-secondary);
+	}
+
+	.account[hidden],
+	.gate[hidden],
+	.private-body[hidden],
+	.action-button[hidden] {
+		display: none;
+	}
+
+	.gate {
+		display: grid;
+		justify-items: start;
+		gap: 14px;
+		padding: 20px;
+		background: var(--surface);
+		border: 2px dashed var(--line);
+		border-radius: 10px;
+	}
+
+	.gate-message {
+		max-width: 60ch;
+		margin: 0;
+		color: var(--ink-secondary);
+		line-height: 1.5;
+	}
+
+	.gate-message code {
+		font-size: 13px;
+		overflow-wrap: anywhere;
+	}
+
+	.private-body {
+		display: grid;
+		gap: 20px;
+	}
+
+	.toolbar {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: end;
+		justify-content: space-between;
+		gap: 12px;
+	}
+
+	.record-table {
+		max-height: 480px;
+	}
+
+	.record-table :global(th),
+	.record-table :global(td) {
+		text-align: left;
 	}
 
 	.placeholder-banner {
@@ -646,6 +815,9 @@ const monthLabel = (month: string) =>
 <script>
 	import { Chart, type ChartConfiguration, type ChartDataset } from 'chart.js/auto';
 	import type { CollectionEntry } from 'astro:content';
+	import { csvFileName, toCsv, type CsvCell } from '../lib/csv';
+	import { ageRanges } from '../lib/listener';
+	import type { OzAuth } from '../scripts/oz-auth';
 
 	type Month = CollectionEntry<'analytics'>['data'];
 	type Format = (value: number | null | undefined) => string;
@@ -678,6 +850,16 @@ const monthLabel = (month: string) =>
 	const formatDuration = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.round(seconds % 60)).padStart(2, '0')}`;
 	const shortMonth = (month: string) =>
 		new Date(`${month}-01T00:00:00Z`).toLocaleDateString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' });
+
+	// Every section's numbers can be taken to a spreadsheet as CSV.
+	const downloadCsv = (name: string, headers: string[], rows: CsvCell[][]) => {
+		const url = URL.createObjectURL(new Blob([toCsv(headers, rows)], { type: 'text/csv;charset=utf-8' }));
+		const link = Object.assign(document.createElement('a'), { href: url, download: csvFileName(name) });
+		document.body.append(link);
+		link.click();
+		link.remove();
+		window.setTimeout(() => URL.revokeObjectURL(url), 0);
+	};
 
 	const escapeHtml = (text: string) => text.replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[char]!);
 
@@ -831,7 +1013,7 @@ const monthLabel = (month: string) =>
 		const sessionSince = document.querySelector<HTMLElement>('[data-live-session-since]')!;
 		const status = document.querySelector<HTMLElement>('[data-live-status]')!;
 		const statusText = document.querySelector<HTMLElement>('[data-live-status-text]')!;
-		const samples: { time: string; listeners: number | null }[] = [];
+		const samples: { at: string; time: string; listeners: number | null }[] = [];
 		const maxSamples = 360; // One hour at 10-second intervals.
 		const timeFormat = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 		let sessionPeak: number | null = null;
@@ -864,12 +1046,12 @@ const monthLabel = (month: string) =>
 				sessionPeakValue.textContent = formatNumber(sessionPeak);
 				status.dataset.state = 'live';
 				statusText.textContent = `Live · updated ${time}`;
-				samples.push({ time, listeners });
+				samples.push({ at: new Date().toISOString(), time, listeners });
 			} catch {
 				status.dataset.state = 'offline';
 				statusText.textContent = `Stream offline or unreachable · ${time}`;
 				nowValue.textContent = '—';
-				samples.push({ time, listeners: null });
+				samples.push({ at: new Date().toISOString(), time, listeners: null });
 			}
 			if (samples.length > maxSamples) samples.splice(0, samples.length - maxSamples);
 			liveCard.render();
@@ -877,6 +1059,10 @@ const monthLabel = (month: string) =>
 
 		poll();
 		window.setInterval(poll, 10_000);
+
+		document.querySelector('[data-export-live]')?.addEventListener('click', () => {
+			downloadCsv('live-listeners', ['Time (UTC)', 'Listeners'], samples.map((sample) => [sample.at, sample.listeners]));
+		});
 	}
 
 	/* ---------- Monthly social media ---------- */
@@ -1028,6 +1214,21 @@ const monthLabel = (month: string) =>
 		monthSelect.addEventListener('change', renderAll);
 		rangeSelect.addEventListener('change', renderAll);
 
+		// One row per month and one column per figure, e.g. "youtube.trafficSources.search".
+		document.querySelector('[data-export-social]')?.addEventListener('click', () => {
+			const flatten = (value: unknown, prefix: string, into: Map<string, CsvCell>) => {
+				if (value && typeof value === 'object') {
+					Object.entries(value).forEach(([key, child]) => flatten(child, prefix ? `${prefix}.${key}` : key, into));
+				} else {
+					into.set(prefix, value as CsvCell);
+				}
+				return into;
+			};
+			const rows = months.map((month) => flatten(month, '', new Map()));
+			const columns = [...new Set(rows.flatMap((row) => [...row.keys()]))];
+			downloadCsv('social-monthly', columns, rows.map((row) => columns.map((column) => row.get(column))));
+		});
+
 		const tabs = [...document.querySelectorAll<HTMLButtonElement>('[data-platform-tab]')];
 		const selectTab = (tab: HTMLButtonElement) => {
 			tabs.forEach((other) => {
@@ -1050,5 +1251,227 @@ const monthLabel = (month: string) =>
 		});
 
 		renderAll();
+	}
+
+	/* ---------- Listener forms (private) ---------- */
+
+	// Listener details are personal data, so they come from /api/analytics/listeners, which only answers Google
+	// accounts with the analytics role (scripts/chat-admin.mjs analytics <email>).
+	const listenerPanel = document.querySelector<HTMLElement>('[data-listener-panel]');
+	if (listenerPanel) {
+		type ListenerRecord = {
+			createdAt: string;
+			name: string;
+			age: string;
+			gender: string;
+			location: string;
+			broadcast: string | null;
+			googleUid: string | null;
+			googleEmail: string | null;
+		};
+
+		const gate = listenerPanel.querySelector<HTMLElement>('[data-gate]')!;
+		const gateMessage = listenerPanel.querySelector<HTMLElement>('[data-gate-message]')!;
+		const signInButton = listenerPanel.querySelector<HTMLButtonElement>('[data-sign-in]')!;
+		const account = listenerPanel.querySelector<HTMLElement>('[data-account]')!;
+		const accountEmail = listenerPanel.querySelector<HTMLElement>('[data-account-email]')!;
+		const body = listenerPanel.querySelector<HTMLElement>('[data-private-body]')!;
+		const fromInput = listenerPanel.querySelector<HTMLInputElement>('[data-listener-from]')!;
+		const toInput = listenerPanel.querySelector<HTMLInputElement>('[data-listener-to]')!;
+		const exportButton = listenerPanel.querySelector<HTMLButtonElement>('[data-export-listeners]')!;
+		const status = listenerPanel.querySelector<HTMLElement>('[data-listener-status]')!;
+		const tiles = listenerPanel.querySelector<HTMLElement>('[data-listener-tiles]')!;
+		const table = listenerPanel.querySelector<HTMLElement>('[data-listener-table]')!;
+		const cards = new Map([...listenerPanel.querySelectorAll<HTMLElement>('.chart-card[data-chart]')].map((root) => [root.dataset.chart!, new ChartCard(root)]));
+
+		const sentAt = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jakarta', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+		let auth: OzAuth | undefined;
+		let records: ListenerRecord[] = [];
+
+		class AccessError extends Error {
+			constructor(readonly status: number, message: string) {
+				super(message);
+			}
+		}
+
+		const showGate = (message: string, { signIn = true } = {}) => {
+			gate.hidden = false;
+			body.hidden = true;
+			gateMessage.innerHTML = message;
+			signInButton.hidden = !signIn;
+		};
+
+		// The token carries the roles, so a refusal is retried once with a fresh token: an account granted access
+		// after signing in doesn't have to sign out and back in.
+		const request = async (format?: 'csv') => {
+			const params = new URLSearchParams();
+			if (fromInput.value) params.set('from', fromInput.value);
+			if (toInput.value) params.set('to', toInput.value);
+			if (format) params.set('format', format);
+			let response: Response | undefined;
+			for (const refresh of [false, true]) {
+				const token = await auth?.idToken(refresh);
+				if (!token) throw new AccessError(401, 'Please sign in to see the analytics.');
+				response = await fetch(`/api/analytics/listeners?${params}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+				if (response.status !== 403) break;
+			}
+			if (!response!.ok) {
+				const { error } = await response!.json().catch(() => ({})) as { error?: string };
+				throw new AccessError(response!.status, error ?? 'The listener forms could not be loaded.');
+			}
+			return response!;
+		};
+
+		// Counts per value, biggest first, with the rest folded into "Other" past `limit`.
+		const countBy = (values: string[], limit = Infinity) => {
+			const counts = new Map<string, number>();
+			values.forEach((value) => counts.set(value, (counts.get(value) ?? 0) + 1));
+			const sorted = [...counts].sort((a, b) => b[1] - a[1]);
+			if (sorted.length <= limit) return sorted;
+			const other = sorted.slice(limit - 1).reduce((sum, [, count]) => sum + count, 0);
+			return [...sorted.slice(0, limit - 1), ['Other', other] as [string, number]];
+		};
+
+		// The first records stored an exact age; they are counted in their range.
+		const ageRange = (age: string) => {
+			const years = Number(age);
+			if (!/^\d+$/.test(age)) return age || 'Not given';
+			if (years < 18) return ageRanges[0];
+			const bounds = [24, 34, 44, 54, 64];
+			const index = bounds.findIndex((bound) => years <= bound);
+			return ageRanges[index < 0 ? ageRanges.length - 1 : index + 1];
+		};
+
+		// Places are typed freely, so "bandung" and "Bandung " count as one.
+		const placeName = (location: string) => {
+			const clean = location.trim().replace(/\s+/g, ' ');
+			return clean ? clean.toLowerCase().replace(/(^|[\s,(-])\p{L}/gu, (letter) => letter.toUpperCase()) : 'Not given';
+		};
+
+		const tile = (label: string, value: string, note = '') =>
+			`<div class="tile"><span class="tile-label">${escapeHtml(label)}</span><strong class="tile-value">${escapeHtml(value)}</strong>${note ? `<span class="tile-note">${escapeHtml(note)}</span>` : ''}</div>`;
+
+		const renderListeners = () => {
+			const total = records.length;
+			const signedIn = records.filter((record) => record.googleUid).length;
+			const ages = countBy(records.map((record) => ageRange(record.age)));
+			const places = countBy(records.map((record) => placeName(record.location)), 8);
+			const latest = records[0] ? sentAt.format(new Date(records[0].createdAt)) : '—';
+			tiles.innerHTML = [
+				tile('Forms sent', formatNumber(total)),
+				tile('Signed in with Google', formatNumber(signedIn), total ? `${Math.round((signedIn / total) * 100)}% of forms` : ''),
+				tile('Most common age', ages[0]?.[0] ?? '—'),
+				tile('Top location', places[0]?.[0] ?? '—'),
+				tile('Latest form', latest),
+			].join('');
+
+			const draw = (id: string, pairs: [string, number][], valueLabel: string) => {
+				const card = cards.get(id);
+				if (!card) return;
+				card.render = () => card.breakdown(pairs.map(([label]) => label), pairs.map(([, count]) => count), palette, valueLabel);
+				card.render();
+			};
+			draw('listener-gender', countBy(records.map((record) => record.gender || 'Not given')), 'Forms');
+			// Age ranges keep their natural order rather than their size.
+			const ageOrder: string[] = [...ageRanges, 'Not given'];
+			draw('listener-age', [...ages].sort((a, b) => ageOrder.indexOf(a[0]) - ageOrder.indexOf(b[0])), 'Forms');
+			draw('listener-stream', countBy(records.map((record) => record.broadcast === 'video' ? 'Livestream' : record.broadcast === 'audio' ? 'Audio stream' : 'Not playing')), 'Forms');
+			draw('listener-location', places, 'Forms');
+
+			table.innerHTML = total
+				? `<table><thead><tr>${['Sent', 'Name', 'Age', 'Gender', 'Location', 'Tuned in to', 'Google account'].map((heading) => `<th scope="col">${heading}</th>`).join('')}</tr></thead><tbody>${records.map((record) => `<tr>${[
+					sentAt.format(new Date(record.createdAt)),
+					record.name,
+					record.age,
+					record.gender,
+					record.location,
+					record.broadcast === 'video' ? 'Livestream' : record.broadcast === 'audio' ? 'Audio' : '—',
+					record.googleEmail ?? '—',
+				].map((cell) => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`).join('')}</tbody></table>`
+				: '<p class="chart-note">No forms in this period.</p>';
+		};
+
+		const loadListeners = async () => {
+			status.textContent = 'Loading…';
+			try {
+				const data = await (await request()).json() as { records: ListenerRecord[] };
+				records = data.records;
+				gate.hidden = true;
+				body.hidden = false;
+				renderListeners();
+				status.textContent = `Updated ${new Date().toLocaleTimeString('en-GB')}`;
+			} catch (error) {
+				if (error instanceof AccessError && error.status === 403) {
+					const email = escapeHtml(auth?.currentUser()?.email ?? 'this account');
+					showGate(`${email} does not have access to the analytics. An admin can grant it with <code>node --env-file=.env scripts/chat-admin.mjs analytics ${email}</code>, then reload this page.`, { signIn: false });
+				} else if (error instanceof AccessError && error.status === 401) {
+					showGate(escapeHtml(error.message));
+				} else {
+					status.textContent = error instanceof Error ? error.message : 'The listener forms could not be loaded.';
+				}
+			}
+		};
+
+		fromInput.addEventListener('change', loadListeners);
+		toInput.addEventListener('change', loadListeners);
+
+		exportButton.addEventListener('click', async () => {
+			exportButton.disabled = true;
+			try {
+				const response = await request('csv');
+				const url = URL.createObjectURL(await response.blob());
+				const fileName = /filename="([^"]+)"/.exec(response.headers.get('Content-Disposition') ?? '')?.[1] ?? csvFileName('listeners');
+				const link = Object.assign(document.createElement('a'), { href: url, download: fileName });
+				document.body.append(link);
+				link.click();
+				link.remove();
+				window.setTimeout(() => URL.revokeObjectURL(url), 0);
+			} catch (error) {
+				status.textContent = error instanceof Error ? error.message : 'The export failed.';
+			} finally {
+				exportButton.disabled = false;
+			}
+		});
+
+		signInButton.addEventListener('click', async () => {
+			if (!auth) return;
+			signInButton.disabled = true;
+			try {
+				await auth.signIn();
+			} catch (error) {
+				const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
+				if (code === 'auth/unauthorized-domain') {
+					showGate(`Google sign-in is not allowed on ${escapeHtml(location.hostname)} yet. Add it in the Firebase console under Authentication → Settings → Authorized domains, then try again.`);
+				} else if (code !== 'auth/popup-closed-by-user' && code !== 'auth/cancelled-popup-request') {
+					console.warn('Google sign-in failed:', error);
+					showGate(code === 'auth/popup-blocked'
+						? 'Your browser blocked the sign-in window. Allow pop-ups for this site and try again.'
+						: `Google sign-in failed${typeof code === 'string' ? ` (${escapeHtml(code)})` : ''}. Please try again.`);
+				}
+			} finally {
+				signInButton.disabled = false;
+			}
+		});
+
+		listenerPanel.querySelector('[data-sign-out]')?.addEventListener('click', () => { void auth?.signOut(); });
+
+		signInButton.disabled = true;
+		import('../scripts/oz-auth')
+			.then(async ({ createOzAuth, isAuthConfigured }) => {
+				if (!isAuthConfigured) {
+					showGate('Google sign-in is not set up on this site, so the listener forms cannot be shown.', { signIn: false });
+					return;
+				}
+				auth = createOzAuth();
+				await auth.ready();
+				signInButton.disabled = false;
+				auth.onChange((user) => {
+					account.hidden = !user;
+					accountEmail.textContent = user?.email ?? '';
+					if (user) void loadListeners();
+					else showGate('Listener details are private. Sign in with a Google account that has analytics access.');
+				});
+			})
+			.catch(() => showGate('Google sign-in could not be loaded. Please reload the page.', { signIn: false }));
 	}
 </script>

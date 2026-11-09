@@ -1,0 +1,54 @@
+---
+// Google Analytics 4. Goes in <head> on the public pages (not /analytics or the CMS). It only renders in a production
+// build with PUBLIC_GA_MEASUREMENT_ID set in .env (the G-XXXXXXXXXX ID of the GA4 web stream), so local
+// development never sends test visits to the real reports.
+//
+// Nothing is stored or sent until the visitor accepts analytics cookies in the consent banner (ConsentBanner.astro):
+// Google's script is only downloaded then. Declining later stops it and clears its cookies.
+//
+// Page views on OZ Bandung and OZ News, which change page without a full load (StationRouter.astro), are counted by
+// GA4's enhanced measurement ("Page changes based on browser history events", on by default in the web stream).
+import { analyticsEnabled, consentEventName, consentStorageKey, gaMeasurementId } from '../lib/analytics-config';
+---
+
+{analyticsEnabled && (
+	<script is:inline define:vars={{ measurementId: gaMeasurementId, consentStorageKey, consentEventName }}>
+		window.dataLayer = window.dataLayer || [];
+		window.gtag = function gtag() {
+			window.dataLayer.push(arguments);
+		};
+		window.gtag('consent', 'default', { analytics_storage: 'denied', ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' });
+		window.gtag('js', new Date());
+		window.gtag('config', measurementId);
+
+		let loaded = false;
+		const clearCookies = () => {
+			const host = location.hostname.replace(/^www\./, '');
+			document.cookie.split(';').map((cookie) => cookie.split('=')[0].trim()).filter((name) => name === '_ga' || name.startsWith('_ga_')).forEach((name) => {
+				['', `; domain=${host}`, `; domain=.${host}`].forEach((domain) => { document.cookie = `${name}=; Max-Age=0; path=/${domain}`; });
+			});
+		};
+		const apply = (choice) => {
+			window[`ga-disable-${measurementId}`] = choice !== 'granted';
+			if (choice === 'granted') {
+				window.gtag('consent', 'update', { analytics_storage: 'granted' });
+				if (loaded) return;
+				loaded = true;
+				const script = document.createElement('script');
+				script.async = true;
+				script.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
+				document.head.append(script);
+			} else if (loaded) {
+				window.gtag('consent', 'update', { analytics_storage: 'denied' });
+				clearCookies();
+			}
+		};
+
+		let stored = null;
+		try {
+			stored = localStorage.getItem(consentStorageKey);
+		} catch {}
+		apply(stored);
+		window.addEventListener(consentEventName, (event) => apply(event.detail));
+	</script>
+)}

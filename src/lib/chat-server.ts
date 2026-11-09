@@ -95,8 +95,14 @@ export const verifyChatRequest = async (request: Request): Promise<DecodedIdToke
 			throw new ChatError(401, 'We could not verify your browser. Please reload the page.');
 		}
 	}
+	return verifyIdToken(request, 'Please sign in to chat.');
+};
+
+/** Verifies the Firebase ID token sent as `Authorization: Bearer …` and returns the signed-in user. */
+export const verifyIdToken = async (request: Request, signInMessage: string): Promise<DecodedIdToken> => {
+	const admin = await getAdmin();
 	const idToken = /^Bearer (.+)$/.exec(request.headers.get('Authorization') ?? '')?.[1];
-	if (!idToken) throw new ChatError(401, 'Please sign in to chat.');
+	if (!idToken) throw new ChatError(401, signInMessage);
 	try {
 		return await admin.auth.verifyIdToken(idToken);
 	} catch {

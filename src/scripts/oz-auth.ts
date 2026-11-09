@@ -10,8 +10,9 @@ export interface OzAuth {
 	signIn(): Promise<OzUser>;
 	signOut(): Promise<void>;
 	onChange(callback: (user: OzUser | null) => void): () => void;
-	/** A fresh Firebase ID token for our API routes, or null when signed out. */
-	idToken(): Promise<string | null>;
+	/** A Firebase ID token for our API routes, or null when signed out. `refresh` fetches a new one, picking up
+	 * roles granted since sign-in. */
+	idToken(refresh?: boolean): Promise<string | null>;
 	/** Whether the signed-in user has the chat moderator claim (set with scripts/chat-admin.mjs). */
 	isModerator(): Promise<boolean>;
 }
@@ -32,7 +33,7 @@ export const createOzAuth = (): OzAuth => {
 		signIn: () => signInWithPopup(auth, provider).then(({ user }) => user),
 		signOut: () => signOut(auth),
 		onChange: (callback) => onAuthStateChanged(auth, callback),
-		idToken: () => auth.currentUser?.getIdToken() ?? Promise.resolve(null),
+		idToken: (refresh = false) => auth.currentUser?.getIdToken(refresh) ?? Promise.resolve(null),
 		isModerator: async () => {
 			const result = await auth.currentUser?.getIdTokenResult().catch(() => undefined);
 			return result?.claims.mod === true;

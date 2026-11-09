@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { appendFile, mkdir } from 'node:fs/promises';
-import { join } from 'node:path';
 import { ageRanges } from '../../lib/listener';
+import { listenerDataDirectory, listenerDataFile } from '../../lib/listener-store';
 
 const genders = new Set(['Female', 'Male']);
 const ages = new Set<string>(ageRanges);
@@ -57,11 +57,9 @@ export const POST: APIRoute = async ({ request }) => {
 	// Vercel's filesystem is read-only, so accept the details there without storing them.
 	if (process.env.VERCEL) return new Response(null, { status: 202 });
 
-	const dataDirectory = join(process.cwd(), 'data');
-
 	try {
-		await mkdir(dataDirectory, { recursive: true });
-		await appendFile(join(dataDirectory, 'listeners.jsonl'), `${JSON.stringify(record)}\n`, 'utf8');
+		await mkdir(listenerDataDirectory, { recursive: true });
+		await appendFile(listenerDataFile,`${JSON.stringify(record)}\n`, 'utf8');
 	} catch {
 		return new Response('Listener details could not be saved.', { status: 500 });
 	}

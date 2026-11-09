@@ -6,6 +6,8 @@ interface Props {
 	topHref?: string;
 }
 
+import { consentEnabled } from '../lib/analytics-config';
+
 const { topHref = '#top' } = Astro.props;
 const columns = [
 	{
@@ -50,6 +52,12 @@ const columns = [
 	</div>
 	<div class="site-footer-bottom">
 		<span>© {new Date().getFullYear()} OZ MEDIA</span>
+		{consentEnabled && (
+			<p class="site-footer-cookies">
+				ANALYTICS COOKIES ARE ONLY SET IF YOU ALLOW THEM
+				<button type="button" data-consent-open>COOKIE SETTINGS</button>
+			</p>
+		)}
 		<a href={topHref}>BACK TO TOP ↑</a>
 	</div>
 </footer>
@@ -135,6 +143,36 @@ const columns = [
 	.site-footer-bottom a {
 		color: var(--c-on-stage);
 		text-decoration: none;
+	}
+
+	.site-footer-cookies {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 4px 10px;
+		margin: 0;
+	}
+
+	.site-footer-cookies button {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: var(--c-on-stage);
+		font: inherit;
+		letter-spacing: inherit;
+		text-decoration: underline;
+		text-underline-offset: 3px;
+		cursor: pointer;
+	}
+
+	.site-footer-cookies button:hover,
+	.site-footer-cookies button:focus-visible {
+		color: var(--c-accent);
+	}
+
+	.site-footer-cookies button:focus-visible {
+		outline: 2px solid var(--c-accent);
+		outline-offset: 3px;
 	}
 
 	.site-footer-column a:hover,

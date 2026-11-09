@@ -6,6 +6,8 @@ import '../styles/retro.css';
 import SectionNav from '../components/SectionNav.astro';
 import ThemeHead from '../components/ThemeHead.astro';
 import StationRouter from '../components/StationRouter.astro';
+import GoogleAnalytics from '../components/GoogleAnalytics.astro';
+import ConsentBanner from '../components/ConsentBanner.astro';
 import ThemeSwitch from '../components/ThemeSwitch.astro';
 import BandungRibbon from '../components/BandungRibbon.astro';
 import SiteFooter from '../components/SiteFooter.astro';
@@ -116,6 +118,7 @@ const sections = [
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<ThemeHead />
 		<StationRouter />
+		<GoogleAnalytics />
 		<meta name="description" content="Your Friendly Station 103.1 FM" />
 		<Font cssVariable="--font-tango" preload={[{ style: 'normal' }]} />
 		<Font cssVariable="--font-jakarta" preload={[{ style: 'normal' }]} />
@@ -765,6 +768,7 @@ const sections = [
 				<div class="announcer-dialog-body" data-announcer-body-content hidden></div>
 			</div>
 		</dialog>
+		<ConsentBanner />
 	</body>
 </html>
 

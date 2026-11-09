@@ -242,6 +242,33 @@ The server picks up changes within a minute. Removing a built-in word needs a co
 
 The `jwks-rsa` override in `package.json` keeps `firebase-admin` on `jose` 5. `jose` 6 can't be loaded with `require()` on Vercel's runtime, which crashes every chat route. Remove the override only once `jwks-rsa` stops using `require('jose')`.
 
+## Analytics
+
+`/analytics` (not linked anywhere) shows live listeners, listener forms and monthly social numbers. Every section exports to CSV.
+
+### Listener forms
+
+Listener details are personal data, so that panel needs Google sign-in with the analytics role:
+
+```sh
+node --env-file=.env scripts/chat-admin.mjs analytics someone@gmail.com     # grant access
+node --env-file=.env scripts/chat-admin.mjs unanalytics someone@gmail.com   # remove it
+```
+
+The person must have signed in on `/analytics` once; a reload picks up the new role. Google sign-in only works on domains listed in the Firebase console under **Authentication → Settings → Authorized domains** (`localhost` and `ozradio.id`).
+
+### Google Analytics 4
+
+`src/components/GoogleAnalytics.astro` adds the GA4 tag to the public pages (not `/analytics` or the CMS). It is only included in production builds, and only when `.env` has:
+
+| Variable | Value |
+| --- | --- |
+| `PUBLIC_GA_MEASUREMENT_ID` | The web stream's Measurement ID, `G-XXXXXXXXXX` (GA4 → **Admin → Data streams**). |
+
+The ID is baked in at build time, so on the server add it to `.env` and run `scripts/deploy.sh`.
+
+Google's script only loads after a visitor clicks **Accept** in the cookie banner (`ConsentBanner.astro`); until then, or after **Decline**, nothing is sent and no `_ga` cookies are set. The choice is kept in the browser (`oz-analytics-consent`), and **Cookie settings** in the footers brings the banner back. The banner and notice also show on the dev server so they can be tried out, but GA never loads there.
+
 ## Brand palette
 
 | Colour | Hex |
