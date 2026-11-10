@@ -1,7 +1,8 @@
 ---
 title: Istana Benarkan Gibran Ajukan Mundur sebagai Wakil Presiden ke Prabowo
 visible: true
-category: OZNEWS
+publishedAt: 2026-11-10T18:01:00.000+07:00
+category: OZ NEWS
 summary: Menteri Sekretaris Negara Prasetyo Hadi membenarkan bahwa Wakil
   Presiden Gibran Rakabuming Raka mengajukan pengunduran diri kepada Presiden
   Prabowo Subianto setelah polemik putusan MK dan MA terkait dokumen
