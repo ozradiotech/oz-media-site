@@ -20,14 +20,11 @@ import '../styles/ozubathon.css';
 import '../styles/oz-audio-player.css';
 
 const audioStreamUrl = 'https://streaming.ozradio.id:8443/ozbandung';
-// Livestream: set videoId to embed one live broadcast, or channelId (UC…) to embed whatever that channel is
-// streaming right now. videoId wins when both are set; leave both empty to show the placeholder.
-const youtubeLive = { videoId: '0LcSd-Bj5u4', channelId: 'UCdc4ztl0di-Fv58CI5TK73w' };
-const youtubeLiveEmbedUrl = youtubeLive.videoId
-	? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(youtubeLive.videoId)}`
-	: youtubeLive.channelId
-		? `https://www.youtube-nocookie.com/embed/live_stream?channel=${encodeURIComponent(youtubeLive.channelId)}`
-		: '';
+// Livestream: channelId (UC…) plays whatever that channel is streaming when a visitor picks video, looked up by
+// /api/youtube-live, and says "not live right now" otherwise. Set videoId to always play that one broadcast instead.
+// Leave both empty to show the placeholder.
+const youtubeLive = { videoId: '', channelId: 'UCdc4ztl0di-Fv58CI5TK73w' };
+const hasYoutubeLive = Boolean(youtubeLive.videoId || youtubeLive.channelId);
 const youtubeChannelUrl = 'https://www.youtube.com/@OZMEDIANET';
 const youtubeVideos = [
 	{ id: 'UDmfDJTzg4w', title: 'Featured video' },
@@ -310,14 +307,24 @@ const sections = [
 								</div>
 								<div class="broadcast-panel" data-broadcast-panel="video" hidden>
 									<div class="video-frame">
-										{youtubeLiveEmbedUrl ? (
-											<iframe
-												title="OZ Bandung YouTube livestream"
-												data-youtube-live={youtubeLiveEmbedUrl}
-												allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-												referrerpolicy="strict-origin-when-cross-origin"
-												allowfullscreen
-											></iframe>
+										{hasYoutubeLive ? (
+											<>
+												<iframe
+													title="OZ Bandung YouTube livestream"
+													data-youtube-live
+													data-youtube-video-id={youtubeLive.videoId || undefined}
+													data-youtube-channel={youtubeLive.channelId || undefined}
+													allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+													referrerpolicy="strict-origin-when-cross-origin"
+													allowfullscreen
+													hidden
+												></iframe>
+												<div class="video-placeholder" data-youtube-offline hidden>
+													<img src="/images/studio-livestream.jpg" alt="" aria-hidden="true" loading="lazy" decoding="async" />
+													<p>We're not live right now</p>
+													<a class="placeholder-caption" href={youtubeChannelUrl} target="_blank" rel="noopener noreferrer">CATCH OUR PAST STREAMS ON YOUTUBE ↗</a>
+												</div>
+											</>
 										) : (
 											<div class="video-placeholder">
 												<img src="/images/studio-livestream.jpg" alt="" aria-hidden="true" loading="lazy" decoding="async" />
@@ -791,6 +798,7 @@ const sections = [
 	const station = document.querySelector<HTMLElement>('[data-station]');
 	const broadcastPanels = station?.querySelectorAll<HTMLElement>('[data-broadcast-panel]') ?? [];
 	const livePlayer = station?.querySelector<HTMLIFrameElement>('[data-youtube-live]');
+	const liveOffline = station?.querySelector<HTMLElement>('[data-youtube-offline]');
 	const audioPlayerContainer = station?.querySelector<HTMLElement>('[data-audio-player]');
 	const fallbackAudio = audioPlayerContainer?.querySelector<HTMLAudioElement>('audio');
 	const trackTitle = station?.querySelector<HTMLElement>('[data-track-title]');
@@ -798,6 +806,8 @@ const sections = [
 	const listenerCount = station?.querySelector<HTMLElement>('[data-listener-count]');
 
 	let selectedBroadcast: Broadcast | null = null;
+	// Bumped whenever the broadcast stops, so a livestream lookup that answers after the visitor has moved on is ignored.
+	let liveLookup = 0;
 	let isStreaming = false;
 	// The stream the form interrupted (or that was picked while it was required), started once the details are saved.
 	let pendingBroadcast: Broadcast | null = null;
@@ -1030,6 +1040,7 @@ const sections = [
 		cancelListenerPrompt();
 		stopNowPlayingUpdates();
 		pauseAudio();
+		liveLookup += 1;
 		livePlayer?.removeAttribute('src');
 		isStreaming = false;
 		broadcastPanels.forEach((panel) => { panel.hidden = true; });
@@ -1055,19 +1066,44 @@ const sections = [
 			return;
 		}
 
-		// The iframe only gets its src here, so YouTube loads nothing until a visitor picks video.
-		const embedUrl = livePlayer?.dataset.youtubeLive;
-		if (livePlayer && embedUrl) {
-			const playerUrl = new URL(embedUrl);
-			playerUrl.searchParams.set('autoplay', '1');
-			playerUrl.searchParams.set('playsinline', '1');
-			playerUrl.searchParams.set('rel', '0');
-			livePlayer.src = playerUrl.toString();
-			// The embed doesn't report playback, so watching counts from when the livestream is picked until it's closed.
-			radioTracker.start('video', 'tune_in');
-			track('stream_start', { stream_type: 'video', source: 'tune_in' });
-			scheduleListenerPrompt();
+		void startLivestream();
+	};
+
+	// The iframe only gets its src here, so YouTube loads nothing until a visitor picks video.
+	const startLivestream = async () => {
+		if (!livePlayer) return;
+		const lookup = ++liveLookup;
+		livePlayer.hidden = true;
+		if (liveOffline) liveOffline.hidden = true;
+
+		let videoId = livePlayer.dataset.youtubeVideoId ?? '';
+		const channel = livePlayer.dataset.youtubeChannel;
+		if (!videoId && channel) {
+			try {
+				const response = await fetch(`/api/youtube-live?channel=${encodeURIComponent(channel)}`);
+				const status = (await response.json()) as { live?: boolean; videoId?: string };
+				if (status.live && status.videoId) videoId = status.videoId;
+			} catch {
+				// Treated as not live.
+			}
 		}
+		if (lookup !== liveLookup) return;
+
+		if (!videoId) {
+			if (liveOffline) liveOffline.hidden = false;
+			return;
+		}
+
+		const playerUrl = new URL(`https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}`);
+		playerUrl.searchParams.set('autoplay', '1');
+		playerUrl.searchParams.set('playsinline', '1');
+		playerUrl.searchParams.set('rel', '0');
+		livePlayer.src = playerUrl.toString();
+		livePlayer.hidden = false;
+		// The embed doesn't report playback, so watching counts from when the livestream is picked until it's closed.
+		radioTracker.start('video', 'tune_in');
+		track('stream_start', { stream_type: 'video', source: 'tune_in' });
+		scheduleListenerPrompt();
 	};
 
 	// The mini player's stop button on OZ News (StationDock.astro).
@@ -3659,6 +3695,10 @@ const sections = [
 		padding: 10px;
 		color: #FFFFFF;
 		text-align: center;
+	}
+
+	.video-placeholder[hidden] {
+		display: none;
 	}
 
 	.video-placeholder::after {
