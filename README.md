@@ -1,6 +1,6 @@
 # OZ Media Astro Site
 
-This project is a lightweight Astro site for OZ Media with Decap CMS-powered editorial content. It serves the multi-location brand experience, local content editing, and static uploads for media assets.
+This project is a lightweight Astro site for OZ Media. It serves the multi-location brand experience. On the `payload` branch, editorial content (news, programs, announcers, activities, monthly social numbers) comes from a self-hosted [Payload CMS](https://payloadcms.com) in the separate `oz-cms` repo; see [Content (Payload CMS)](#content-payload-cms). Elsewhere it still comes from Decap CMS and the Markdown in `src/content/`.
 
 ## Useful commands
 
@@ -9,13 +9,40 @@ Run these from the project root:
 | Command | Action |
 | :--- | :--- |
 | `npm install` | Install project dependencies. |
-| `npm run dev` | Start the Astro dev server at `http://localhost:4321`. |
+| `astro dev --background --host 127.0.0.1` | Start the Astro dev server at `http://127.0.0.1:4321` (`astro dev status`, `astro dev logs`, `astro dev stop`). Use `npx astro` if `astro` isn't on the PATH. Without `--host 127.0.0.1` it may listen on IPv6 only, which Chrome can't open. |
 | `npm run build` | Build the production site into `./dist/`. |
 | `npm run preview` | Preview the built site locally. |
 | `npm run cms:proxy` | Start the local Decap CMS proxy backend for local editing. |
 | `npm run astro` | Run Astro CLI commands. |
 | `npm run astro -- --help` | Show Astro CLI help and available commands. |
 | `npx astro check` | Run Astro validation and type/content checks. |
+
+## Content (Payload CMS)
+
+On this branch the site reads its content from Payload at request time through Astro's [live content collections](https://docs.astro.build/en/guides/content-collections/), so a published edit shows up within about 30 seconds, with no rebuild or commit. The CMS itself lives in the `oz-cms` repo (`D:\Work\oz-cms` locally); its README covers setup, roles and deployment.
+
+| Piece | Where | What it does |
+| :--- | :--- | :--- |
+| Live collections | `src/live.config.ts` | `programs`, `announcers`, `activities`, `news` and `analytics` (the social numbers), each mapped to the shape the old Markdown had, so pages read `entry.data` as before. Rich text arrives as HTML for `render(entry)`. |
+| CMS client | `src/lib/cms.ts` | Fetches `/api/...` from the CMS with the website API key, caches each response for 30 seconds, and picks the smallest stored image size that is wide enough (`cmsImage`). |
+| Pages | `oz-bandung.astro`, `oz-bandung/news/*`, `sitemap.xml.ts`, `analytics.astro` | Render on demand (`prerender = false`). If the CMS is down, a section comes out empty and the error is logged, rather than the page failing. |
+
+Only published items reach the site. Unpublishing an item in the CMS hides it without deleting it, which replaces Decap's "Show on site" switch. The order of programs, announcers and activities is set by dragging in the CMS list.
+
+### Running it locally
+
+Three things need to run:
+
+1. **Docker Desktop**, for the CMS database (Postgres). The `oz-cms-postgres-1` container starts on its own.
+2. **The CMS**: `cd D:\Work\oz-cms` then `npm run dev`. Admin panel at `http://localhost:3000/admin`.
+3. **This site**: `astro dev --background --host 127.0.0.1`, then open `http://127.0.0.1:4321/oz-bandung`.
+
+`.env` needs:
+
+| Variable | Value |
+| :--- | :--- |
+| `CMS_URL` | The CMS address: `http://localhost:3000` locally, `https://cms.ozmedia.net` once deployed. |
+| `CMS_API_KEY` | The API key of the CMS's `website` user. Needed for the social numbers on `/analytics`; published content reads without it. Locally it is in `oz-cms/dev-accounts.local.txt`. |
 
 ## Git workflow
 
@@ -66,6 +93,7 @@ This is a fast-forward. If it is refused, something was committed on `deploy` th
 
 ### Content edits
 
+- **`payload` branch**: content is edited in Payload (`http://localhost:3000/admin` locally) and is not in Git; see [Content (Payload CMS)](#content-payload-cms). The bullets below are for the Decap setup on `main`.
 - **Online CMS** (`https://ozradio.id/admin`) commits to `main` on `ozradiotech/oz-media-site` (the `production` remote). Run `git pull production main` before you start coding; run the deploy script on the server to publish the edits (see Self-hosting).
 - **Local CMS**: run `npm run dev` and `npm run cms:proxy`, open `http://localhost:4321/admin`. Edits are written to your files; commit them like code.
 
@@ -110,7 +138,9 @@ are git-ignored and kept. Vercel Cron does not run here; an aaPanel cron calls `
 | `src/pages/api/` | API routes for listener details, live stream metadata, live chat and CMS OAuth. |
 | `src/lib/` | Server-only code for the live chat (Firebase Admin, word filter). |
 | `scripts/chat-admin.mjs` | Grants the chat moderator role and lifts bans. |
-| `src/content/` | Decap-managed content collections (`programs`, `announcers`, `activities`, `news`). |
+| `src/live.config.ts` | Live collections read from Payload (`payload` branch). |
+| `src/lib/cms.ts` | Payload REST client, response cache and image size picker (`payload` branch). |
+| `src/content/` | Decap-managed Markdown. On the `payload` branch it is no longer read (it was imported into Payload) and is kept only until the switch is final. |
 | `public/admin/` | Decap admin config and CMS setup files. |
 | `public/uploads/` | Uploaded media assets from Decap CMS. |
 | `public/images/` | Static site branding and media assets. |
@@ -123,7 +153,7 @@ are git-ignored and kept. Vercel Cron does not run here; an aaPanel cron calls `
 | `/` | `src/pages/index.astro` | Landing page that selects the Bandung/Bali location. |
 | `/oz-bandung/` | `src/pages/oz-bandung.astro` | Main OZ Bandung page with streaming and editorial sections. |
 | `/oz-bali/` | `src/pages/oz-bali.astro` | Bali brand preview placeholder page. |
-| `/admin` | `src/pages/admin.astro` | Decap CMS admin UI. |
+| `/admin` | `src/pages/admin.astro` | Decap CMS admin UI. On the `payload` branch, edit in the Payload admin instead. |
 | `/api/listeners` | `src/pages/api/listeners.ts` | Saves listener details to `data/listeners.jsonl` (skipped on Vercel). |
 | `/api/now-playing` | `src/pages/api/now-playing.ts` | Now-playing API route. |
 | `/api/chat` | `src/pages/api/chat.ts` | Sends and reports live chat messages (signed-in users). |
@@ -144,6 +174,8 @@ are git-ignored and kept. Vercel Cron does not run here; an aaPanel cron calls `
 - Vercel adapter: `@astrojs/vercel` is used automatically when building on Vercel (`VERCEL` env var).
 
 ### Decap CMS
+
+On the `payload` branch Decap no longer feeds the site. This section applies to `main` until the switch to Payload is merged.
 
 - Decap CMS docs: https://decapcms.org/docs/intro/
 - GitHub backend: https://decapcms.org/docs/github-backend/
@@ -246,7 +278,7 @@ The `jwks-rsa` override in `package.json` keeps `firebase-admin` on `jose` 5. `j
 
 ## Analytics
 
-`/analytics` (not linked anywhere) shows live listeners, listener forms and monthly social numbers. Every section exports to CSV.
+`/analytics` (not linked anywhere) shows live listeners, listener forms and monthly social numbers. Every section exports to CSV. On the `payload` branch the monthly social numbers are entered in the CMS by the Digital role (**Social media numbers**) and read with `CMS_API_KEY`.
 
 ### Listener forms
 
@@ -348,6 +380,7 @@ Chat analytics go into the same event store as the radio listening (`data/events
 
 ## Notes
 
+- On the `payload` branch, content lives in Payload; the notes below describe the Decap setup on `main`.
 - Editorial content lives under `src/content/` and is grouped by collections such as `programs`, `announcers`, `activities`, and `news`.
 - Images uploaded through Decap are stored in `public/uploads/` and served from `/uploads`.
 - Each program (`src/content/programs/*.md`) has an **Airing schedule** (`schedule`: list of `days` + `time`) and **Hosts** (`hosts`: announcer ids, i.e. announcer file names without `.md`, picked from the Announcers collection in the CMS). The description is the markdown body. The program popup shows the full image uncropped, the schedule, the description and the hosts' photos. Programs no longer have a `summary` field.

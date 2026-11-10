@@ -11,23 +11,15 @@ import {
 	newsPath,
 	readingMinutes,
 	relatedNews,
-	type NewsEntry,
 } from '../../../lib/news';
 
-// Built ahead of time; the CMS commits to main, which redeploys the site with the new article.
-export const prerender = true;
+// Rendered per request from the CMS, so a published article or correction shows up without a rebuild.
+export const prerender = false;
 
-export async function getStaticPaths() {
-	const all = await getVisibleNews();
-	return all.map((entry) => ({ params: { slug: entry.id }, props: { entry, all } }));
-}
-
-interface Props {
-	entry: NewsEntry;
-	all: NewsEntry[];
-}
-
-const { entry, all } = Astro.props;
+// The whole list is needed anyway for related and latest stories, so the article is looked up in it.
+const all = await getVisibleNews();
+const entry = all.find((other) => other.id === Astro.params.slug);
+if (!entry) return new Response('Article not found', { status: 404 });
 const { data } = entry;
 const { Content } = await render(entry);
 

@@ -4,7 +4,8 @@
 import NewsLayout from '../../../layouts/NewsLayout.astro';
 import { formatNewsDate, getVisibleNews, newsIndexPath, newsPath } from '../../../lib/news';
 
-export const prerender = true;
+// Rendered per request from the CMS, so a published article shows up without a rebuild.
+export const prerender = false;
 
 const all = await getVisibleNews();
 const [lead, ...rest] = all;

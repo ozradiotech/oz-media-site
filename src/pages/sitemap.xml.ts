@@ -1,9 +1,9 @@
 import type { APIRoute } from 'astro';
 import { getVisibleNews, newsIndexPath, newsPath } from '../lib/news';
 
-// Built ahead of time, like the news pages; a CMS commit redeploys the site and refreshes it.
+// Rendered per request, like the news pages, so new articles are listed as soon as they are published.
 // Add new public pages to staticPaths; /admin and /analytics stay out on purpose.
-export const prerender = true;
+export const prerender = false;
 
 const staticPaths = ['/', '/oz-bandung', '/oz-bali', newsIndexPath, '/privacy-policy'];
 

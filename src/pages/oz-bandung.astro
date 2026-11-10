@@ -12,9 +12,10 @@ import SiteMonitor from '../components/SiteMonitor.astro';
 import ThemeSwitch from '../components/ThemeSwitch.astro';
 import BandungRibbon from '../components/BandungRibbon.astro';
 import SiteFooter from '../components/SiteFooter.astro';
-import { getCollection, render } from 'astro:content';
+import { getLiveCollection, render } from 'astro:content';
+import { cmsImage } from '../lib/cms';
 import { ageRanges } from '../lib/listener';
-import { newsIndexPath, newsPath, sortNews } from '../lib/news';
+import { getVisibleNews, newsIndexPath, newsPath } from '../lib/news';
 import '../styles/ozubathon.css';
 // Loaded with the page rather than with the player script, so it stays when the player is carried to OZ News.
 import '../styles/oz-audio-player.css';
@@ -35,17 +36,19 @@ const instagramUrl = 'https://www.instagram.com/ozradiobandung';
 const tiktokUrl = 'https://www.tiktok.com/@ozradio';
 const threadsUrl = 'https://www.threads.net/@ozradiobandung';
 
-// Cards switched off in the CMS ("Show on site") are left out everywhere, including as program hosts.
-const [programs, announcers, activities, news] = await Promise.all([
-	getCollection('programs', ({ data }) => data.visible),
-	getCollection('announcers', ({ data }) => data.visible),
-	getCollection('activities', ({ data }) => data.visible),
-	getCollection('news', ({ data }) => data.visible),
+// Published items only, in the order set in the CMS. Unpublished announcers are left out as program hosts too.
+// A CMS outage empties a section rather than breaking the page.
+const live = async <C extends 'programs' | 'announcers' | 'activities'>(collection: C) => {
+	const { entries, error } = await getLiveCollection(collection);
+	if (error) console.error(`[${collection}]`, error);
+	return entries ?? [];
+};
+const [orderedPrograms, orderedAnnouncers, orderedActivities, orderedNews] = await Promise.all([
+	live('programs'),
+	live('announcers'),
+	live('activities'),
+	getVisibleNews(),
 ]);
-const orderedPrograms = programs.sort((a, b) => a.data.order - b.data.order);
-const orderedAnnouncers = announcers.sort((a, b) => a.data.order - b.data.order);
-const orderedActivities = activities.sort((a, b) => a.data.order - b.data.order);
-const orderedNews = sortNews(news);
 const hostsById = new Map(orderedAnnouncers.map((announcer) => [announcer.id, announcer]));
 const programsWithBody = await Promise.all(orderedPrograms.map(async (entry) => ({
 	entry,
@@ -65,9 +68,9 @@ const newsPageSize = 5;
 const newsPages = Array.from({ length: Math.ceil(orderedNews.length / newsPageSize) }, (_, page) =>
 	orderedNews.slice(page * newsPageSize, (page + 1) * newsPageSize));
 
-// Unsplash serves resized images on request; CMS uploads in /public are served as-is.
+// Unsplash serves resized images on request; CMS images come in a few stored sizes.
 const optimizeImageUrl = (src: string, width: number) => {
-	if (!src.startsWith('https://images.unsplash.com/')) return src;
+	if (!src.startsWith('https://images.unsplash.com/')) return cmsImage(src, width);
 	const url = new URL(src);
 	url.searchParams.set('w', String(width));
 	url.searchParams.set('q', '75');

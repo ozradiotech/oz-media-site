@@ -1,7 +1,15 @@
-import { getCollection, type CollectionEntry } from 'astro:content';
+import { getLiveCollection, type LiveDataEntry } from 'astro:content';
+import type { NewsData } from '../live.config';
 
-// OZ News lives under OZ Bandung: /oz-bandung/news lists every article, /oz-bandung/news/<file name> shows one.
-export type NewsEntry = CollectionEntry<'news'>;
+// OZ News lives under OZ Bandung: /oz-bandung/news lists every article, /oz-bandung/news/<slug> shows one.
+export type NewsEntry = LiveDataEntry<NewsData>;
+
+/** Every published article, from the CMS. A CMS outage leaves the list empty rather than breaking the page. */
+const getNews = async () => {
+	const { entries, error } = await getLiveCollection('news');
+	if (error) console.error('[news]', error);
+	return (entries ?? []) as NewsEntry[];
+};
 
 export const newsIndexPath = '/oz-bandung/news';
 export const newsPath = (entry: NewsEntry) => `${newsIndexPath}/${entry.id}`;
@@ -12,8 +20,8 @@ export const sortNews = (entries: NewsEntry[]) => [...entries].sort((a, b) => {
 	return dateDifference || a.data.title.localeCompare(b.data.title);
 });
 
-/** Articles switched on in the CMS ("Show on site"), newest first. */
-export const getVisibleNews = async () => sortNews(await getCollection('news', ({ data }) => data.visible));
+/** Published articles, newest first. */
+export const getVisibleNews = async () => sortNews(await getNews());
 
 // Dates print in the newsroom's own time zone, whatever the server's is.
 const newsTimeZone = 'Asia/Jakarta';
@@ -30,9 +38,9 @@ export const formatNewsDateTime = (date: Date) => {
 	return `${day}, ${time} WIB`;
 };
 
-/** Minutes at ~200 words a minute, counted from the summary and the Markdown body. */
+/** Minutes at ~200 words a minute, counted from the summary and the article text. */
 export const readingMinutes = (entry: NewsEntry) => {
-	const text = `${entry.data.summary} ${entry.body ?? ''}`.replace(/[#*_>`[\]()!-]/g, ' ');
+	const text = `${entry.data.summary} ${entry.rendered?.html ?? ''}`.replace(/<[^>]*>/g, ' ');
 	const words = text.split(/\s+/).filter(Boolean).length;
 	return Math.max(1, Math.round(words / 200));
 };

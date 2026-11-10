@@ -2,11 +2,14 @@
 import { Font } from 'astro:assets';
 import '../styles/typography.css';
 import '../styles/retro.css';
-import { getCollection } from 'astro:content';
+import { getLiveCollection } from 'astro:content';
 import { getVisibleNews, newsIndexPath, newsPath } from '../lib/news';
 
 // Not linked from anywhere yet; reach it by typing /analytics.
-const entries = (await getCollection('analytics'))
+// The monthly social numbers come from the CMS (Digital role); without CMS_API_KEY the CMS refuses and the cards stay empty.
+const socialStats = await getLiveCollection('analytics');
+if (socialStats.error) console.error('[analytics]', socialStats.error);
+const entries = (socialStats.entries ?? [])
 	.map((entry) => entry.data)
 	.sort((a, b) => a.month.localeCompare(b.month));
 const hasPlaceholder = entries.some((entry) => entry.placeholder);

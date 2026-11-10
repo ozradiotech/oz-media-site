@@ -68,6 +68,10 @@ export default defineConfig({
 			ANALYTICS_SALT: envField.string({ context: 'server', access: 'secret', optional: true }),
 			// The GA4 property the /analytics Website panel reads (see src/lib/ga4.ts). Optional.
 			GA_PROPERTY_ID: envField.string({ context: 'server', access: 'public', optional: true }),
+			// The Payload CMS the content comes from (see src/live.config.ts), and the website user's API key, which
+			// the CMS needs for the social media numbers. Published content reads without it.
+			CMS_URL: envField.string({ context: 'server', access: 'public', default: 'http://localhost:3000' }),
+			CMS_API_KEY: envField.string({ context: 'server', access: 'secret', optional: true }),
 		},
 	},
 });
