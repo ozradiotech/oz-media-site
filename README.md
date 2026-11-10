@@ -41,7 +41,7 @@ Three things need to run:
 
 | Variable | Value |
 | :--- | :--- |
-| `CMS_URL` | The CMS address: `http://localhost:3000` locally, `https://cms.ozmedia.net` once deployed. |
+| `CMS_URL` | The CMS address: `http://localhost:3000` locally, `https://cms.ozmedianet.com` once deployed. |
 | `CMS_API_KEY` | The API key of the CMS's `website` user. Needed for the social numbers on `/analytics`; published content reads without it. Locally it is in `oz-cms/dev-accounts.local.txt`. |
 
 ## Git workflow
