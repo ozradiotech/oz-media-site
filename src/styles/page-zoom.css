@@ -1,0 +1,19 @@
+/*
+ * Page scale. The layout sizes itself from the window's width, so on wide but short windows (a 1080p monitor with
+ * the browser's bars, or a laptop with display scaling) everything came out about a quarter too big for the height:
+ * sections spilled past one screen, and 80% browser zoom looked right. Those windows get that 80% here.
+ *
+ * Anything meant to fill the screen's height must divide by --page-zoom, since zoom shrinks svh/dvh too:
+ *   height: calc(100svh / var(--page-zoom));
+ * Phones, tablets and tall monitors keep --page-zoom: 1, where that is a no-op.
+ */
+:root {
+	--page-zoom: 1;
+}
+
+@media (min-width: 1200px) and (max-height: 1100px) {
+	:root {
+		--page-zoom: 0.8;
+		zoom: var(--page-zoom);
+	}
+}

@@ -58,7 +58,11 @@ Three things need to run:
 
 News pictures are meant to be landscape 16:9 (best 1600 × 900 px, at least 1200 × 675). Anything narrower than 3:2 is shown whole on a blurred copy of itself instead of being cropped (`imageFrame` in `src/lib/news.ts`, styles in `src/styles/media-fit.css`), on the cards and on the article's lead photo.
 
-On OZ Bandung, once a stream is playing and the visitor scrolls past the broadcast section, a mini player appears at the bottom (`data-station-mini` in `oz-bandung.astro`): what's on, a link back to the player, and stop.
+On OZ Bandung, once a stream is playing and the visitor scrolls past the broadcast section, a mini player appears at the bottom (`data-station-mini` in `oz-bandung.astro`): what's on, a link back to the player, pause/play (audio only; the livestream is paused in YouTube's own controls) and stop.
+
+On-ground activity cards take their photo's own shape (between 3:4 and 2:1), so posters aren't cropped; the activity popup frames tall photos at 16:9 on a blurred copy of themselves, like OZ News.
+
+**Page scale.** The layout sizes itself from the window's width, so wide but short windows (a 1080p monitor, or a laptop with display scaling) showed everything about a quarter too big. `src/styles/page-zoom.css` zooms the page to 80% on windows at least 1200 px wide and at most 1100 px tall; phones, tablets and tall monitors are unchanged. Anything meant to fill the screen's height divides by it: `height: calc(100svh / var(--page-zoom))`. Scripts that turn `getBoundingClientRect()` into pixel positions divide by the root's computed `zoom` too (the hero logo morph, the chat's ⋯ menu); ratios and scrolling need nothing.
 
 ### ozmedianet.com (the Payload site on the VPS)
 

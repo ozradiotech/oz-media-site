@@ -1,6 +1,7 @@
 ---
 import { Font } from 'astro:assets';
 import '../styles/typography.css';
+import '../styles/page-zoom.css';
 import '../styles/page-transitions.css';
 import '../styles/retro.css';
 import ThemeHead from '../components/ThemeHead.astro';
@@ -210,7 +211,7 @@ const locations = [
 	.landing {
 		position: relative;
 		z-index: 1;
-		min-height: 100svh;
+		min-height: calc(100svh / var(--page-zoom));
 		display: flex;
 		overflow: clip;
 		flex-direction: column;

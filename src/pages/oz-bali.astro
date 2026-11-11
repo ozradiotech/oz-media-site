@@ -1,6 +1,7 @@
 ---
 import { Font } from 'astro:assets';
 import '../styles/typography.css';
+import '../styles/page-zoom.css';
 import '../styles/page-transitions.css';
 import '../styles/oz-audio-player-bali.css';
 import GoogleAnalytics from '../components/GoogleAnalytics.astro';
@@ -126,7 +127,7 @@ const nowPlayingUrl = `/api/now-playing?mount=${encodeURIComponent(new URL(audio
 	}
 
 	.bali {
-		min-height: 100svh;
+		min-height: calc(100svh / var(--page-zoom));
 		display: flex;
 		flex-direction: column;
 		/* The full-bleed sea is wider than the content box; clip it without making the page scroll sideways. */

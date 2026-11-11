@@ -1,6 +1,7 @@
 ---
 import { Font } from 'astro:assets';
 import '../styles/typography.css';
+import '../styles/page-zoom.css';
 import '../styles/page-transitions.css';
 import '../styles/retro.css';
 import SectionNav from '../components/SectionNav.astro';
@@ -63,6 +64,15 @@ const activitiesWithBody = await Promise.all(orderedActivities.map(async (entry)
 	entry,
 	Content: (await render(entry)).Content,
 })));
+// On-ground activity cards take their photo's own shape (kept between tall 3:4 and wide 2:1) so nothing is cropped;
+// a photo outside that range, or on a phone (16:10 cards), is shown whole on a blurred copy of itself. Photos
+// without a known size keep the old rotating shapes.
+const activityRatio = (data: { imageWidth?: number; imageHeight?: number }, index: number) =>
+	data.imageWidth && data.imageHeight
+		? Math.min(2, Math.max(0.75, data.imageWidth / data.imageHeight)).toFixed(3)
+		: [1.2, 0.82, 1.6, 0.95, 1.35][index % 5];
+const activityBackdrop = (data: { image: string; imageWidth?: number }) =>
+	data.imageWidth ? ` --media-fit-image: url("${optimizeImageUrl(data.image, 900).replace(/"/g, '%22')}");` : '';
 // Each article has its own page (src/pages/oz-bandung/news/); the cards here link to it.
 // Five cards a page: with the calendar they fill the grid, 3 x 2 on desktop and 2 x 3 on phones.
 const newsPageSize = 5;
@@ -615,7 +625,8 @@ const sections = [
 							<article class="feature-card activity-card" data-article-card data-activity-card aria-haspopup="dialog" aria-label={`Read full article: ${activity.data.title}`} role="button" tabindex="0">
 								<div
 									class:list={['activity-art', `art-${activity.data.artStyle}`]}
-									style={`--activity-image-ratio: ${[1.2, 0.82, 1.6, 0.95, 1.35][index % 5]};`}
+									style={`--activity-image-ratio: ${activityRatio(activity.data, index)};${activityBackdrop(activity.data)}`}
+									data-boxed={activity.data.imageWidth ? '' : undefined}
 								>
 									<img src={optimizeImageUrl(activity.data.image, 900)} alt={activity.data.imageAlt} loading="lazy" decoding="async" />
 									<span>{activity.data.artLabel}</span>
@@ -723,6 +734,8 @@ const sections = [
 		</main>
 		<!-- Mini player, shown by the page script while a stream plays and the broadcast section is out of view. -->
 		<aside class="station-mini" data-station-mini aria-label="Now playing" hidden>
+			<!-- Audio only; the livestream is a YouTube embed, paused from its own controls. -->
+			<button class="station-mini-play" type="button" data-station-mini-play aria-label="Pause" hidden></button>
 			<a class="station-mini-link" href="#listen">
 				<span class="station-mini-dot" aria-hidden="true"></span>
 				<span class="station-mini-copy">
@@ -740,7 +753,10 @@ const sections = [
 				<span class="article-dialog-progress" data-article-progress aria-hidden="true"></span>
 				<button class="dialog-close article-dialog-close" type="button" data-article-close aria-label="Close article">×</button>
 			</div>
-			<img class="article-dialog-image" data-article-image alt="Article image" />
+			<!-- The card's photo, whole; tall ones sit on a blurred copy of themselves (data-boxed, src/styles/media-fit.css). -->
+			<div class="article-dialog-media" data-article-media>
+				<img class="article-dialog-image" data-article-image alt="Article image" />
+			</div>
 			<div class="article-dialog-copy">
 				<p class="eyebrow" data-article-category></p>
 				<h2 id="article-dialog-title" data-article-title></h2>
@@ -1177,6 +1193,9 @@ const sections = [
 			let frame = 0;
 
 			const easeInOut = (value: number) => value < 0.5 ? 4 * value ** 3 : 1 - (-2 * value + 2) ** 3 / 2;
+			// The page scale (src/styles/page-zoom.css). Measurements come in screen pixels, but transforms are applied in the
+			// page's own zoomed pixels, so they are divided by it.
+			let pageZoom = 1;
 			const toBox = (rect: DOMRect, scrollY = 0): Box => ({ left: rect.left, top: rect.top + scrollY, width: rect.width || 1, height: rect.height || 1 });
 
 			const measure = () => {
@@ -1187,7 +1206,8 @@ const sections = [
 					pair.slotBox = toBox(pair.slot.getBoundingClientRect(), window.scrollY);
 				});
 				topbar.classList.remove('is-measuring');
-				morphDistance = Math.max(1, hero.offsetHeight - dockOffset);
+				pageZoom = Number.parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
+				morphDistance = Math.max(1, hero.getBoundingClientRect().height - dockOffset * pageZoom);
 				currentProgress = -1;
 			};
 
@@ -1209,7 +1229,7 @@ const sections = [
 					const centerY = slotTop + slotBox.height / 2 + (dockedBox.top + dockedBox.height / 2 - slotTop - slotBox.height / 2) * eased;
 					const translateX = centerX - (dockedBox.left + dockedBox.width / 2);
 					const translateY = centerY - (dockedBox.top + dockedBox.height / 2);
-					element.style.transform = `translate3d(${translateX}px, ${translateY}px, 0) scale(${width / dockedBox.width})`;
+					element.style.transform = `translate3d(${translateX / pageZoom}px, ${translateY / pageZoom}px, 0) scale(${width / dockedBox.width})`;
 				});
 			};
 
@@ -1833,6 +1853,15 @@ const sections = [
 		}
 
 		const articleImage = articleDialog?.querySelector<HTMLImageElement>('[data-article-image]');
+		const articleMedia = articleDialog?.querySelector<HTMLElement>('[data-article-media]');
+		// Once the photo's shape is known: anything narrower than 3:2 goes in a 16:9 frame over a blurred copy of itself.
+		const frameArticleImage = () => {
+			if (!articleImage || !articleMedia) return;
+			const ratio = articleImage.naturalWidth / (articleImage.naturalHeight || 1);
+			const boxed = articleImage.naturalWidth > 0 && ratio < 1.5;
+			articleMedia.toggleAttribute('data-boxed', boxed);
+			articleMedia.style.setProperty('--media-fit-image', boxed ? `url("${articleImage.currentSrc.replace(/"/g, '%22')}")` : '');
+		};
 		const articleCategory = articleDialog?.querySelector<HTMLElement>('[data-article-category]');
 		const articleTitle = articleDialog?.querySelector<HTMLElement>('[data-article-title]');
 		const articleDescription = articleDialog?.querySelector<HTMLElement>('[data-article-description]');
@@ -1856,8 +1885,10 @@ const sections = [
 			const image = card.querySelector<HTMLImageElement>('img');
 			if (!heading || !image) return;
 
+			articleMedia?.removeAttribute('data-boxed');
 			articleImage.src = image.currentSrc || image.src;
 			articleImage.alt = heading.textContent?.trim() ?? '';
+			if (articleImage.complete) frameArticleImage();
 			articleCategory.textContent = card.querySelector('.card-index')?.textContent?.trim() ?? '';
 			articleTitle.textContent = heading.textContent?.trim() ?? '';
 			articleDescription.textContent = card.querySelector('p')?.textContent?.trim() ?? '';
@@ -1902,6 +1933,7 @@ const sections = [
 		});
 		articleDialog?.addEventListener('scroll', updateArticleProgress, { passive: true });
 		articleImage?.addEventListener('load', updateArticleProgress);
+		articleImage?.addEventListener('load', frameArticleImage);
 
 		const programImage = programDialog?.querySelector<HTMLImageElement>('[data-program-image]');
 		const programEyebrow = programDialog?.querySelector<HTMLElement>('[data-program-eyebrow]');
@@ -2208,12 +2240,19 @@ const sections = [
 		// bottom shows what's on, jumps back to the player and stops it (data-station-stop, handled with the station above).
 		const miniPlayer = document.querySelector<HTMLElement>('[data-station-mini]');
 		const miniTitle = miniPlayer?.querySelector<HTMLElement>('[data-station-mini-title]');
+		const miniPlay = miniPlayer?.querySelector<HTMLButtonElement>('[data-station-mini-play]');
 		const listenSection = document.getElementById('listen');
 		let listenPassed = false;
 		const renderMiniPlayer = () => {
 			if (!miniPlayer) return;
 			const show = isStreaming && Boolean(selectedBroadcast) && listenPassed;
 			miniPlayer.hidden = !show;
+			if (miniPlay) {
+				const paused = fallbackAudio?.paused ?? true;
+				miniPlay.hidden = selectedBroadcast !== 'audio' || !fallbackAudio;
+				miniPlay.classList.toggle('is-paused', paused);
+				miniPlay.setAttribute('aria-label', paused ? 'Play' : 'Pause');
+			}
 			if (show && miniTitle) {
 				miniTitle.textContent = selectedBroadcast === 'video' ? 'Livestream' : trackTitle?.textContent?.trim() || 'Live on 103.1 FM';
 			}
@@ -2227,6 +2266,20 @@ const sections = [
 				renderMiniPlayer();
 			});
 			listenObserver.observe(listenSection);
+			// Pause and play here go through the same audio element as the station's own button, so stats and the
+			// listener form behave the same.
+			miniPlay?.addEventListener('click', () => {
+				if (!fallbackAudio) return;
+				if (fallbackAudio.paused) {
+					audioSource = 'mini_player';
+					playClicked('audio', audioSource);
+					playAudio();
+				} else {
+					pauseAudio();
+				}
+			}, { signal });
+			fallbackAudio?.addEventListener('play', renderMiniPlayer, { signal });
+			fallbackAudio?.addEventListener('pause', renderMiniPlayer, { signal });
 			// The audio stream's track title changes while it plays.
 			const titleObserver = new MutationObserver(renderMiniPlayer);
 			if (trackTitle) titleObserver.observe(trackTitle, { childList: true, characterData: true, subtree: true });
@@ -2291,7 +2344,7 @@ const sections = [
 
 	.screen {
 		width: min(2200px, 100%);
-		height: 100svh;
+		height: calc(100svh / var(--page-zoom));
 		min-height: 0;
 		display: flex;
 		flex-direction: column;
@@ -2456,7 +2509,7 @@ const sections = [
 	.hero-screen {
 		position: relative;
 		width: 100%;
-		height: 100svh;
+		height: calc(100svh / var(--page-zoom));
 		min-height: 420px;
 		display: flex;
 		flex-direction: column;
@@ -2923,6 +2976,86 @@ const sections = [
 	@media (prefers-reduced-motion: reduce) {
 		.station-mini {
 			animation: none;
+		}
+	}
+
+	.station-mini:has(.station-mini-play:not([hidden])) {
+		padding-left: 8px;
+	}
+
+	/* Pause / play: the audio player's own icon (src/styles/oz-audio-player.css), the triangle's halves morphing into bars. */
+	.station-mini-play {
+		position: relative;
+		flex: none;
+		width: 36px;
+		height: 36px;
+		padding: 0;
+		border: 0;
+		border-radius: 50%;
+		background: var(--c-accent);
+		color: var(--c-on-accent);
+		cursor: pointer;
+		transition: transform 200ms ease;
+	}
+
+	.station-mini-play[hidden] {
+		display: none;
+	}
+
+	.station-mini-play:hover {
+		transform: scale(1.06);
+	}
+
+	.station-mini-play:active {
+		transform: scale(0.94);
+	}
+
+	.station-mini-play:focus-visible {
+		outline: 2px solid var(--c-accent);
+		outline-offset: 2px;
+	}
+
+	.station-mini-play::before,
+	.station-mini-play::after {
+		content: '';
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		width: 12px;
+		height: 14px;
+		background: currentColor;
+		transform: translate(-50%, -50%);
+		transition: clip-path 240ms cubic-bezier(0.22, 1, 0.36, 1), transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+	}
+
+	/* Playing: two pause bars. */
+	.station-mini-play::before {
+		clip-path: polygon(6% 0, 36% 0, 36% 100%, 6% 100%);
+	}
+
+	.station-mini-play::after {
+		clip-path: polygon(64% 0, 94% 0, 94% 100%, 64% 100%);
+	}
+
+	/* Paused: the play triangle, in two overlapping halves. */
+	.station-mini-play.is-paused::before,
+	.station-mini-play.is-paused::after {
+		transform: translate(-38%, -50%);
+	}
+
+	.station-mini-play.is-paused::before {
+		clip-path: polygon(0 0, 52% 26%, 52% 74%, 0 100%);
+	}
+
+	.station-mini-play.is-paused::after {
+		clip-path: polygon(50% 25%, 100% 50%, 100% 50%, 50% 75%);
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.station-mini-play,
+		.station-mini-play::before,
+		.station-mini-play::after {
+			transition: none;
 		}
 	}
 
@@ -3433,7 +3566,8 @@ const sections = [
 		box-shadow: 0 4px 14px rgb(0 0 0 / 22%);
 	}
 
-	/* The whole photo is shown at its own proportions: full width when landscape, centred when it is tall. */
+	/* The whole photo is shown at its own proportions: full width when landscape. A tall one (data-boxed, set by the
+	   script) sits in a 16:9 frame on a blurred copy of itself, like OZ News (src/styles/media-fit.css). */
 	.article-dialog-image {
 		display: block;
 		width: auto;
@@ -3441,6 +3575,18 @@ const sections = [
 		height: auto;
 		max-height: min(70dvh, 640px);
 		margin: 0 auto;
+	}
+
+	.article-dialog-media[data-boxed] {
+		width: 100%;
+		aspect-ratio: 16 / 9;
+		max-height: min(70dvh, 640px);
+	}
+
+	.article-dialog-media[data-boxed] .article-dialog-image {
+		width: 100%;
+		height: 100%;
+		max-height: none;
 	}
 
 	/* Reading column: ~65 characters a line, larger text and roomier leading than the rest of the site. */
@@ -6151,7 +6297,8 @@ const sections = [
 			border-radius: 0;
 		}
 
-		.article-dialog-image {
+		.article-dialog-image,
+		.article-dialog-media[data-boxed] {
 			max-height: 55dvh;
 		}
 
@@ -6685,7 +6832,7 @@ const sections = [
 	}
 
 	:global(:root[data-theme='night']) .listen-screen {
-		height: 100svh;
+		height: calc(100svh / var(--page-zoom));
 		min-height: 560px;
 		padding-block: calc(clamp(14px, 3vh, 26px) + 64px) clamp(14px, 3vh, 26px);
 	}
@@ -6791,7 +6938,7 @@ const sections = [
 	:global(:root[data-theme='night']) .hero-screen {
 		isolation: isolate;
 		height: auto;
-		min-height: 100svh;
+		min-height: calc(100svh / var(--page-zoom));
 		gap: clamp(14px, 2.6vh, 26px);
 		padding-block: 84px clamp(72px, 10vh, 104px);
 		border-bottom: 0;

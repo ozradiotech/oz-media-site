@@ -9,7 +9,7 @@
 	--news-measure: 700px;
 	--news-pill-radius: 8px;
 	/* A column at least a screen tall, so the footer stays at the bottom of short pages. */
-	min-height: 100dvh;
+	min-height: calc(100dvh / var(--page-zoom));
 	display: flex;
 	flex-direction: column;
 	margin: 0;

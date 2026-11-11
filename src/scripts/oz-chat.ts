@@ -134,9 +134,11 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth, signal }:
 		const container = menu.offsetParent ?? root;
 		const bounds = container.getBoundingClientRect();
 		const anchor = button.getBoundingClientRect();
-		const below = anchor.bottom - bounds.top + 4;
-		menu.style.top = `${below + menu.offsetHeight > bounds.height ? anchor.top - bounds.top - menu.offsetHeight - 4 : below}px`;
-		menu.style.right = `${bounds.right - anchor.right}px`;
+		// Measurements are in screen pixels; positions are set in the page's own, possibly zoomed ones (src/styles/page-zoom.css).
+		const zoom = Number.parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
+		const below = (anchor.bottom - bounds.top) / zoom + 4;
+		menu.style.top = `${below + menu.offsetHeight > bounds.height / zoom ? (anchor.top - bounds.top) / zoom - menu.offsetHeight - 4 : below}px`;
+		menu.style.right = `${(bounds.right - anchor.right) / zoom}px`;
 		menuActions.find((action) => !action.hidden)?.focus();
 	};
 
