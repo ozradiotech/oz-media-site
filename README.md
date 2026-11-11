@@ -44,6 +44,50 @@ Three things need to run:
 | `CMS_URL` | The CMS address: `http://localhost:3000` locally, `https://cms.ozmedianet.com` once deployed. |
 | `CMS_API_KEY` | The API key of the CMS's `website` user. Needed for the social numbers on `/analytics`; published content reads without it. Locally it is in `oz-cms/dev-accounts.local.txt`. |
 
+### ozmedianet.com (the Payload site on the VPS)
+
+The `payload` branch runs on the same aaPanel VPS as ozradio.id, next to it, from its own clone:
+
+| | ozradio.id | ozmedianet.com |
+| :--- | :--- | :--- |
+| Branch | `main` | `payload` (on `ozradiotech/oz-media-site`) |
+| Folder | `/www/wwwroot/oz-media` | `/www/wwwroot/ozmedianet` |
+| Port | 4321 | 4322 |
+| Content | Decap (Markdown in Git) | Payload at `https://cms.ozmedianet.com` (`ozradiotech/oz-cms`, Docker, port 3000) |
+
+Both sites share the Firebase project, so the live chat is one room on both. ozradio.id's daily `/api/chat-cleanup` cron covers it.
+
+**First setup** (done once, as root):
+
+```sh
+cd /www/wwwroot
+git clone --branch payload "$(git -C oz-media remote get-url origin)" ozmedianet
+cd ozmedianet && cp ../oz-media/.env .env && chmod 600 .env
+# then in .env: PORT=4322, HOST=127.0.0.1, CMS_URL=http://127.0.0.1:3000 and CMS_API_KEY=<key>
+npm ci && npm run build
+```
+
+- `CMS_API_KEY` belongs to a **Website** user made in the VPS CMS (**Users → Create new**, role Website only, **Enable API Key**).
+- `CMS_URL` talks to the CMS container directly; images still load from `https://cms.ozmedianet.com`.
+- aaPanel: **Website → Node project** for `/www/wwwroot/ozmedianet`, start command `node --env-file=.env dist/server/entry.mjs`, port 4322, domains `ozmedianet.com` and `www.ozmedianet.com`, Let's Encrypt SSL with Force HTTPS.
+- Firebase **Authentication → Settings → Authorized domains** includes `ozmedianet.com`, for Google sign-in. If App Check is enforced, the reCAPTCHA Enterprise key also needs `ozmedianet.com` in its domains.
+- DNS (Hostinger): `A @`, `A cms` → the VPS IP; `CNAME www` → `ozmedianet.com`.
+
+**Updating** after pushing to `payload`:
+
+```sh
+git push production payload
+```
+
+then on the server:
+
+```sh
+cd /www/wwwroot/ozmedianet
+git pull && npm ci && npm run build
+```
+
+and restart the ozmedianet Node project in aaPanel. Content edits need none of this: they are live within about 30 seconds of publishing in the CMS.
+
 ## Git workflow
 
 | Branch | Purpose |
