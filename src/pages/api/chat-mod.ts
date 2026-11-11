@@ -24,7 +24,7 @@ export const POST: APIRoute = async ({ request }) => {
 	if (!isChatServerConfigured) return Response.json({ error: 'Chat is not available right now.' }, { status: 503 });
 	try {
 		const moderator = await verifyChatRequest(request);
-		if (!isModerator(moderator)) throw new ChatError(403, 'Only moderators can do that.');
+		if (!(await isModerator(moderator))) throw new ChatError(403, 'Only moderators can do that.');
 		const body = await readJsonBody(request);
 		const room = typeof body.room === 'string' && chatRooms.has(body.room) ? body.room : '';
 		if (!room) throw new ChatError(400, 'Unknown chat room.');

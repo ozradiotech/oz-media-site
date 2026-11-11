@@ -1,20 +1,35 @@
 ---
 // The OZ News front page: the newest story leads, two more sit beside it, and every other story follows
 // in a river that can be re-sorted. Opened from the OZ News heading and "View all articles" on OZ Bandung.
+// ?category=<value> shows one category (the filter links under the title).
 import NewsLayout from '../../../layouts/NewsLayout.astro';
-import { formatNewsDate, getVisibleNews, newsIndexPath, newsPath } from '../../../lib/news';
+import {
+	formatNewsDate,
+	getVisibleNews,
+	imageFrame,
+	newsCategories,
+	newsCategoryLabel,
+	newsIndexPath,
+	newsPath,
+} from '../../../lib/news';
 
 // Rendered per request from the CMS, so a published article shows up without a rebuild.
 export const prerender = false;
 
-const all = await getVisibleNews();
+const requested = Astro.url.searchParams.get('category') ?? '';
+const category = newsCategories.find(({ value }) => value === requested);
+const everything = await getVisibleNews();
+const all = category ? everything.filter((entry) => entry.data.category === category.value) : everything;
+// Only categories with at least one story are offered.
+const usedCategories = newsCategories.filter(({ value }) => everything.some((entry) => entry.data.category === value));
+const categoryHref = (value?: string) => (value ? `${newsIndexPath}?category=${value}` : newsIndexPath);
 const [lead, ...rest] = all;
 const secondary = rest.slice(0, 2);
 const river = rest.slice(2);
 ---
 
 <NewsLayout
-	title="OZ News"
+	title={category ? `${category.label} · OZ News` : 'OZ News'}
 	description="The latest stories from the OZ Radio Bandung newsroom: Bandung, Indonesia and the world, from music and film to sport and current affairs."
 	path={newsIndexPath}
 	image={lead?.data.image}
@@ -28,16 +43,24 @@ const river = rest.slice(2);
 		</nav>
 		<p class="news-eyebrow">OZ RADIO BANDUNG · NEWSROOM</p>
 		<h1 class="newsroom-title">OZ <span>News.</span></h1>
-		<p class="newsroom-deck">Stories from Bandung, Indonesia and beyond, from the OZ Radio newsroom. <span>{all.length} {all.length === 1 ? 'story' : 'stories'}</span></p>
+		<p class="newsroom-deck">Stories from Bandung, Indonesia and beyond, from the OZ Radio newsroom. <span>{all.length} {all.length === 1 ? 'story' : 'stories'}{category && ` in ${category.label}`}</span></p>
+		{usedCategories.length > 0 && (
+			<nav class="newsroom-filter" aria-label="News categories">
+				<a class="news-pill" href={categoryHref()} aria-current={category ? undefined : 'page'}>ALL</a>
+				{usedCategories.map(({ value, label }) => (
+					<a class="news-pill" href={categoryHref(value)} aria-current={category?.value === value ? 'page' : undefined}>{label.toUpperCase()}</a>
+				))}
+			</nav>
+		)}
 	</header>
 
 	{lead ? (
 		<>
 			<section class="newsroom-top" aria-label="Top stories">
 				<a class="news-lead" href={newsPath(lead)} lang="id">
-					<div class="news-lead-image"><img src={lead.data.image} alt={lead.data.imageAlt} fetchpriority="high" decoding="async" /></div>
+					<div class="news-lead-image" {...imageFrame(lead.data)}><img src={lead.data.image} alt={lead.data.imageAlt} fetchpriority="high" decoding="async" /></div>
 					<div class="news-lead-copy">
-						<span class="news-kicker">LATEST · {lead.data.category}</span>
+						<span class="news-kicker">LATEST · {newsCategoryLabel(lead.data.category)}</span>
 						<h2>{lead.data.title}</h2>
 						<p>{lead.data.summary}</p>
 						{lead.data.publishedAt && <time datetime={lead.data.publishedAt.toISOString()}>{formatNewsDate(lead.data.publishedAt)}</time>}
@@ -47,9 +70,9 @@ const river = rest.slice(2);
 					<div class="newsroom-secondary">
 						{secondary.map((entry) => (
 							<a class="news-card" href={newsPath(entry)} lang="id">
-								<div class="news-card-image"><img src={entry.data.image} alt="" decoding="async" /></div>
+								<div class="news-card-image" {...imageFrame(entry.data)}><img src={entry.data.image} alt="" decoding="async" /></div>
 								<div class="news-card-copy">
-									<span class="news-kicker">{entry.data.category}</span>
+									<span class="news-kicker">{newsCategoryLabel(entry.data.category)}</span>
 									<h3>{entry.data.title}</h3>
 									{entry.data.publishedAt && <time datetime={entry.data.publishedAt.toISOString()}>{formatNewsDate(entry.data.publishedAt)}</time>}
 								</div>
@@ -76,9 +99,9 @@ const river = rest.slice(2);
 						{river.map((entry) => (
 							<li data-date={entry.data.publishedAt?.getTime() ?? 0} data-title={entry.data.title}>
 								<a class="news-card" href={newsPath(entry)} lang="id">
-									<div class="news-card-image"><img src={entry.data.image} alt="" loading="lazy" decoding="async" /></div>
+									<div class="news-card-image" {...imageFrame(entry.data)}><img src={entry.data.image} alt="" loading="lazy" decoding="async" /></div>
 									<div class="news-card-copy">
-										<span class="news-kicker">{entry.data.category}</span>
+										<span class="news-kicker">{newsCategoryLabel(entry.data.category)}</span>
 										<h3>{entry.data.title}</h3>
 										<p>{entry.data.summary}</p>
 										{entry.data.publishedAt && <time datetime={entry.data.publishedAt.toISOString()}>{formatNewsDate(entry.data.publishedAt)}</time>}
@@ -91,7 +114,7 @@ const river = rest.slice(2);
 			)}
 		</>
 	) : (
-		<p class="newsroom-empty">No stories yet. Check back soon.</p>
+		<p class="newsroom-empty">{category ? <>No {category.label} stories yet. <a href={categoryHref()}>See all stories</a>.</> : 'No stories yet. Check back soon.'}</p>
 	)}
 </NewsLayout>
 

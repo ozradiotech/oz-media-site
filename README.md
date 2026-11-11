@@ -42,7 +42,23 @@ Three things need to run:
 | Variable | Value |
 | :--- | :--- |
 | `CMS_URL` | The CMS address: `http://localhost:3000` locally, `https://cms.ozmedianet.com` once deployed. |
-| `CMS_API_KEY` | The API key of the CMS's `website` user. Needed for the social numbers on `/analytics`; published content reads without it. Locally it is in `oz-cms/dev-accounts.local.txt`. |
+| `CMS_API_KEY` | The API key of the CMS's `website` user. Needed for the social numbers on `/analytics` and the chat roles; published content reads without it. Locally it is in `oz-cms/dev-accounts.local.txt`. |
+| `SITE_URL` | This site's own address: `https://ozmedianet.com` on the VPS, `http://127.0.0.1:4321` locally. Canonical links, share URLs, the sitemap and robots.txt use it, so it must match the domain the site is served on. Read at build time (`astro.config.mjs`); ozradio.id when unset. |
+
+### What the CMS drives
+
+| On the site | In the CMS |
+| :--- | :--- |
+| OZ News articles, with the byline (the article's **Author**, or "OZ Radio Bandung Newsroom" when empty) and a **Source** line under the text | **OZ News** |
+| The category kicker on every news card, and the filter on `/oz-bandung/news` (`?category=sports` etc.; only categories with published stories are offered) | The article's **Category**. The list lives in `oz-cms/src/newsCategories.ts` and `src/lib/news.ts`; change both together |
+| `/about` (starter text shows until the page is written) | **About page** (editorial) |
+| Programs, announcers, activities and their order | **Programs**, **Announcers**, **On-ground activities** |
+| `/analytics` social numbers | **Social media numbers** (digital) |
+| Chat badges and who can moderate | **Chat roles** (developers only), see Live chat → Moderation |
+
+News pictures are meant to be landscape 16:9 (best 1600 × 900 px, at least 1200 × 675). Anything narrower than 3:2 is shown whole on a blurred copy of itself instead of being cropped (`imageFrame` in `src/lib/news.ts`, styles in `src/styles/media-fit.css`), on the cards and on the article's lead photo.
+
+On OZ Bandung, once a stream is playing and the visitor scrolls past the broadcast section, a mini player appears at the bottom (`data-station-mini` in `oz-bandung.astro`): what's on, a link back to the player, and stop.
 
 ### ozmedianet.com (the Payload site on the VPS)
 
@@ -63,7 +79,7 @@ Both sites share the Firebase project, so the live chat is one room on both. ozr
 cd /www/wwwroot
 git clone --branch payload "$(git -C oz-media remote get-url origin)" ozmedianet
 cd ozmedianet && cp ../oz-media/.env .env && chmod 600 .env
-# then in .env: PORT=4322, HOST=127.0.0.1, CMS_URL=http://127.0.0.1:3000 and CMS_API_KEY=<key>
+# then in .env: PORT=4322, HOST=127.0.0.1, SITE_URL=https://ozmedianet.com, CMS_URL=http://127.0.0.1:3000 and CMS_API_KEY=<key>
 npm ci && npm run build
 ```
 
@@ -266,6 +282,8 @@ The chat on `/oz-bandung/` uses the Firebase Realtime Database. Anyone can read 
 ### Moderation
 
 Moderation happens in three places: `scripts/chat-admin.mjs` for roles and bans, the ⋯ menu on each chat message, and the Firebase console (**Realtime Database → Data**) for everything else. Run the script from the project root; it reads `.env`.
+
+**On the `payload` branch (ozmedianet.com)**, chat roles are set in the CMS under **Admin → Chat roles**, which only developers can see: the person's Google account email and a role, **Dev**, **Operator**, **Host** or **Mod**. Every role can moderate; the role is the badge on their messages (DEV solid, OPERATOR outlined, HOST accent, MOD soft accent). Changes apply within a minute; the person signs out of the chat and back in. Accounts given `mod` with the script below still moderate, as Mod. ozradio.id shares the chat room and still shows every moderator as MOD.
 
 #### Moderators
 

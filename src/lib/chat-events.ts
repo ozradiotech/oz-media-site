@@ -5,6 +5,14 @@
 /** The chat rooms; OZ Bandung's page uses 'bandung'. */
 export const chatRoomNames = ['bandung', 'bali'] as const;
 
+/**
+ * Chat roles, set per Google account in the CMS (Chat roles; oz-cms src/collections/ChatStaff.ts). Every role can
+ * moderate; the role is the badge on the person's messages.
+ */
+export const chatRoles = { dev: 'DEV', operator: 'OPERATOR', host: 'HOST', mod: 'MOD' } as const;
+export type ChatRole = keyof typeof chatRoles;
+export const isChatRole = (value: unknown): value is ChatRole => typeof value === 'string' && value in chatRoles;
+
 export const chatSignInStatuses = ['attempt', 'success', 'cancelled', 'failed'] as const;
 export type ChatSignInStatus = (typeof chatSignInStatuses)[number];
 

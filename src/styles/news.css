@@ -8,6 +8,10 @@
 	--news-wide: 1240px;
 	--news-measure: 700px;
 	--news-pill-radius: 8px;
+	/* A column at least a screen tall, so the footer stays at the bottom of short pages. */
+	min-height: 100dvh;
+	display: flex;
+	flex-direction: column;
 	margin: 0;
 	background: var(--paper-grain), var(--c-bg);
 	color: var(--c-text);
@@ -158,6 +162,7 @@
 /* ---------- Shared pieces ---------- */
 
 .news-main {
+	flex: 1 0 auto;
 	display: block;
 }
 
@@ -465,6 +470,25 @@
 	box-sizing: border-box;
 }
 
+/* A boxed lead photo keeps the 16:9 frame, with the frame (not the picture) carrying the border. */
+.story-figure-frame[data-boxed] {
+	aspect-ratio: 16 / 9;
+	max-height: min(78vh, 720px);
+	border: var(--box-border);
+	border-radius: var(--box-radius);
+	box-shadow: var(--box-shadow);
+	box-sizing: border-box;
+}
+
+.story-figure-frame[data-boxed] img {
+	height: 100%;
+	max-height: none;
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+	background: transparent;
+}
+
 .story-figure figcaption {
 	max-width: var(--news-measure);
 	margin: 12px auto 0;
@@ -498,6 +522,20 @@
 
 .story-body li + li {
 	margin-top: 0.4em;
+}
+
+/* "Source: …" from the CMS, after the article text. */
+.story-body .story-source {
+	margin-top: 2em;
+	padding-top: 1em;
+	border-top: 1px solid var(--c-line);
+	color: var(--c-muted);
+	font-size: 0.85em;
+}
+
+.story-source a {
+	color: inherit;
+	font-weight: 700;
 }
 
 .story-body h2,
@@ -711,6 +749,44 @@
 	color: var(--c-muted);
 	font-size: 12px;
 	font-weight: 700;
+}
+
+/* Category filter: one row of pills that scrolls sideways on phones rather than wrapping into a block. */
+.newsroom-filter {
+	display: flex;
+	gap: 8px;
+	margin: 22px calc(var(--news-gutter) * -1) 0;
+	padding: 4px var(--news-gutter) 6px;
+	overflow-x: auto;
+	scrollbar-width: none;
+}
+
+.newsroom-filter::-webkit-scrollbar {
+	display: none;
+}
+
+.newsroom-filter .news-pill {
+	flex: none;
+	min-height: 36px;
+	padding-inline: 14px;
+	white-space: nowrap;
+}
+
+.newsroom-filter .news-pill[aria-current='page'] {
+	border-color: var(--c-text);
+	background: var(--c-text);
+	color: var(--c-bg);
+	box-shadow: none;
+	translate: none;
+}
+
+@media (min-width: 900px) {
+	.newsroom-filter {
+		flex-wrap: wrap;
+		margin-inline: 0;
+		padding-inline: 0;
+		overflow: visible;
+	}
 }
 
 .newsroom-top {
@@ -1033,7 +1109,8 @@
 		margin-inline: calc(var(--news-gutter) * -1);
 	}
 
-	.story-figure img {
+	.story-figure img,
+	.story-figure-frame[data-boxed] {
 		border-inline: 0;
 		border-radius: 0;
 		box-shadow: none;

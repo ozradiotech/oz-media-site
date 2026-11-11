@@ -6,7 +6,8 @@ import type { App } from 'firebase-admin/app';
 import type { AppCheck } from 'firebase-admin/app-check';
 import type { Auth, DecodedIdToken } from 'firebase-admin/auth';
 import { logChatEvent, type ChatLogEvent, type RefusalReason } from './chat-analytics';
-import { chatRoomNames } from './chat-events';
+import { chatRoomNames, isChatRole, type ChatRole } from './chat-events';
+import { cmsFetch } from './cms';
 import { defaultBlocklist, type Blocklist } from './chat-filter';
 
 export const chatRooms = new Set<string>(chatRoomNames);
@@ -24,6 +25,8 @@ export type ChatMessage = {
 	ts: number;
 	/** Sent by a moderator. */
 	m?: boolean;
+	/** The moderator's chat role, for the badge. Older messages and other sites only have `m`. */
+	r?: ChatRole;
 };
 
 const databaseUrl: string | undefined = import.meta.env.PUBLIC_FIREBASE_DATABASE_URL?.replace(/\/+$/, '');
@@ -113,11 +116,34 @@ export const verifyIdToken = async (request: Request, signInMessage: string): Pr
 	}
 };
 
-export const isModerator = (user: DecodedIdToken) => user.mod === true;
+/**
+ * A Google account's chat role: from the CMS's Chat roles list (by email; cached for 30 seconds), else `mod` for
+ * accounts given the moderator claim with scripts/chat-admin.mjs. Undefined for everyone else. If the CMS can't be
+ * reached, only the claim counts.
+ */
+const chatRoleFor = async (email: string | undefined, modClaim: boolean): Promise<ChatRole | undefined> => {
+	if (email) {
+		const staff = await cmsFetch<{ docs: { email: string; role: string }[] }>('chat-staff?limit=0&pagination=false&depth=0')
+			.catch((error) => {
+				console.error('[chat roles]', error);
+				return { docs: [] };
+			});
+		const role = staff.docs.find((person) => person.email.toLowerCase() === email.toLowerCase())?.role;
+		if (isChatRole(role)) return role;
+	}
+	return modClaim ? 'mod' : undefined;
+};
+
+/** The signed-in user's chat role, or undefined if they aren't a moderator. */
+export const moderatorRole = (user: DecodedIdToken) =>
+	chatRoleFor(user.email_verified ? user.email : undefined, user.mod === true);
+
+export const isModerator = async (user: DecodedIdToken) => Boolean(await moderatorRole(user));
 
 export const isModeratorUid = async (uid: string) => {
 	const target = await (await getAdmin()).auth.getUser(uid).catch(() => undefined);
-	return target?.customClaims?.mod === true;
+	if (!target) return false;
+	return Boolean(await chatRoleFor(target.emailVerified ? target.email : undefined, target.customClaims?.mod === true));
 };
 
 let accessToken: { value: string; expiresAt: number } | undefined;

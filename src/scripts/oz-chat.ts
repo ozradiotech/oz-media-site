@@ -1,13 +1,14 @@
 import { getDatabase, goOffline, goOnline, limitToLast, onChildAdded, onChildRemoved, onValue, orderByKey, query, ref } from 'firebase/database';
 import type { OzAuth, OzUser } from './oz-auth';
 import { getAppCheckToken, getOzFirebaseApp, isChatConfigured } from './oz-firebase';
+import { chatRoles, isChatRole, type ChatRole } from '../lib/chat-events';
 import { sendEvents, tabId } from './oz-events';
 import { track } from './oz-track';
 
 // Live chat. Anyone can read it straight from the Realtime Database; sending, reporting and moderating go
 // through /api/chat and /api/chat-mod (see src/lib/chat-server.ts), which check the signed-in Google account.
 
-type ChatMessage = { u: string; n: string; p?: string; t: string; ts: number; m?: boolean };
+type ChatMessage = { u: string; n: string; p?: string; t: string; ts: number; m?: boolean; r?: string };
 type ChatAction = 'report' | 'delete' | 'timeout' | 'ban';
 
 // Only this many recent messages are downloaded and kept on the page (database.rules.json enforces the cap).
@@ -100,6 +101,8 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth, signal }:
 	let auth: OzAuth | undefined;
 	let viewer: OzUser | null = null;
 	let moderator = false;
+	// The viewer's chat role from the CMS (any role moderates), for the badge on their own pending messages.
+	let viewerRole: ChatRole | undefined;
 	let slowMode = 0;
 
 	// One actions menu is shared by all messages and moved next to whichever ⋯ button opened it.
@@ -183,9 +186,12 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth, signal }:
 		name.textContent = message.n;
 		meta.append(name);
 		if (message.m) {
+			// DEV, OPERATOR, HOST or MOD; messages from before roles, or from the other site, just say MOD.
+			const role = isChatRole(message.r) ? message.r : 'mod';
 			const badge = document.createElement('span');
 			badge.className = 'chat-mod-badge';
-			badge.textContent = 'MOD';
+			badge.dataset.role = role;
+			badge.textContent = chatRoles[role];
 			meta.append(badge);
 		}
 		if (typeof message.ts === 'number') {
@@ -382,6 +388,7 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth, signal }:
 			t: text,
 			ts: Date.now(),
 			m: moderator || undefined,
+			r: viewerRole,
 		});
 		delete placeholder.dataset.key;
 		placeholder.classList.add('is-pending');
@@ -523,11 +530,15 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth, signal }:
 	onAbort(currentAuth.onChange(async (user) => {
 		viewer = user;
 		moderator = false;
+		viewerRole = undefined;
 		renderViewer();
-		const isMod = user ? await currentAuth.isModerator() : false;
+		if (!user) return;
+		// The role is set in the CMS, so the server looks it up; a failed lookup just means no moderation tools.
+		const { role } = await callApi('/api/chat-role', {}).catch(() => ({ role: null })) as { role?: unknown };
 		// Ignore the answer if the account changed while it was loading.
-		if (viewer !== user || !isMod) return;
+		if (viewer !== user || !isChatRole(role)) return;
 		moderator = true;
+		viewerRole = role;
 		renderViewer();
 	}));
 };

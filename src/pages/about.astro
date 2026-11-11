@@ -1,0 +1,66 @@
+---
+// The About page. Its title, intro, picture and text are edited by editorial in the CMS ("About page"), so it renders
+// per request and changes show up without a rebuild.
+import NewsLayout from '../layouts/NewsLayout.astro';
+import { cmsFetch, mediaUrl, type CmsMedia } from '../lib/cms';
+import { imageFrame } from '../lib/news';
+
+export const prerender = false;
+
+interface About {
+	title?: string | null;
+	intro?: string | null;
+	image?: CmsMedia | number | null;
+	bodyHtml?: string | null;
+}
+
+// A CMS outage leaves the page with its title only, rather than an error.
+const about = await cmsFetch<About>('globals/about?depth=1').catch((error) => {
+	console.error('[about]', error);
+	return {} as About;
+});
+const title = about.title || 'About OZ Radio';
+const intro = about.intro ?? '';
+const media = typeof about.image === 'object' ? about.image : undefined;
+const image = { image: mediaUrl(media), imageAlt: media?.alt ?? '', imageWidth: media?.width ?? undefined, imageHeight: media?.height ?? undefined };
+---
+
+<NewsLayout
+	title={title}
+	description={intro || 'About OZ Radio Bandung and OZ Media.'}
+	path="/about"
+	image={image.image || undefined}
+	imageAlt={image.imageAlt}
+	section={{ name: 'About', accent: 'Us', href: '/about' }}
+>
+	<article class="story about">
+		<header class="story-header">
+			<nav class="news-crumbs" aria-label="Breadcrumb">
+				<a href="/">OZ Radio</a>
+				<span aria-hidden="true">/</span>
+				<span>About</span>
+			</nav>
+			<p class="news-kicker">OZ MEDIA</p>
+			<h1 class="story-headline">{title}</h1>
+			{intro && <p class="story-standfirst">{intro}</p>}
+		</header>
+
+		{image.image && (
+			<figure class="story-figure">
+				<div class="story-figure-frame" {...imageFrame(image)}>
+					<img src={image.image} alt={image.imageAlt} fetchpriority="high" decoding="async" />
+				</div>
+			</figure>
+		)}
+
+		{about.bodyHtml ? (
+			<div class="story-body" set:html={about.bodyHtml} />
+		) : (
+			// Shown until editorial writes the page in the CMS.
+			<div class="story-body">
+				<p>OZ Media runs OZ Radio Bandung (103.1 FM) and OZ Radio Bali (101.2 FM), with OZ News reporting from Bandung, Indonesia and beyond.</p>
+				<p>Listen live on the <a href="/oz-bandung#listen">OZ Radio Bandung page</a>, read the latest from <a href="/oz-bandung/news">OZ News</a>, or visit our studio at Jl. Setrasari II No.14, Kota Bandung, Jawa Barat 40152. You can reach us at <a href="mailto:ozmedianet.id@gmail.com">ozmedianet.id@gmail.com</a>.</p>
+			</div>
+		)}
+	</article>
+</NewsLayout>

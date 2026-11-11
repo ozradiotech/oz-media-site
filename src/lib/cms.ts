@@ -25,6 +25,7 @@ export interface CmsMedia {
 	url: string;
 	alt?: string | null;
 	width?: number | null;
+	height?: number | null;
 	sizes?: Record<string, { url?: string | null; width?: number | null } | undefined>;
 }
 

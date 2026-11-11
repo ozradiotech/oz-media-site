@@ -7,6 +7,9 @@ import {
 	formatNewsDate,
 	formatNewsDateTime,
 	getVisibleNews,
+	imageFrame,
+	newsAuthor,
+	newsCategoryLabel,
 	newsIndexPath,
 	newsPath,
 	readingMinutes,
@@ -28,6 +31,8 @@ const related = relatedNews(entry, all, 3);
 const latest = all.filter((other) => other.id !== entry.id && !related.includes(other)).slice(0, 5);
 const minutes = readingMinutes(entry);
 const shareUrl = Astro.site ? new URL(path, Astro.site).href : '';
+const category = newsCategoryLabel(data.category);
+const author = newsAuthor(entry);
 
 // Search engines read this to show the story as a news article.
 const structuredData = {
@@ -37,9 +42,9 @@ const structuredData = {
 	description: data.summary,
 	image: data.image ? [Astro.site ? new URL(data.image, Astro.site).href : data.image] : undefined,
 	datePublished: data.publishedAt?.toISOString(),
-	articleSection: data.category,
+	articleSection: category,
 	inLanguage: 'id',
-	author: { '@type': 'Organization', name: 'OZ Radio Bandung' },
+	author: data.authorName ? { '@type': 'Person', name: data.authorName } : { '@type': 'Organization', name: 'OZ Radio Bandung' },
 	publisher: { '@type': 'Organization', name: 'OZ Radio Bandung' },
 	mainEntityOfPage: Astro.site ? new URL(path, Astro.site).href : undefined,
 };
@@ -51,7 +56,7 @@ const structuredData = {
 	path={path}
 	image={data.image}
 	imageAlt={data.imageAlt}
-	article={{ publishedAt: data.publishedAt, section: data.category }}
+	article={{ publishedAt: data.publishedAt, section: category }}
 	readingProgress
 >
 	<script slot="head" type="application/ld+json" is:inline set:html={JSON.stringify(structuredData)} />
@@ -63,7 +68,7 @@ const structuredData = {
 				<span aria-hidden="true">/</span>
 				<a href={newsIndexPath}>OZ News</a>
 			</nav>
-			<p class="news-kicker">{data.category}</p>
+			<p class="news-kicker">{category}</p>
 			<h1 class="story-headline">{data.title}</h1>
 			{data.summary && <p class="story-standfirst">{data.summary}</p>}
 
@@ -71,7 +76,7 @@ const structuredData = {
 				<div class="story-byline">
 					<img class="story-byline-mark" src="/images/logo-oz-logogram.png" alt="" width="40" height="40" />
 					<p>
-						<span>By <strong>OZ Radio Bandung Newsroom</strong></span>
+						<span>By <strong>{author}</strong></span>
 						<span class="story-dateline">
 							{data.publishedAt && <time datetime={data.publishedAt.toISOString()}>{formatNewsDateTime(data.publishedAt)}</time>}
 							{data.publishedAt && <span aria-hidden="true">·</span>}
@@ -100,13 +105,20 @@ const structuredData = {
 
 		{data.image && (
 			<figure class="story-figure">
-				<img src={data.image} alt={data.imageAlt} fetchpriority="high" decoding="async" />
+				<div class="story-figure-frame" {...imageFrame(data)}>
+					<img src={data.image} alt={data.imageAlt} fetchpriority="high" decoding="async" />
+				</div>
 				{data.imageAlt && <figcaption>{data.imageAlt}</figcaption>}
 			</figure>
 		)}
 
 		<div class="story-body">
 			<Content />
+			{data.sourceName && (
+				<p class="story-source" lang="en">
+					Source: {data.sourceUrl ? <a href={data.sourceUrl} target="_blank" rel="noopener noreferrer">{data.sourceName}</a> : data.sourceName}
+				</p>
+			)}
 		</div>
 
 		<footer class="story-end" lang="en">
@@ -123,9 +135,9 @@ const structuredData = {
 					<div class="story-related-grid">
 						{related.map((other) => (
 							<a class="news-card" href={newsPath(other)}>
-								<div class="news-card-image"><img src={other.data.image} alt="" loading="lazy" decoding="async" /></div>
+								<div class="news-card-image" {...imageFrame(other.data)}><img src={other.data.image} alt="" loading="lazy" decoding="async" /></div>
 								<div class="news-card-copy">
-									<span class="news-kicker">{other.data.category}</span>
+									<span class="news-kicker">{newsCategoryLabel(other.data.category)}</span>
 									<h3>{other.data.title}</h3>
 									{other.data.publishedAt && <time datetime={other.data.publishedAt.toISOString()}>{formatNewsDate(other.data.publishedAt)}</time>}
 								</div>

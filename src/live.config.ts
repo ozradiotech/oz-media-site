@@ -17,6 +17,9 @@ interface DocList {
 const image = (media: CmsMedia | number | null | undefined, fallbackAlt = '') => ({
 	image: mediaUrl(media),
 	imageAlt: (typeof media === 'object' && media?.alt) || fallbackAlt,
+	// The original's shape, so pages can frame pictures that aren't landscape instead of cropping them.
+	imageWidth: (typeof media === 'object' && media?.width) || undefined,
+	imageHeight: (typeof media === 'object' && media?.height) || undefined,
 });
 
 /**
@@ -108,9 +111,14 @@ const activities = defineLiveCollection({
 const toNews = (doc: Doc) => ({
 	title: doc.title as string,
 	visible: true,
-	category: (doc.category ?? 'OZ News') as string,
+	/** The category's value (`sports`, …); `newsCategoryLabel` turns it into its name. Empty when none is set. */
+	category: (doc.category ?? '') as string,
 	publishedAt: doc.publishedAt ? new Date(doc.publishedAt) : undefined,
 	summary: (doc.summary ?? '') as string,
+	/** The byline: the author's name in the CMS, or empty for the newsroom. */
+	authorName: (doc.authorName ?? '') as string,
+	sourceName: (doc.sourceName ?? '') as string,
+	sourceUrl: (doc.sourceUrl ?? '') as string,
 	...image(doc.image, ''),
 });
 export type NewsData = ReturnType<typeof toNews>;

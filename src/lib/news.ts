@@ -23,6 +23,36 @@ export const sortNews = (entries: NewsEntry[]) => [...entries].sort((a, b) => {
 /** Published articles, newest first. */
 export const getVisibleNews = async () => sortNews(await getNews());
 
+/**
+ * The news categories, in the order the filter shows them. Values match the CMS's list (oz-cms
+ * src/newsCategories.ts); add or rename a category in both places.
+ */
+export const newsCategories = [
+	{ value: 'politics', label: 'Politics & Government' },
+	{ value: 'business', label: 'Business & Economy' },
+	{ value: 'science', label: 'Science & Technology' },
+	{ value: 'health', label: 'Health & Environment' },
+	{ value: 'sports', label: 'Sports' },
+	{ value: 'entertainment', label: 'Entertainment & Culture' },
+] as const;
+
+/** The category's name for kickers and the filter; "OZ News" when an article has none. */
+export const newsCategoryLabel = (value: string) =>
+	newsCategories.find((category) => category.value === value)?.label ?? 'OZ News';
+
+/** The byline name: the author's name from the CMS, or the newsroom. */
+export const newsAuthor = (entry: NewsEntry) => entry.data.authorName || 'OZ Radio Bandung Newsroom';
+
+/**
+ * Pictures that aren't landscape (narrower than 3:2) are shown whole on a blurred copy of themselves instead of
+ * being cropped to the 16:9 frame. Spread the result onto the element that holds the <img> (see [data-boxed] in
+ * src/styles/media-fit.css). Pictures without a known size are left as they are.
+ */
+export const imageFrame = (data: { image: string; imageWidth?: number; imageHeight?: number }, src = data.image) => {
+	const boxed = Boolean(data.imageWidth && data.imageHeight && data.imageWidth / data.imageHeight < 1.5);
+	return boxed ? { 'data-boxed': '', style: `--media-fit-image: url("${src.replace(/"/g, '%22')}")` } : {};
+};
+
 // Dates print in the newsroom's own time zone, whatever the server's is.
 const newsTimeZone = 'Asia/Jakarta';
 

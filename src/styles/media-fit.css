@@ -1,0 +1,24 @@
+/* Shared by OZ Bandung and OZ News. */
+
+/*
+ * Portrait and square pictures (imageFrame in src/lib/news.ts): the whole picture, centred on a blurred, enlarged
+ * copy of itself, so nothing is cropped and the frame keeps its 16:9 shape.
+ */
+[data-boxed] {
+	position: relative;
+	isolation: isolate;
+	overflow: hidden;
+}
+
+[data-boxed]::before {
+	content: '';
+	position: absolute;
+	inset: -24px;
+	z-index: -1;
+	background: var(--media-fit-image) center / cover no-repeat;
+	filter: blur(22px) saturate(1.1) brightness(0.8);
+}
+
+[data-boxed] img {
+	object-fit: contain !important;
+}

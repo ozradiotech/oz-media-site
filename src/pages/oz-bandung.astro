@@ -15,8 +15,9 @@ import SiteFooter from '../components/SiteFooter.astro';
 import { getLiveCollection, render } from 'astro:content';
 import { cmsImage } from '../lib/cms';
 import { ageRanges } from '../lib/listener';
-import { getVisibleNews, newsIndexPath, newsPath } from '../lib/news';
+import { getVisibleNews, imageFrame, newsCategoryLabel, newsIndexPath, newsPath } from '../lib/news';
 import '../styles/ozubathon.css';
+import '../styles/media-fit.css';
 // Loaded with the page rather than with the player script, so it stays when the player is carried to OZ News.
 import '../styles/oz-audio-player.css';
 
@@ -651,7 +652,7 @@ const sections = [
 								<div class="news-grid" data-news-slide hidden={pageIndex !== 0}>
 									{page.map((article) => (
 										<a class="feature-card news-card" href={newsPath(article)}>
-											<div class="story-art">
+											<div class="story-art" {...imageFrame(article.data, optimizeImageUrl(article.data.image, 700))}>
 												<img src={optimizeImageUrl(article.data.image, 700)} alt={article.data.imageAlt} loading="lazy" decoding="async" />
 												<span class="story-date">
 													{article.data.publishedAt
@@ -660,7 +661,7 @@ const sections = [
 												</span>
 											</div>
 											<div class="story-copy">
-												<span class="card-index">{article.data.category}</span>
+												<span class="card-index">{newsCategoryLabel(article.data.category)}</span>
 												<h3>{article.data.title}</h3>
 												<p>{article.data.summary}</p>
 											</div>
@@ -720,6 +721,19 @@ const sections = [
 			<SiteFooter topHref="#listen" />
 			<!-- <SectionNav sections={sections} current="listen" /> -->
 		</main>
+		<!-- Mini player, shown by the page script while a stream plays and the broadcast section is out of view. -->
+		<aside class="station-mini" data-station-mini aria-label="Now playing" hidden>
+			<a class="station-mini-link" href="#listen">
+				<span class="station-mini-dot" aria-hidden="true"></span>
+				<span class="station-mini-copy">
+					<strong>OZ RADIO BANDUNG</strong>
+					<span data-station-mini-title></span>
+				</span>
+			</a>
+			<button class="station-mini-stop" type="button" data-station-stop aria-label="Stop the stream">
+				<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+			</button>
+		</aside>
 		<dialog class="article-dialog" data-article-dialog aria-labelledby="article-dialog-title">
 			<!-- Zero-height bar pinned to the top while reading: holds the close button and the reading progress line. -->
 			<div class="article-dialog-bar">
@@ -2190,12 +2204,45 @@ const sections = [
 			dialogTitle.textContent = 'You’re all set';
 		});
 
+		// The mini player: while something plays and the visitor has scrolled past the broadcast section, a bar at the
+		// bottom shows what's on, jumps back to the player and stops it (data-station-stop, handled with the station above).
+		const miniPlayer = document.querySelector<HTMLElement>('[data-station-mini]');
+		const miniTitle = miniPlayer?.querySelector<HTMLElement>('[data-station-mini-title]');
+		const listenSection = document.getElementById('listen');
+		let listenPassed = false;
+		const renderMiniPlayer = () => {
+			if (!miniPlayer) return;
+			const show = isStreaming && Boolean(selectedBroadcast) && listenPassed;
+			miniPlayer.hidden = !show;
+			if (show && miniTitle) {
+				miniTitle.textContent = selectedBroadcast === 'video' ? 'Livestream' : trackTitle?.textContent?.trim() || 'Live on 103.1 FM';
+			}
+		};
+		if (miniPlayer && listenSection) {
+			// Passed means wholly above the screen; above the section (the hero) doesn't count. A quick scroll can queue
+			// several changes in one call; the last one is current.
+			const listenObserver = new IntersectionObserver((entries) => {
+				const entry = entries[entries.length - 1];
+				listenPassed = !entry.isIntersecting && entry.boundingClientRect.top < 0;
+				renderMiniPlayer();
+			});
+			listenObserver.observe(listenSection);
+			// The audio stream's track title changes while it plays.
+			const titleObserver = new MutationObserver(renderMiniPlayer);
+			if (trackTitle) titleObserver.observe(trackTitle, { childList: true, characterData: true, subtree: true });
+			onLeave(signal, () => {
+				listenObserver.disconnect();
+				titleObserver.disconnect();
+			});
+		}
+
 		// Hand this page's controls to the station, and catch up with it: a stream may still be playing from OZ News,
 		// or the listener form may have come due there.
 		pageControls = {
 			render: () => {
 				broadcast?.classList.toggle('is-streaming', isStreaming);
 				if (tuneInLabel) tuneInLabel.textContent = isStreaming ? 'Change stream' : 'Tune in';
+				renderMiniPlayer();
 			},
 			openListenerForm,
 		};
@@ -2840,6 +2887,144 @@ const sections = [
 		font-weight: 700;
 		letter-spacing: 0.12em;
 		line-height: 1;
+	}
+
+	/* Mini player (data-station-mini): the OZ News dock's look, pinned bottom right; full width on phones. */
+	.station-mini {
+		position: fixed;
+		z-index: 60;
+		right: 20px;
+		bottom: 20px;
+		width: min(340px, calc(100vw - 40px));
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 10px 8px 10px 14px;
+		border: var(--box-border);
+		border-radius: var(--box-radius);
+		background: var(--c-stage);
+		color: var(--c-on-stage);
+		box-shadow: var(--box-shadow);
+		box-sizing: border-box;
+		animation: station-mini-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+	}
+
+	.station-mini[hidden] {
+		display: none;
+	}
+
+	@keyframes station-mini-in {
+		from {
+			opacity: 0;
+			translate: 0 12px;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.station-mini {
+			animation: none;
+		}
+	}
+
+	.station-mini-link {
+		min-width: 0;
+		flex: 1;
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		color: inherit;
+		text-decoration: none;
+	}
+
+	.station-mini-dot {
+		flex: none;
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: var(--c-signal);
+		box-shadow: 0 0 0 3px rgb(242 189 87 / 22%);
+	}
+
+	.station-mini-copy {
+		min-width: 0;
+		display: grid;
+		gap: 2px;
+	}
+
+	.station-mini-copy strong {
+		font-size: 10px;
+		letter-spacing: 0.14em;
+	}
+
+	.station-mini-copy span {
+		overflow: hidden;
+		color: var(--c-on-stage-muted);
+		font-size: 12px;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.station-mini-link:hover strong,
+	.station-mini-link:focus-visible strong {
+		color: var(--c-accent);
+	}
+
+	.station-mini-stop {
+		flex: none;
+		width: 32px;
+		height: 32px;
+		display: grid;
+		place-items: center;
+		padding: 0;
+		border: 0;
+		border-radius: 50%;
+		background: none;
+		color: var(--c-on-stage-muted);
+		cursor: pointer;
+	}
+
+	.station-mini-stop svg {
+		fill: none;
+		stroke: currentColor;
+		stroke-linecap: round;
+		stroke-width: 2.2;
+	}
+
+	.station-mini-stop:hover,
+	.station-mini-stop:focus-visible {
+		background: rgb(255 255 243 / 10%);
+		color: var(--c-on-stage);
+	}
+
+	.station-mini-link:focus-visible,
+	.station-mini-stop:focus-visible {
+		outline: 2px solid var(--c-accent);
+		outline-offset: 2px;
+	}
+
+	@media (max-width: 600px) {
+		.station-mini {
+			right: 12px;
+			bottom: calc(12px + env(safe-area-inset-bottom));
+			width: calc(100vw - 24px);
+		}
+	}
+
+	/* Chat roles (set in the CMS): DEV solid ink, OPERATOR outlined, HOST the accent, MOD the soft accent. */
+	.live-chat-messages :global(.chat-mod-badge[data-role='dev']) {
+		background: var(--c-text);
+		color: var(--c-bg);
+	}
+
+	.live-chat-messages :global(.chat-mod-badge[data-role='operator']) {
+		background: transparent;
+		color: var(--c-text);
+		box-shadow: inset 0 0 0 1px currentColor;
+	}
+
+	.live-chat-messages :global(.chat-mod-badge[data-role='mod']) {
+		background: var(--c-accent-soft);
+		color: var(--c-text);
 	}
 
 	.live-chat-messages :global(.chat-message-body p) {

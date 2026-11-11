@@ -10,7 +10,7 @@ import {
 	getBlocklist,
 	isChatServerConfigured,
 	isDatabaseKey,
-	isModerator,
+	moderatorRole,
 	readJsonBody,
 	serverTimestamp,
 	verifyChatRequest,
@@ -54,7 +54,8 @@ const send = async (user: DecodedIdToken, room: string, input: unknown, tab: str
 		throw new ChatError(403, `You are muted for ${minutesLeft(state.mutedUntil)} more minute(s).`, 'muted');
 	}
 
-	const moderator = isModerator(user);
+	const role = await moderatorRole(user);
+	const moderator = Boolean(role);
 	// Records a strike and returns the error to throw.
 	const strike = async (status: number, message: string, reason: RefusalReason) => {
 		const recent = state.strikesSince && now - state.strikesSince < strikeWindow;
@@ -94,7 +95,10 @@ const send = async (user: DecodedIdToken, room: string, input: unknown, tab: str
 		ts: serverTimestamp,
 	};
 	if (typeof user.picture === 'string' && user.picture.startsWith('https://')) message.p = user.picture;
-	if (moderator) message.m = true;
+	if (role) {
+		message.m = true;
+		message.r = role;
+	}
 
 	const [{ name: id }] = await Promise.all([
 		db<{ name: string }>('POST', `chat/rooms/${room}/messages`, message),

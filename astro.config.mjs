@@ -2,12 +2,16 @@
 import { defineConfig, envField, fontProviders } from 'astro/config';
 import node from '@astrojs/node';
 import vercel from '@astrojs/vercel';
+import { loadEnv } from 'vite';
+
+// The site's own address, from SITE_URL in .env (each server builds with its own): canonical links, share URLs, the
+// sitemap and robots.txt all use it. ozradio.id when unset.
+const { SITE_URL } = loadEnv(process.env.NODE_ENV ?? 'production', process.cwd(), '');
 
 // Vercel sets VERCEL=1 during its builds; everywhere else (local, self-hosted) uses Node.
 // https://astro.build/config
 export default defineConfig({
-	// Production domain; used for canonical links and share URLs.
-	site: 'https://ozradio.id',
+	site: SITE_URL || 'https://ozradio.id',
 	// The CMS lives at /admin only; catch the station-prefixed guesses.
 	redirects: {
 		'/oz-bandung/admin': '/admin',
