@@ -13,6 +13,7 @@ import SiteMonitor from '../components/SiteMonitor.astro';
 import ThemeSwitch from '../components/ThemeSwitch.astro';
 import BandungRibbon from '../components/BandungRibbon.astro';
 import SiteFooter from '../components/SiteFooter.astro';
+import StationDock from '../components/StationDock.astro';
 import { getLiveCollection, render } from 'astro:content';
 import { cmsImage } from '../lib/cms';
 import { ageRanges } from '../lib/listener';
@@ -732,21 +733,8 @@ const sections = [
 			<SiteFooter topHref="#listen" />
 			<!-- <SectionNav sections={sections} current="listen" /> -->
 		</main>
-		<!-- Mini player, shown by the page script while a stream plays and the broadcast section is out of view. -->
-		<aside class="station-mini" data-station-mini aria-label="Now playing" hidden>
-			<!-- Audio only; the livestream is a YouTube embed, paused from its own controls. -->
-			<button class="station-mini-play" type="button" data-station-mini-play aria-label="Pause" hidden></button>
-			<a class="station-mini-link" href="#listen">
-				<span class="station-mini-dot" aria-hidden="true"></span>
-				<span class="station-mini-copy">
-					<strong>OZ RADIO BANDUNG</strong>
-					<span data-station-mini-title></span>
-				</span>
-			</a>
-			<button class="station-mini-stop" type="button" data-station-stop aria-label="Stop the stream">
-				<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
-			</button>
-		</aside>
+		<!-- The OZ News mini player; the page script moves the station into it once the visitor scrolls past the broadcast section. -->
+		<StationDock persist={false} />
 		<dialog class="article-dialog" data-article-dialog aria-labelledby="article-dialog-title">
 			<!-- Zero-height bar pinned to the top while reading: holds the close button and the reading progress line. -->
 			<div class="article-dialog-bar">
@@ -2236,57 +2224,40 @@ const sections = [
 			dialogTitle.textContent = 'You’re all set';
 		});
 
-		// The mini player: while something plays and the visitor has scrolled past the broadcast section, a bar at the
-		// bottom shows what's on, jumps back to the player and stops it (data-station-stop, handled with the station above).
-		const miniPlayer = document.querySelector<HTMLElement>('[data-station-mini]');
-		const miniTitle = miniPlayer?.querySelector<HTMLElement>('[data-station-mini-title]');
-		const miniPlay = miniPlayer?.querySelector<HTMLButtonElement>('[data-station-mini-play]');
+		// The mini player: the same dock as on OZ News (StationDock.astro). While something plays and the visitor has
+		// scrolled past the broadcast section, the station itself moves into the dock, controls and all; it moves back
+		// just before the section scrolls into view again. moveBefore keeps the livestream iframe playing where the
+		// browser has it; elsewhere a plain move keeps the audio going but restarts the video.
+		const dockSlot = document.querySelector<HTMLElement>('[data-station-dock] [data-station-dock-slot]');
 		const listenSection = document.getElementById('listen');
+		const stationHome = document.createComment('station');
+		station?.before(stationHome);
+		onLeave(signal, () => stationHome.remove());
 		let listenPassed = false;
-		const renderMiniPlayer = () => {
-			if (!miniPlayer) return;
-			const show = isStreaming && Boolean(selectedBroadcast) && listenPassed;
-			miniPlayer.hidden = !show;
-			if (miniPlay) {
-				const paused = fallbackAudio?.paused ?? true;
-				miniPlay.hidden = selectedBroadcast !== 'audio' || !fallbackAudio;
-				miniPlay.classList.toggle('is-paused', paused);
-				miniPlay.setAttribute('aria-label', paused ? 'Play' : 'Pause');
-			}
-			if (show && miniTitle) {
-				miniTitle.textContent = selectedBroadcast === 'video' ? 'Livestream' : trackTitle?.textContent?.trim() || 'Live on 103.1 FM';
-			}
+		type Mover = { moveBefore?: (node: Node, child: Node | null) => void };
+		const moveStation = (parent: Node, before: Node | null) => {
+			if (!station) return;
+			const mover = parent as Node & Mover;
+			if (typeof mover.moveBefore === 'function') mover.moveBefore(station, before);
+			else parent.insertBefore(station, before);
 		};
-		if (miniPlayer && listenSection) {
-			// Passed means wholly above the screen; above the section (the hero) doesn't count. A quick scroll can queue
-			// several changes in one call; the last one is current.
+		const renderDock = () => {
+			if (!station || !dockSlot || !stationHome.parentNode) return;
+			const docked = station.parentElement === dockSlot;
+			const dock = isStreaming && Boolean(selectedBroadcast) && listenPassed;
+			if (dock && !docked) moveStation(dockSlot, null);
+			if (!dock && docked) moveStation(stationHome.parentNode, stationHome.nextSibling);
+		};
+		if (dockSlot && listenSection) {
+			// Passed means wholly above the screen; above the section (the hero) doesn't count. The 200px margin brings the
+			// station home before the section is visible. A quick scroll can queue several changes; the last is current.
 			const listenObserver = new IntersectionObserver((entries) => {
 				const entry = entries[entries.length - 1];
 				listenPassed = !entry.isIntersecting && entry.boundingClientRect.top < 0;
-				renderMiniPlayer();
-			});
+				renderDock();
+			}, { rootMargin: '200px 0px 0px 0px' });
 			listenObserver.observe(listenSection);
-			// Pause and play here go through the same audio element as the station's own button, so stats and the
-			// listener form behave the same.
-			miniPlay?.addEventListener('click', () => {
-				if (!fallbackAudio) return;
-				if (fallbackAudio.paused) {
-					audioSource = 'mini_player';
-					playClicked('audio', audioSource);
-					playAudio();
-				} else {
-					pauseAudio();
-				}
-			}, { signal });
-			fallbackAudio?.addEventListener('play', renderMiniPlayer, { signal });
-			fallbackAudio?.addEventListener('pause', renderMiniPlayer, { signal });
-			// The audio stream's track title changes while it plays.
-			const titleObserver = new MutationObserver(renderMiniPlayer);
-			if (trackTitle) titleObserver.observe(trackTitle, { childList: true, characterData: true, subtree: true });
-			onLeave(signal, () => {
-				listenObserver.disconnect();
-				titleObserver.disconnect();
-			});
+			onLeave(signal, () => listenObserver.disconnect());
 		}
 
 		// Hand this page's controls to the station, and catch up with it: a stream may still be playing from OZ News,
@@ -2295,7 +2266,7 @@ const sections = [
 			render: () => {
 				broadcast?.classList.toggle('is-streaming', isStreaming);
 				if (tuneInLabel) tuneInLabel.textContent = isStreaming ? 'Change stream' : 'Tune in';
-				renderMiniPlayer();
+				renderDock();
 			},
 			openListenerForm,
 		};
@@ -2735,13 +2706,13 @@ const sections = [
 	}
 
 	.broadcast-heading,
-	.broadcast-panel {
+	:where(.broadcast) .broadcast-panel {
 		position: relative;
 		z-index: 1;
 	}
 
 	/* The station wrapper only exists to be carried to OZ News; here its panels sit straight in the broadcast box. */
-	.station {
+	:where(.broadcast) .station {
 		display: contents;
 	}
 
@@ -2940,207 +2911,6 @@ const sections = [
 		font-weight: 700;
 		letter-spacing: 0.12em;
 		line-height: 1;
-	}
-
-	/* Mini player (data-station-mini): the OZ News dock's look, pinned bottom right; full width on phones. */
-	.station-mini {
-		position: fixed;
-		z-index: 60;
-		right: 20px;
-		bottom: 20px;
-		width: min(340px, calc(100vw - 40px));
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		padding: 10px 8px 10px 14px;
-		border: var(--box-border);
-		border-radius: var(--box-radius);
-		background: var(--c-stage);
-		color: var(--c-on-stage);
-		box-shadow: var(--box-shadow);
-		box-sizing: border-box;
-		animation: station-mini-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
-	}
-
-	.station-mini[hidden] {
-		display: none;
-	}
-
-	@keyframes station-mini-in {
-		from {
-			opacity: 0;
-			translate: 0 12px;
-		}
-	}
-
-	@media (prefers-reduced-motion: reduce) {
-		.station-mini {
-			animation: none;
-		}
-	}
-
-	.station-mini:has(.station-mini-play:not([hidden])) {
-		padding-left: 8px;
-	}
-
-	/* Pause / play: the audio player's own icon (src/styles/oz-audio-player.css), the triangle's halves morphing into bars. */
-	.station-mini-play {
-		position: relative;
-		flex: none;
-		width: 36px;
-		height: 36px;
-		padding: 0;
-		border: 0;
-		border-radius: 50%;
-		background: var(--c-accent);
-		color: var(--c-on-accent);
-		cursor: pointer;
-		transition: transform 200ms ease;
-	}
-
-	.station-mini-play[hidden] {
-		display: none;
-	}
-
-	.station-mini-play:hover {
-		transform: scale(1.06);
-	}
-
-	.station-mini-play:active {
-		transform: scale(0.94);
-	}
-
-	.station-mini-play:focus-visible {
-		outline: 2px solid var(--c-accent);
-		outline-offset: 2px;
-	}
-
-	.station-mini-play::before,
-	.station-mini-play::after {
-		content: '';
-		position: absolute;
-		top: 50%;
-		left: 50%;
-		width: 12px;
-		height: 14px;
-		background: currentColor;
-		transform: translate(-50%, -50%);
-		transition: clip-path 240ms cubic-bezier(0.22, 1, 0.36, 1), transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
-	}
-
-	/* Playing: two pause bars. */
-	.station-mini-play::before {
-		clip-path: polygon(6% 0, 36% 0, 36% 100%, 6% 100%);
-	}
-
-	.station-mini-play::after {
-		clip-path: polygon(64% 0, 94% 0, 94% 100%, 64% 100%);
-	}
-
-	/* Paused: the play triangle, in two overlapping halves. */
-	.station-mini-play.is-paused::before,
-	.station-mini-play.is-paused::after {
-		transform: translate(-38%, -50%);
-	}
-
-	.station-mini-play.is-paused::before {
-		clip-path: polygon(0 0, 52% 26%, 52% 74%, 0 100%);
-	}
-
-	.station-mini-play.is-paused::after {
-		clip-path: polygon(50% 25%, 100% 50%, 100% 50%, 50% 75%);
-	}
-
-	@media (prefers-reduced-motion: reduce) {
-		.station-mini-play,
-		.station-mini-play::before,
-		.station-mini-play::after {
-			transition: none;
-		}
-	}
-
-	.station-mini-link {
-		min-width: 0;
-		flex: 1;
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		color: inherit;
-		text-decoration: none;
-	}
-
-	.station-mini-dot {
-		flex: none;
-		width: 8px;
-		height: 8px;
-		border-radius: 50%;
-		background: var(--c-signal);
-		box-shadow: 0 0 0 3px rgb(242 189 87 / 22%);
-	}
-
-	.station-mini-copy {
-		min-width: 0;
-		display: grid;
-		gap: 2px;
-	}
-
-	.station-mini-copy strong {
-		font-size: 10px;
-		letter-spacing: 0.14em;
-	}
-
-	.station-mini-copy span {
-		overflow: hidden;
-		color: var(--c-on-stage-muted);
-		font-size: 12px;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.station-mini-link:hover strong,
-	.station-mini-link:focus-visible strong {
-		color: var(--c-accent);
-	}
-
-	.station-mini-stop {
-		flex: none;
-		width: 32px;
-		height: 32px;
-		display: grid;
-		place-items: center;
-		padding: 0;
-		border: 0;
-		border-radius: 50%;
-		background: none;
-		color: var(--c-on-stage-muted);
-		cursor: pointer;
-	}
-
-	.station-mini-stop svg {
-		fill: none;
-		stroke: currentColor;
-		stroke-linecap: round;
-		stroke-width: 2.2;
-	}
-
-	.station-mini-stop:hover,
-	.station-mini-stop:focus-visible {
-		background: rgb(255 255 243 / 10%);
-		color: var(--c-on-stage);
-	}
-
-	.station-mini-link:focus-visible,
-	.station-mini-stop:focus-visible {
-		outline: 2px solid var(--c-accent);
-		outline-offset: 2px;
-	}
-
-	@media (max-width: 600px) {
-		.station-mini {
-			right: 12px;
-			bottom: calc(12px + env(safe-area-inset-bottom));
-			width: calc(100vw - 24px);
-		}
 	}
 
 	/* Chat roles (set in the CMS): DEV solid ink, OPERATOR outlined, HOST the accent, MOD the soft accent. */
@@ -3464,23 +3234,23 @@ const sections = [
 		outline-offset: -3px;
 	}
 
-	.broadcast-panel[hidden],
+	:where(.broadcast) .broadcast-panel[hidden],
 	.broadcast-empty[hidden] {
 		display: none;
 	}
 
-	.broadcast-panel:not([hidden]) {
+	:where(.broadcast) .broadcast-panel:not([hidden]) {
 		animation: broadcast-reveal 300ms ease both;
 	}
 
-	.broadcast-panel[data-broadcast-panel='audio']:not([hidden]) {
+	:where(.broadcast) .broadcast-panel[data-broadcast-panel='audio']:not([hidden]) {
 		flex: 1;
 		display: flex;
 		flex-direction: column;
 		justify-content: center;
 	}
 
-	.broadcast-panel[data-broadcast-panel='video']:not([hidden]) {
+	:where(.broadcast) .broadcast-panel[data-broadcast-panel='video']:not([hidden]) {
 		flex: 1;
 		min-height: 0;
 	}
@@ -3492,7 +3262,7 @@ const sections = [
 		text-align: center;
 	}
 
-	.stream-status {
+	:where(.broadcast) .stream-status {
 		color: var(--c-on-stage-muted);
 		font-size: 7px;
 		font-weight: 700;
@@ -4005,20 +3775,20 @@ const sections = [
 		letter-spacing: 0.12em;
 	}
 
-	.video-frame {
+	:where(.broadcast) .video-frame {
 		width: 100%;
 		height: 100%;
 		aspect-ratio: 16 / 9;
 		background: var(--c-stage);
 	}
 
-	.video-frame iframe {
+	:where(.broadcast) .video-frame iframe {
 		width: 100%;
 		height: 100%;
 		border: 0;
 	}
 
-	.video-placeholder {
+	:where(.broadcast) .video-placeholder {
 		position: relative;
 		overflow: hidden;
 		height: 100%;
@@ -4031,18 +3801,18 @@ const sections = [
 		text-align: center;
 	}
 
-	.video-placeholder[hidden] {
+	:where(.broadcast) .video-placeholder[hidden] {
 		display: none;
 	}
 
-	.video-placeholder::after {
+	:where(.broadcast) .video-placeholder::after {
 		position: absolute;
 		inset: 0;
 		background: rgb(0 0 0 / 48%);
 		content: '';
 	}
 
-	.video-placeholder img {
+	:where(.broadcast) .video-placeholder img {
 		position: absolute;
 		inset: 0;
 		width: 100%;
@@ -4050,12 +3820,12 @@ const sections = [
 		object-fit: cover;
 	}
 
-	.video-placeholder > :not(img) {
+	:where(.broadcast) .video-placeholder > :not(img) {
 		position: relative;
 		z-index: 1;
 	}
 
-	.placeholder-play {
+	:where(.broadcast) .placeholder-play {
 		width: 34px;
 		height: 34px;
 		display: grid;
@@ -4067,14 +3837,14 @@ const sections = [
 		font-size: 10px;
 	}
 
-	.video-placeholder p {
+	:where(.broadcast) .video-placeholder p {
 		margin: 0 0 7px;
 		font-size: clamp(14px, 2vw, 19px);
 		font-weight: 700;
 		letter-spacing: -0.03em;
 	}
 
-	.placeholder-caption,
+	:where(.broadcast) .placeholder-caption,
 	.ad-space > span,
 	.card-index,
 	.card-status {
@@ -4084,11 +3854,11 @@ const sections = [
 		letter-spacing: 0.12em;
 	}
 
-	.video-placeholder .placeholder-caption {
+	:where(.broadcast) .video-placeholder .placeholder-caption {
 		color: #FFFFFF;
 	}
 
-	.audio-bar {
+	:where(.broadcast) .audio-bar {
 		min-height: 124px;
 		flex: 1;
 		display: grid;
@@ -4099,7 +3869,7 @@ const sections = [
 		padding: 12px 16px;
 	}
 
-	.listener-stats {
+	:where(.broadcast) .listener-stats {
 		display: flex;
 		justify-content: flex-start;
 		padding: 8px 16px 10px;
@@ -4111,30 +3881,30 @@ const sections = [
 		letter-spacing: 0.1em;
 	}
 
-	.listener-stats strong {
+	:where(.broadcast) .listener-stats strong {
 		margin-left: 5px;
 		color: var(--c-accent);
 		font-size: 12px;
 		letter-spacing: 0;
 	}
 
-	.icon,
+	:where(.broadcast) .icon,
 	.card-symbol {
 		color: var(--c-accent);
 	}
 
-	.icon {
+	:where(.broadcast) .icon {
 		font-size: 26px;
 	}
 
-	.audio-copy {
+	:where(.broadcast) .audio-copy {
 		min-width: 0;
 		flex: 1;
 		display: grid;
 		gap: 4px;
 	}
 
-	.audio-copy strong {
+	:where(.broadcast) .audio-copy strong {
 		display: -webkit-box;
 		overflow: hidden;
 		-webkit-box-orient: vertical;
@@ -4144,13 +3914,13 @@ const sections = [
 		overflow-wrap: anywhere;
 	}
 
-	.audio-copy span {
+	:where(.broadcast) .audio-copy span {
 		overflow-wrap: anywhere;
 		color: var(--c-on-stage-muted);
 		font-size: 12px;
 	}
 
-	.audio-player {
+	:where(.broadcast) .audio-player {
 		grid-column: 1 / -1;
 		width: 100%;
 		max-width: 320px;
@@ -4167,17 +3937,17 @@ const sections = [
 	}
 
 	/* The Video.js player shows the track metadata itself, so it takes the whole bar. */
-	.audio-bar.has-videojs {
+	:where(.broadcast) .audio-bar.has-videojs {
 		display: flex;
 		padding: 16px 18px;
 	}
 
-	.audio-bar.has-videojs .icon,
-	.audio-bar.has-videojs .audio-copy {
+	:where(.broadcast) .audio-bar.has-videojs .icon,
+	:where(.broadcast) .audio-bar.has-videojs .audio-copy {
 		display: none;
 	}
 
-	.audio-bar.has-videojs .audio-player {
+	:where(.broadcast) .audio-bar.has-videojs .audio-player {
 		max-width: none;
 		min-width: 0;
 		min-height: 0;
@@ -6052,25 +5822,25 @@ const sections = [
 			font-size: clamp(28px, 8vw, 42px);
 		}
 
-		.video-frame {
+		:where(.broadcast) .video-frame {
 			aspect-ratio: 16 / 9;
 		}
 
-		.audio-bar {
+		:where(.broadcast) .audio-bar {
 			min-height: 124px;
 			gap: 8px 10px;
 			padding: 10px;
 		}
 
-		.audio-bar.has-videojs {
+		:where(.broadcast) .audio-bar.has-videojs {
 			padding: 12px;
 		}
 
-		.audio-copy strong {
+		:where(.broadcast) .audio-copy strong {
 			font-size: 12px;
 		}
 
-		.audio-copy span {
+		:where(.broadcast) .audio-copy span {
 			font-size: 10px;
 		}
 
@@ -6409,7 +6179,7 @@ const sections = [
 			min-height: 140px;
 		}
 
-		.listen-screen .video-frame {
+		.listen-screen :where(.broadcast) .video-frame {
 			aspect-ratio: 16 / 6;
 		}
 
@@ -6425,7 +6195,7 @@ const sections = [
 			min-height: 0;
 		}
 
-		.listen-screen .video-frame {
+		.listen-screen :where(.broadcast) .video-frame {
 			aspect-ratio: 16 / 6;
 		}
 	}
@@ -6468,7 +6238,7 @@ const sections = [
 			transition: none;
 		}
 
-		.broadcast-panel:not([hidden]),
+		:where(.broadcast) .broadcast-panel:not([hidden]),
 		.listener-dialog[open],
 		.listener-dialog::backdrop {
 			animation: none;
@@ -7304,7 +7074,7 @@ const sections = [
 
 	:global(:root[data-theme='night']) .card-index,
 	:global(:root[data-theme='night']) .card-status,
-	:global(:root[data-theme='night']) .placeholder-caption,
+	:global(:root[data-theme='night']) :where(.broadcast) .placeholder-caption,
 	:global(:root[data-theme='night']) .program-count,
 	:global(:root[data-theme='night']) .calendar-date > span,
 	:global(:root[data-theme='night']) .preview-caption,
@@ -7317,11 +7087,11 @@ const sections = [
 	:global(:root[data-theme='night']) .listener-confirmation dt,
 	:global(:root[data-theme='night']) .broadcast-label,
 	:global(:root[data-theme='night']) .on-air,
-	:global(:root[data-theme='night']) .stream-status,
+	:global(:root[data-theme='night']) :where(.broadcast) .stream-status,
 	:global(:root[data-theme='night']) .contact-item > span,
 	:global(:root[data-theme='night']) .ad-space > span,
 	:global(:root[data-theme='night']) .social-topline,
-	:global(:root[data-theme='night']) .listener-stats,
+	:global(:root[data-theme='night']) :where(.broadcast) .listener-stats,
 	:global(:root[data-theme='night']) .live-chat-heading h2,
 	:global(:root[data-theme='night']) .live-chat-heading span,
 	:global(:root[data-theme='night']) .live-chat-mod-control {
@@ -7494,7 +7264,7 @@ const sections = [
 		color: var(--c-on-accent);
 	}
 
-	:global(:root[data-theme='night']) .listener-stats {
+	:global(:root[data-theme='night']) :where(.broadcast) .listener-stats {
 		border-top-color: var(--c-line);
 		background: rgb(8 8 9 / 76%);
 	}

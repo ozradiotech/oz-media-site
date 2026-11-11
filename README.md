@@ -58,7 +58,7 @@ Three things need to run:
 
 News pictures are meant to be landscape 16:9 (best 1600 × 900 px, at least 1200 × 675). Anything narrower than 3:2 is shown whole on a blurred copy of itself instead of being cropped (`imageFrame` in `src/lib/news.ts`, styles in `src/styles/media-fit.css`), on the cards and on the article's lead photo.
 
-On OZ Bandung, once a stream is playing and the visitor scrolls past the broadcast section, a mini player appears at the bottom (`data-station-mini` in `oz-bandung.astro`): what's on, a link back to the player, pause/play (audio only; the livestream is paused in YouTube's own controls) and stop.
+The mini player is one component, `StationDock.astro`, on both OZ News and OZ Bandung, and it always holds the station itself (`data-station`), so it has the same controls everywhere. On OZ News the client router carries the playing station into it. On OZ Bandung (`<StationDock persist={false} />`) the page script moves the station into it once a stream is playing and the visitor has scrolled past the broadcast section, and back just before the section scrolls into view (`moveBefore` where the browser has it, so the livestream keeps playing). OZ Bandung's own styles for the station's parts are written as `:where(.broadcast) …`, so they stop applying once the station is in the dock and it looks exactly as on OZ News; keep new station styles that way.
 
 On-ground activity cards take their photo's own shape (between 3:4 and 2:1), so posters aren't cropped; the activity popup frames tall photos at 16:9 on a blurred copy of themselves, like OZ News.
 

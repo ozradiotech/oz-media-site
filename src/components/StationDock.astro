@@ -1,17 +1,25 @@
 ---
-// The mini player on the OZ News pages. While OZ Bandung's stream plays, the client router (StationRouter.astro)
+// The mini player. On the OZ News pages, while OZ Bandung's stream plays, the client router (StationRouter.astro)
 // carries the station's broadcast panels (data-station in oz-bandung.astro) into the slot below, still playing, and
-// OZ Bandung's page script keeps driving them. Otherwise the slot stays empty and the dock hidden.
+// OZ Bandung's page script keeps driving them. On OZ Bandung itself (persist={false}) the page script moves the
+// station into the slot once the visitor scrolls past the broadcast section, and back as it comes into view again.
+// Whenever the slot holds no streaming station, the dock is hidden.
+interface Props {
+	/** Whether the slot receives the station from the client router (the news pages). OZ Bandung fills it itself. */
+	persist?: boolean;
+}
+
+const { persist = true } = Astro.props;
 ---
 
-<aside class="station-dock" aria-label="OZ Radio Bandung player">
+<aside class="station-dock" data-station-dock aria-label="OZ Radio Bandung player">
 	<div class="station-dock-bar">
 		<a class="station-dock-link" href="/oz-bandung#listen"><span class="station-dock-dot" aria-hidden="true"></span>OZ RADIO BANDUNG</a>
 		<button class="station-dock-stop" type="button" data-station-stop aria-label="Stop the stream">
 			<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
 		</button>
 	</div>
-	<div data-station-placeholder transition:persist="oz-station"></div>
+	{persist ? <div data-station-placeholder data-station-dock-slot transition:persist="oz-station"></div> : <div data-station-dock-slot></div>}
 </aside>
 
 <style is:global>
