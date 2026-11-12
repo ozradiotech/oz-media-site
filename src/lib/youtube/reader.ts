@@ -41,8 +41,6 @@ const isRestricted = async (ctx: ReaderContext, uid: string) => {
 	return blocked;
 };
 
-export const clearRestrictionCache = () => restrictions.clear();
-
 export type PageResult = { imported: number; skippedEcho: number; skipped: number };
 
 export const handlePage = async (ctx: ReaderContext, page: ChatPage, initial: boolean): Promise<PageResult> => {

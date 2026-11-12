@@ -36,7 +36,6 @@ const tiktokUrl = station.tiktok.url;
 const tiktokHandle = profileHandle(tiktokUrl);
 // Livestream: a pinned videoId always plays that video. Otherwise /api/youtube-live finds what the channel is streaming
 // (the channel connected to the YouTube integration when channelId is empty) and says "not live right now" if nothing.
-const hasYoutubeLive = true;
 
 // Published items only, in the order set in the CMS. Unpublished announcers are left out as program hosts too.
 // A CMS outage empties a section rather than breaking the page.
@@ -318,32 +317,21 @@ const sections = [
 								</div>
 								<div class="broadcast-panel" data-broadcast-panel="video" hidden>
 									<div class="video-frame">
-										{hasYoutubeLive ? (
-											<>
-												<iframe
-													title="OZ Bandung YouTube livestream"
-													data-youtube-live
-													data-youtube-video-id={youtubeLive.videoId || undefined}
-													data-youtube-channel={youtubeLive.channelId || undefined}
-													allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-													referrerpolicy="strict-origin-when-cross-origin"
-													allowfullscreen
-													hidden
-												></iframe>
-												<div class="video-placeholder" data-youtube-offline hidden>
-													<img src="/images/studio-livestream.jpg" alt="" aria-hidden="true" loading="lazy" decoding="async" />
-													<p>We're not live right now</p>
-													<a class="placeholder-caption" href={youtubeChannelUrl} target="_blank" rel="noopener noreferrer">CATCH OUR PAST STREAMS ON YOUTUBE ↗</a>
-												</div>
-											</>
-										) : (
-											<div class="video-placeholder">
-												<img src="/images/studio-livestream.jpg" alt="" aria-hidden="true" loading="lazy" decoding="async" />
-												<span class="placeholder-play" aria-hidden="true">▶</span>
-												<p>Studio stream coming soon</p>
-												<span class="placeholder-caption">YOUTUBE LIVESTREAM · CHANNEL TO BE ADDED</span>
-											</div>
-										)}
+										<iframe
+											title="OZ Bandung YouTube livestream"
+											data-youtube-live
+											data-youtube-video-id={youtubeLive.videoId || undefined}
+											data-youtube-channel={youtubeLive.channelId || undefined}
+											allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+											referrerpolicy="strict-origin-when-cross-origin"
+											allowfullscreen
+											hidden
+										></iframe>
+										<div class="video-placeholder" data-youtube-offline hidden>
+											<img src="/images/studio-livestream.jpg" alt="" aria-hidden="true" loading="lazy" decoding="async" />
+											<p>We're not live right now</p>
+											<a class="placeholder-caption" href={youtubeChannelUrl} target="_blank" rel="noopener noreferrer">CATCH OUR PAST STREAMS ON YOUTUBE ↗</a>
+										</div>
 									</div>
 									<div class="listener-stats live-viewer-stats" data-live-viewers aria-live="polite" aria-label="Livestream viewers" hidden>
 										<span class="live-viewer-flag">LIVE</span>
@@ -3890,18 +3878,6 @@ const sections = [
 	:where(.broadcast) .video-placeholder > :not(img) {
 		position: relative;
 		z-index: 1;
-	}
-
-	:where(.broadcast) .placeholder-play {
-		width: 34px;
-		height: 34px;
-		display: grid;
-		place-items: center;
-		margin-bottom: 8px;
-		border: 1px solid var(--c-accent);
-		border-radius: 50%;
-		color: var(--c-accent);
-		font-size: 10px;
 	}
 
 	:where(.broadcast) .video-placeholder p {

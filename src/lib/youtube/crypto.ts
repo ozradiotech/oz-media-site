@@ -1,5 +1,5 @@
 // Encryption for the YouTube refresh token at rest (AES-256-GCM), plus the small hashing helpers the sync uses.
-import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { createCipheriv, createDecipheriv, createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 
 /** YOUTUBE_TOKEN_ENCRYPTION_KEY: 32 bytes as 64 hex characters or base64. Throws on anything else. */
 export const parseEncryptionKey = (value: string): Buffer => {
@@ -29,8 +29,6 @@ export const decryptSecret = (sealed: string, key: Buffer) => {
 export const hashKey = (value: string, length = 22) => createHash('sha256').update(value).digest('base64url').slice(0, length);
 
 export const randomToken = (bytes = 24) => randomBytes(bytes).toString('base64url');
-
-export const sign = (value: string, secret: string | Buffer) => createHmac('sha256', secret).update(value).digest('base64url');
 
 export const safeEqual = (a: string, b: string) => {
 	const left = Buffer.from(a);
