@@ -290,6 +290,10 @@ Local development shares the production Firebase project, so a local worker woul
 1. oz-cms: deploy the branch. The migration `20261112_093106_livestream_analytics` runs on start (`prodMigrations`); it only adds tables.
 2. Site: add the variables to the VPS `.env`, deploy, restart. Then connect the channel from `/analytics`.
 
+## Housekeeping
+
+The daily `/api/chat-cleanup` job (aaPanel cron; see README.md) also clears the sync's own records once they are a day old: outgoing messages with their queue place and "sent" markers, the markers of YouTube messages already copied in, unfinished Google sign-ins and stale viewer sessions (`src/lib/youtube/cleanup.ts`). They are only needed for minutes, while a message could still come back from YouTube. No database index is needed: the records are keyed by time. The livestream history in the CMS is kept.
+
 ## Known limitations
 
 - Website messages appear on YouTube **as the OZ channel**, with the website name in the text. YouTube's API cannot post as anyone else.

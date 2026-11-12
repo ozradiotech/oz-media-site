@@ -89,7 +89,13 @@ The `payload` branch runs on the same aaPanel VPS as ozradio.id, next to it, fro
 | Port | 4321 | 4322 |
 | Content | Decap (Markdown in Git) | Payload at `https://cms.ozmedianet.com` (`ozradiotech/oz-cms`, Docker, port 3000) |
 
-Both sites share the Firebase project, so the live chat is one room on both. ozradio.id's daily `/api/chat-cleanup` cron covers it.
+Both sites share the Firebase project, so the live chat is one room on both. ozradio.id now redirects here, so its cron no longer runs: ozmedianet.com needs its own daily clean-up job. In aaPanel → **Cron**, add a daily **Shell script** task (any quiet hour) with your `CRON_SECRET` from `.env`:
+
+```sh
+curl -s -H "Authorization: Bearer <CRON_SECRET>" https://ozmedianet.com/api/chat-cleanup
+```
+
+It answers with what it removed: chat messages older than a day, idle rate-limit records, and the YouTube sync's old records (see `docs/youtube-unified-chat.md`).
 
 **First setup** (done once, as root):
 
@@ -236,7 +242,7 @@ are git-ignored and kept. Vercel Cron does not run here; an aaPanel cron calls `
 | `/api/now-playing` | `src/pages/api/now-playing.ts` | Now-playing API route. |
 | `/api/chat` | `src/pages/api/chat.ts` | Sends and reports live chat messages (signed-in users). |
 | `/api/chat-mod` | `src/pages/api/chat-mod.ts` | Moderator actions: delete, mute, ban, slow mode. |
-| `/api/chat-cleanup` | `src/pages/api/chat-cleanup.ts` | Daily cron: removes chat messages older than 24 hours. |
+| `/api/chat-cleanup` | `src/pages/api/chat-cleanup.ts` | Daily cron: removes chat messages older than 24 hours, and the YouTube sync's old records (`src/lib/youtube/cleanup.ts`). |
 | `/api/cms-auth` and `/api/cms-callback` | `src/pages/api/cms-auth.ts`, `src/pages/api/cms-callback.ts` | GitHub OAuth flow for Decap CMS. |
 | `/uploads/*` | `public/uploads/` | CMS-uploaded image and media files. |
 

@@ -7,13 +7,22 @@ import { createHash } from 'node:crypto';
 // Firebase's push id alphabet, in ASCII order, so keys sort by time.
 const alphabet = '-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz';
 
-export const timeKey = (time: number, seed: string) => {
+/** The 8 characters a push id starts with: the time, so keys sort by it. */
+export const timePrefix = (time: number) => {
 	let remaining = Math.max(0, Math.floor(time));
 	let head = '';
 	for (let index = 0; index < 8; index++) {
 		head = alphabet[remaining % 64] + head;
 		remaining = Math.floor(remaining / 64);
 	}
+	return head;
+};
+
+/** The last key a push id made at `time` can have: everything up to `time` sorts at or before it. */
+export const lastKeyAt = (time: number) => `${timePrefix(time)}${alphabet.at(-1)!.repeat(12)}`;
+
+export const timeKey = (time: number, seed: string) => {
+	const head = timePrefix(time);
 	const bytes = createHash('sha256').update(seed).digest();
 	let tail = '';
 	for (let index = 0; index < 12; index++) tail += alphabet[bytes[index] % 64];

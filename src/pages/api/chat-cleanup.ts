@@ -1,6 +1,8 @@
 import type { APIRoute } from 'astro';
 import { CRON_SECRET } from 'astro:env/server';
 import { chatErrorResponse, chatRooms, db, isChatServerConfigured } from '../../lib/chat-server';
+import { pruneYoutube, type KeyRange } from '../../lib/youtube/cleanup';
+import { firebaseStore } from '../../lib/youtube/runtime';
 
 export const prerender = false;
 
@@ -22,8 +24,12 @@ const removeOlderThan = async (path: string, field: string, cutoff: number, keep
 	return { keys, more: Object.keys(old ?? {}).length === batchSize };
 };
 
-// Run daily by Vercel Cron (vercel.json), which sends `Authorization: Bearer $CRON_SECRET`.
-// When self-hosting, call it the same way from a system cron job.
+/** Children of `path` by key, up to `endKey`: the YouTube sync's records are keyed by time (src/lib/youtube/cleanup.ts). */
+const keyRange: KeyRange = (path, endKey, limit) =>
+	db('GET', path, undefined, { orderBy: '"$key"', endAt: JSON.stringify(endKey), limitToFirst: String(limit) });
+
+// Run daily. Self-hosted (ozmedianet.com): an aaPanel cron job calls it with `Authorization: Bearer $CRON_SECRET`
+// (see README.md). On Vercel, Vercel Cron does the same (vercel.json).
 export const GET: APIRoute = async ({ request }) => {
 	if (!CRON_SECRET || request.headers.get('Authorization') !== `Bearer ${CRON_SECRET}`) {
 		return new Response('Unauthorized.', { status: 401 });
@@ -54,7 +60,10 @@ export const GET: APIRoute = async ({ request }) => {
 			if (!more) break;
 		}
 
-		return Response.json({ removed, users });
+		// The YouTube sync's own records (sent and imported markers, the outgoing queue), whether or not it is set up.
+		const youtube = await pruneYoutube(firebaseStore, keyRange, now, { lifetimeMs: messageLifetime, batchSize, maxBatches });
+
+		return Response.json({ removed, users, youtube });
 	} catch (error) {
 		return chatErrorResponse(error);
 	}
