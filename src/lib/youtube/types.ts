@@ -112,7 +112,8 @@ export type SyncState = {
 
 /** chat/rooms/{room}/meta/youtube. Public: the page reads it for the indicators and the viewer counts. */
 export type PublicLiveState = {
-	state: 'offline' | 'upcoming' | 'live';
+	/** 'unknown': the YouTube quota is used up, so whether it is live can't be checked until it resets. */
+	state: 'offline' | 'upcoming' | 'live' | 'unknown';
 	/** True only while messages actually cross over in at least one direction. */
 	sync: boolean;
 	/** The connected channel the state is about (public anyway), so /api/youtube-live can trust it for that channel. */

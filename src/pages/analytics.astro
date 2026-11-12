@@ -2440,7 +2440,9 @@ const monthLabel = (month: string) =>
 			const isLive = live.state === 'live';
 			livestreamLiveStatus.textContent = isLive
 				? 'Live on YouTube now. These are live measurements, refreshed every 30 seconds.'
-				: live.state === 'upcoming' ? 'A broadcast is scheduled; not live yet.' : 'Not live on YouTube right now.';
+				: live.state === 'upcoming' ? 'A broadcast is scheduled; not live yet.'
+					: live.state === 'unknown' ? 'The YouTube quota is used up for today, so whether we are live (and the counts) is unknown until it resets at midnight Pacific time.'
+						: 'Not live on YouTube right now.';
 			const youtube = isLive && known(live.youtubeViewers) ? live.youtubeViewers : null;
 			const website = isLive && known(live.websiteViewers) ? live.websiteViewers : null;
 			livestreamTiles.innerHTML = [

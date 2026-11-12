@@ -113,7 +113,7 @@ export class YoutubeSync {
 			counts: this.state.counts,
 			onChatGone: () => this.soon('broadcast', 0),
 			onAuthRevoked: (error) => this.authRevoked(error),
-			onQuotaExhausted: () => this.recordError('YouTube quota used up for today; sync resumes after midnight Pacific time.', 'quota'),
+			onQuotaExhausted: () => void this.quotaExhausted(),
 		};
 		this.readerContext = {
 			store: deps.store,
@@ -191,6 +191,23 @@ export class YoutubeSync {
 		this.deps.log.warn(message);
 	}
 
+	/**
+	 * YouTube refused for lack of quota: nothing can be asked until midnight Pacific. The last viewer count would only go
+	 * stale, so it is dropped, and the public state says "unknown" rather than claiming the broadcast is still live.
+	 */
+	async quotaExhausted() {
+		this.quota.exhaust(this.deps.clock.now());
+		this.state.youtubeViewers = null;
+		this.state.youtubeViewersAt = null;
+		this.recordError('YouTube quota used up for today; sync resumes after midnight Pacific time.', 'quota');
+		await this.publish().catch(() => undefined);
+	}
+
+	/** While the quota is used up, a broadcast we were following (or waiting for) can't be checked. */
+	private isBlind(now: number) {
+		return this.quota.isExhausted(now) && (this.state.state === 'LIVE' || this.state.state === 'UPCOMING');
+	}
+
 	private authRevoked(error: YoutubeApiError) {
 		this.recordError(`YouTube access was refused (${error.reason || error.message}). Connect the channel again.`, 'auth');
 		this.stopReader();
@@ -211,9 +228,10 @@ export class YoutubeSync {
 	/** The public summary under the room's meta. Written only when something changed. */
 	async publish() {
 		const now = this.deps.clock.now();
-		const live = this.state.state === 'LIVE';
+		const blind = this.isBlind(now);
+		const live = this.state.state === 'LIVE' && !blind;
 		const state: PublicLiveState = {
-			state: live ? 'live' : this.state.state === 'UPCOMING' ? 'upcoming' : 'offline',
+			state: blind ? 'unknown' : live ? 'live' : this.state.state === 'UPCOMING' ? 'upcoming' : 'offline',
 			sync: this.isSyncing(),
 			channelId: this.isConnected() ? this.auth?.channelId ?? null : null,
 			videoId: live ? this.state.videoId : null,
@@ -262,7 +280,7 @@ export class YoutubeSync {
 		} catch (error) {
 			this.errorsInARow++;
 			const apiError = error instanceof YoutubeApiError ? error : null;
-			if (apiError?.kind === 'quota') this.quota.exhaust(now);
+			if (apiError?.kind === 'quota') await this.quotaExhausted();
 			if (apiError?.kind === 'auth_revoked') this.authRevoked(apiError);
 			observation = { kind: 'error', message: error instanceof Error ? error.message : String(error) };
 			this.recordError(`Broadcast check failed: ${observation.message}`, apiError?.reason);
@@ -379,8 +397,7 @@ export class YoutubeSync {
 				const apiError = error instanceof YoutubeApiError ? error : new YoutubeApiError('transient', 0, 'unknown', String(error));
 				this.recordError(`Reading YouTube chat failed: ${apiError.reason || apiError.message}`, apiError.reason);
 				if (apiError.kind === 'quota') {
-					this.quota.exhaust(this.deps.clock.now());
-					await this.publish();
+					await this.quotaExhausted();
 					continue;
 				}
 				if (apiError.kind === 'chat_gone') {
@@ -428,6 +445,8 @@ export class YoutubeSync {
 
 	async takeSnapshot() {
 		if (this.state.state !== 'LIVE' || !this.state.broadcastId || !this.deps.analytics) return null;
+		// Quota used up: neither count is known (website heartbeats only count while it is known to be live).
+		if (this.isBlind(this.deps.clock.now())) return null;
 		return recordSnapshot(this.deps.analytics, {
 			broadcastId: this.state.broadcastId,
 			videoId: this.state.videoId ?? this.state.broadcastId,

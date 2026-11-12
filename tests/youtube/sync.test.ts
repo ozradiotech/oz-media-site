@@ -210,6 +210,32 @@ describe('website → YouTube', () => {
 		assert.equal(context.youtube.inserted.length, 0);
 	});
 
+	test('10b. quota used up while live: status unknown, no stale count or snapshot; back after the reset', async () => {
+		const context = await setup();
+		await goLive(context);
+		await context.sync.refreshWebsiteViewers();
+		assert.equal((await publicState(context.store))?.youtubeViewers, 1250);
+		context.youtube.failures.set('liveDetails', [new YoutubeApiError('quota', 403, 'quotaExceeded', 'quota')]);
+		await context.sync.checkBroadcast();
+		const blind = await publicState(context.store);
+		assert.equal(blind?.state, 'unknown', 'not claimed live any more');
+		assert.equal(blind?.youtubeViewers, null, 'the last count is not left frozen');
+		assert.equal(blind?.websiteViewers, null);
+		assert.equal(blind?.sync, false);
+		assert.equal(await context.sync.takeSnapshot(), null, 'no history while nothing can be measured');
+		assert.equal(await forwardingTarget(context.store, context.clock.now()), null);
+		// Further checks ask YouTube nothing until the reset.
+		const calls = context.youtube.calls.length;
+		await context.sync.checkBroadcast();
+		assert.equal(context.youtube.calls.length, calls);
+		// A day later: checked again, live again with a fresh count.
+		context.clock.advance(24 * 3_600_000);
+		await context.sync.checkBroadcast();
+		const back = await publicState(context.store);
+		assert.equal(back?.state, 'live');
+		assert.equal(back?.youtubeViewers, 1250);
+	});
+
 	test('the per-minute limit holds messages back instead of flooding YouTube', async () => {
 		const context = await setup();
 		await goLive(context);

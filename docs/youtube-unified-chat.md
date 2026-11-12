@@ -229,7 +229,9 @@ At the default 10,000 units/day:
 | `liveChatMessages.list` (fallback) | 5 per call | up to 360/hour at the 10 s floor = 1,800 units/hour |
 | `liveChatMessages.insert` | **20** per website message | |
 
-**Website → YouTube is the expensive part:** about 400 forwarded messages a day after detection and reading. The worker keeps its own count (by Pacific day, shown in the panel), keeps 500 units in reserve for detection and reading, stops sending before the limit, and treats `quotaExceeded` from YouTube as final until the reset. For a busy chat, request a higher quota or turn **Website → YouTube** off and keep YouTube → website on.
+**Website → YouTube is the expensive part:** about 400 forwarded messages a day after detection and reading. The worker keeps its own count (by Pacific day, shown in the panel), keeps 500 units in reserve for detection and reading, stops sending before the limit, and treats `quotaExceeded` from YouTube as final until the reset (midnight Pacific: 15:00 WIB, or 14:00 during US daylight saving).
+
+While the quota is used up, nothing can be asked of YouTube, so the site doesn't pretend to know. Posting and reading the YouTube chat stop, and website messages stay on the website, their senders seeing "not sent to YouTube". If a broadcast was live, its public status becomes **unknown**: the player hides the viewer bar instead of showing a frozen YouTube count, "YOUTUBE CHAT LINKED" goes, website viewers aren't counted, and no history snapshots are stored. The player can still find the stream through YouTube's public page. Everything resumes by itself at the next check after the reset. For a busy chat, request a higher quota or turn **Website → YouTube** off and keep YouTube → website on.
 
 ## Testing
 
