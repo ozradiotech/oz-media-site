@@ -56,8 +56,12 @@ export type StoredChatMessage = {
 	ys?: DeliveryStatus;
 };
 
-/** chat/private/youtube/settings. Both default to on. */
-export type SyncSettings = { toYoutube: boolean; fromYoutube: boolean };
+/**
+ * chat/private/youtube/settings, switched in the CMS (Broadcast → YouTube, Live chat → YouTube chat sync).
+ * toYoutube / fromYoutube: the two directions (on by default). autoSaver: economise automatically as the day's quota is
+ * used (on by default). saver: economise now regardless (off by default). See src/lib/youtube/saver.ts.
+ */
+export type SyncSettings = { toYoutube: boolean; fromYoutube: boolean; autoSaver: boolean; saver: boolean };
 
 /** chat/private/youtube/auth. The refresh token is encrypted (crypto.ts) and never leaves the server. */
 export type StoredAuth = {
@@ -83,6 +87,8 @@ export type OutboxEntry = {
 	broadcastId: string;
 	liveChatId: string;
 	ytId?: string;
+	/** Sent by a chat moderator: still posted when the strict quota saver holds back everyone else's. */
+	moderator?: boolean;
 	error?: string;
 	/** Set when a send timed out with no answer: it may have reached YouTube, so the reader looks for it first. */
 	uncertainSince?: number;
@@ -108,6 +114,8 @@ export type SyncState = {
 	/** Quota units used, by Pacific day (YouTube's quota day), as this worker counts them. */
 	quota: { day: string; used: number; exhaustedUntil?: number };
 	counts: { sent: number; failed: number; imported: number };
+	/** The quota saver's level when last saved (saver.ts), for the CMS. */
+	saver?: { level: 0 | 1 | 2; reason: 'off' | 'manual' | 'auto' };
 };
 
 /** chat/rooms/{room}/meta/youtube. Public: the page reads it for the indicators and the viewer counts. */

@@ -2,6 +2,7 @@
 // No network, no credentials.
 import type { Broadcast, ChatPage, LiveDetails, YoutubeApi, YoutubeChatItem } from '../../src/lib/youtube/api.ts';
 import { YoutubeApiError } from '../../src/lib/youtube/api.ts';
+import type { PageCheck } from '../../src/lib/youtube/page-check.ts';
 import type { AnalyticsStore, BroadcastDoc, SnapshotDoc } from '../../src/lib/youtube/snapshots.ts';
 import { YoutubeSync, type SyncConfig } from '../../src/lib/youtube/sync.ts';
 import type { Clock, Logger, Store } from '../../src/lib/youtube/types.ts';
@@ -147,6 +148,7 @@ export const liveBroadcast = (id = 'vid00000001', liveChatId = 'chat-1'): Broadc
 
 export const liveDetails = (videoId = 'vid00000001', overrides: Partial<LiveDetails> = {}): LiveDetails => ({
 	videoId,
+	title: 'OZ Bandung live',
 	concurrentViewers: 1250,
 	activeLiveChatId: 'chat-1',
 	actualStartTime: '2026-11-12T11:55:00Z',
@@ -223,7 +225,7 @@ export const testConfig: SyncConfig = {
 };
 
 /** A sync with a connected channel, ready to drive step by step (no timers). */
-export const setup = async (options: { connected?: boolean } = {}) => {
+export const setup = async (options: { connected?: boolean; pageCheck?: PageCheck } = {}) => {
 	const store = new MemoryStore();
 	const clock = new TestClock();
 	const youtube = new FakeYoutube();
@@ -248,6 +250,7 @@ export const setup = async (options: { connected?: boolean } = {}) => {
 		analytics,
 		ownerId: 'test-process',
 		resetCredentials: () => {},
+		pageCheck: options.pageCheck,
 	}, testConfig);
 	await sync.load();
 	return { store, clock, youtube, analytics, sync };

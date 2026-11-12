@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { defaultStationSettings } from '../../lib/station-defaults';
+import { createPageCheck } from '../../lib/youtube/page-check';
 import { isYoutubeConfigured, publicLiveState } from '../../lib/youtube/runtime';
 
 // `?channel=UC…` picks the YouTube channel. Without one: the channel connected to the YouTube integration, or else the
@@ -21,31 +22,14 @@ const fromIntegration = async (channel: string): Promise<LiveStatus | null> => {
 	return state.state === 'live' && state.videoId ? { live: true, videoId: state.videoId, source: 'api' } : { live: false, videoId: '', source: 'api' };
 };
 
-// 2. Otherwise YouTube's page. The channel live embed (embed/live_stream?channel=…) answers "This video is unavailable"
-//    for this channel, while the embed for the broadcast itself plays, so the broadcast is looked up here: while a
-//    channel is live, youtube.com/channel/<id>/live is that broadcast's watch page. No API key, which also means this
-//    reads YouTube's markup and needs revisiting if YouTube changes it. It only ever finds *public* streams, and YouTube
-//    can take a few minutes after going live before /live points at the stream.
+// 2. Otherwise YouTube's public page for the channel (src/lib/youtube/page-check.ts): free, but it only sees public
+//    broadcasts, and YouTube can take a few minutes after going live before it points at the stream. (The channel's
+//    live embed, embed/live_stream?channel=…, answers "This video is unavailable" for this channel, so the broadcast's own
+//    video is looked up and embedded instead.)
+const pageCheck = createPageCheck();
 const fromPage = async (channel: string): Promise<LiveStatus> => {
-	const response = await fetch(`https://www.youtube.com/channel/${channel}/live`, {
-		headers: {
-			'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36',
-			'Accept-Language': 'en',
-			// Skips the cookie consent page YouTube shows to visitors from some regions.
-			Cookie: 'SOCS=CAI',
-		},
-		signal: AbortSignal.timeout(5000),
-	});
-	if (!response.ok) throw new Error('YouTube live page request failed.');
-
-	const html = await response.text();
-	// Without a broadcast the page is the channel page, which has neither of these.
-	const videoId = html.match(/"videoDetails":\{"videoId":"([\w-]{11})"/)?.[1]
-		?? html.match(/<link rel="canonical" href="https:\/\/www\.youtube\.com\/watch\?v=([\w-]{11})"/)?.[1]
-		?? '';
-	// A scheduled broadcast also has a watch page; only a running one says it is live, in either of two places.
-	const live = Boolean(videoId) && /"isLive":true|"isLiveNow":true/.test(html);
-	return { live, videoId: live ? videoId : '', source: 'page' };
+	const page = await pageCheck(channel);
+	return page.status === 'live' ? { live: true, videoId: page.videoId, source: 'page' } : { live: false, videoId: '', source: 'page' };
 };
 
 export const GET: APIRoute = async ({ url }) => {

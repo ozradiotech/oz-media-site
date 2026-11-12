@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import { YOUTUBE_DAILY_QUOTA } from 'astro:env/server';
 import { ChatError, chatErrorResponse, readJsonBody } from '../../../lib/chat-server';
 import { requireLivestreamAccess } from '../../../lib/admin-access';
 import { revokeToken } from '../../../lib/youtube/api';
@@ -47,7 +48,8 @@ export const GET: APIRoute = async ({ request }) => {
 				readerMode: state?.readerMode ?? null,
 				updatedAt: state?.updatedAt ?? null,
 				lastError: state?.lastError ?? null,
-				quota: state?.quota ?? null,
+				quota: state?.quota ? { ...state.quota, limit: YOUTUBE_DAILY_QUOTA } : null,
+				saver: state?.saver ?? null,
 				counts: state?.counts ?? null,
 				workerRunning: Boolean(lease && lease.until > Date.now()),
 			},
@@ -73,7 +75,7 @@ export const POST: APIRoute = async ({ request }) => {
 
 		if (body.action === 'settings') {
 			const update: Record<string, boolean> = {};
-			for (const name of ['toYoutube', 'fromYoutube'] as const) {
+			for (const name of ['toYoutube', 'fromYoutube', 'autoSaver', 'saver'] as const) {
 				if (name in body) {
 					if (typeof body[name] !== 'boolean') throw new ChatError(400, `${name} must be true or false.`);
 					update[name] = body[name] as boolean;

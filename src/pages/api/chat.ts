@@ -111,7 +111,7 @@ const send = async (user: DecodedIdToken, room: string, input: unknown, tab: str
 		db('PATCH', `chat/private/users/${user.uid}`, { last: now, lastText: key }),
 	]);
 	if (youtubeTarget) {
-		await queueForYoutube({ messageId: id, room, name: message.n, text: safeText, target: youtubeTarget }).catch(async (error) => {
+		await queueForYoutube({ messageId: id, room, name: message.n, text: safeText, target: youtubeTarget, moderator }).catch(async (error) => {
 			console.error('[youtube] Could not queue a message for YouTube:', error);
 			await db('PATCH', `chat/rooms/${room}/messages/${id}`, { ys: 'failed' }).catch(() => undefined);
 		});

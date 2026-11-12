@@ -2,12 +2,13 @@
 // sync worker posts it to YouTube as the OZ channel. The chat never waits on YouTube.
 import { YoutubeApiError, type YoutubeApi } from './api.ts';
 import { hashKey } from './crypto.ts';
-import { formatForYoutube } from './normalize.ts';
+import { formatForYoutube, isWebsiteEcho, websitePrefix, youtubeMaxLength } from './normalize.ts';
 import { paths } from './paths.ts';
 import type { QuotaTracker } from './quota.ts';
+import type { SaverTuning } from './saver.ts';
 import type { Clock, Logger, OutboxEntry, StoredAuth, Store, SyncSettings, SyncState } from './types.ts';
 
-export const defaultSettings: SyncSettings = { toYoutube: true, fromYoutube: true };
+export const defaultSettings: SyncSettings = { toYoutube: true, fromYoutube: true, autoSaver: true, saver: false };
 
 export const readSettings = async (store: Store): Promise<SyncSettings> => ({
 	...defaultSettings,
@@ -30,7 +31,7 @@ export const forwardingTarget = async (store: Store, now: number): Promise<Forwa
 };
 
 /** Queues a saved website message for YouTube. One multi-path write, keyed by the message id, so it can't be doubled. */
-export const enqueue = (store: Store, now: number, input: { messageId: string; room: string; name: string; text: string; target: ForwardingTarget }) => {
+export const enqueue = (store: Store, now: number, input: { messageId: string; room: string; name: string; text: string; target: ForwardingTarget; moderator?: boolean }) => {
 	const entry: OutboxEntry = {
 		room: input.room,
 		text: formatForYoutube(input.name, input.text),
@@ -41,6 +42,7 @@ export const enqueue = (store: Store, now: number, input: { messageId: string; r
 		broadcastId: input.target.broadcastId,
 		liveChatId: input.target.liveChatId,
 	};
+	if (input.moderator) entry.moderator = true;
 	return store.patch('', {
 		[`${paths.outbox}/${input.messageId}`]: entry,
 		[`${paths.queue}/${input.messageId}`]: now,
@@ -83,8 +85,10 @@ export type OutboxContext = {
 	/** The chat currently synced, or null. */
 	live(): ForwardingTarget | null;
 	settings(): SyncSettings;
-	/** Texts of sends that timed out, so the reader can tell they arrived: text → message id. */
-	uncertain: Map<string, string>;
+	/** The quota saver's current tuning (src/lib/youtube/saver.ts). */
+	tuning(): SaverTuning;
+	/** Posts that timed out, by their text, so the reader can tell they arrived: text → the message ids in it. */
+	uncertain: Map<string, { ids: string[]; at: number }>;
 	/** YouTube ids the site posted (hashed), so the reader skips them without asking the database. */
 	sentIds: Set<string>;
 	counts: { sent: number; failed: number };
@@ -105,7 +109,6 @@ export const markSent = async (ctx: OutboxContext, messageId: string, entry: Out
 	const now = ctx.clock.now();
 	const hashed = hashKey(ytId);
 	ctx.sentIds.add(hashed);
-	ctx.uncertain.delete(entry.text);
 	await ctx.store.patch('', {
 		[`${paths.outbox}/${messageId}/status`]: 'sent',
 		[`${paths.outbox}/${messageId}/ytId`]: ytId,
@@ -120,7 +123,6 @@ export const markSent = async (ctx: OutboxContext, messageId: string, entry: Out
 };
 
 export const markFailed = async (ctx: OutboxContext, messageId: string, entry: OutboxEntry, error: string) => {
-	ctx.uncertain.delete(entry.text);
 	await ctx.store.patch('', {
 		[`${paths.outbox}/${messageId}/status`]: 'failed',
 		[`${paths.outbox}/${messageId}/error`]: error,
@@ -139,26 +141,62 @@ export const failAllPending = async (ctx: OutboxContext, error: string) => {
 		if (entry && entry.status === 'pending') await markFailed(ctx, messageId, entry, error);
 		else await ctx.store.patch('', { [`${paths.queue}/${messageId}`]: null });
 	}
+	ctx.uncertain.clear();
 };
 
-/** The reader saw one of our own messages: if it is a send that timed out, it did arrive. */
+/** The reader saw one of our own messages: if it is a post that timed out, it did arrive (every message in it). */
 export const reconcileEcho = async (ctx: OutboxContext, ytId: string, text: string) => {
-	const messageId = ctx.uncertain.get(text);
-	if (!messageId) return false;
-	const entry = await ctx.store.get<OutboxEntry>(`${paths.outbox}/${messageId}`);
-	if (!entry || entry.status !== 'pending') {
-		ctx.uncertain.delete(text);
-		return false;
+	const posted = ctx.uncertain.get(text);
+	if (!posted) return false;
+	ctx.uncertain.delete(text);
+	let matched = false;
+	for (const messageId of posted.ids) {
+		const entry = await ctx.store.get<OutboxEntry>(`${paths.outbox}/${messageId}`);
+		if (!entry || entry.status !== 'pending') continue;
+		await markSent(ctx, messageId, entry, ytId);
+		matched = true;
 	}
-	await markSent(ctx, messageId, entry, ytId);
-	return true;
+	return matched;
 };
 
-/** Sends what is due. Returns whether anything is still waiting. Never throws for a single message's problem. */
+export const bundleSeparator = ' · ';
+
+/** One message's part of a bundle: "Bran: hi". */
+const part = (entry: OutboxEntry) => (isWebsiteEcho(entry.text) ? entry.text.slice(websitePrefix.length) : entry.text);
+
+/**
+ * Website messages that are ready together go to YouTube as one message, `[Website] Bran: hi · Sari: halo`, up to
+ * YouTube's 200 characters; a message on its own is posted unchanged. Each post costs the same quota however many
+ * messages it carries. Oldest first; a message is never split.
+ */
+export const bundle = <T extends { entry: OutboxEntry }>(ready: T[]) => {
+	const bundles: { text: string; items: T[] }[] = [];
+	for (const item of ready) {
+		const last = bundles.at(-1);
+		const joined = last ? `${last.text}${bundleSeparator}${part(item.entry)}` : '';
+		if (last && [...joined].length <= youtubeMaxLength) {
+			last.text = joined;
+			last.items.push(item);
+		} else {
+			bundles.push({ text: item.entry.text, items: [item] });
+		}
+	}
+	return bundles;
+};
+
+/**
+ * Sends what is due. Returns whether anything is still waiting. Never throws for a single message's problem.
+ * Messages wait up to the quota saver's bundle window (src/lib/youtube/saver.ts) for others to share a post with.
+ */
 export const processOutbox = async (ctx: OutboxContext): Promise<boolean> => {
 	const queue = await ctx.store.get<Record<string, number>>(paths.queue);
 	const due = Object.entries(queue ?? {}).sort(([, a], [, b]) => a - b);
+	const tuning = ctx.tuning();
 	let waiting = false;
+	const ready: { messageId: string; entry: OutboxEntry }[] = [];
+
+	// Timed-out posts that were never seen again: nothing more to match them with.
+	for (const [text, posted] of ctx.uncertain) if (ctx.clock.now() - posted.at > ctx.config.staleAfterMs) ctx.uncertain.delete(text);
 
 	for (const [messageId, nextAt] of due) {
 		const now = ctx.clock.now();
@@ -184,64 +222,85 @@ export const processOutbox = async (ctx: OutboxContext): Promise<boolean> => {
 			await markFailed(ctx, messageId, entry, 'stale');
 			continue;
 		}
+		// Strict quota saving: only moderators' messages are worth the quota.
+		if (tuning.moderatorsOnly && !entry.moderator) {
+			await markFailed(ctx, messageId, entry, 'quota_saver');
+			continue;
+		}
 		// Deleted by a moderator (or its author banned) while it waited: it doesn't go to YouTube.
 		if (!(await ctx.store.get<string>(`${paths.messages(entry.room)}/${messageId}/u`))) {
 			await markFailed(ctx, messageId, entry, 'removed');
 			continue;
 		}
-		if (!ctx.quota.canSpend('insertMessage', now, ctx.config.quotaReserve)) {
-			await markFailed(ctx, messageId, entry, 'quota');
+		ready.push({ messageId, entry });
+	}
+
+	if (!ready.length) return waiting;
+	// Nothing has waited out the bundle window yet (retries go at once): more messages may still join.
+	const now = ctx.clock.now();
+	if (!ready.some(({ entry }) => entry.attempts > 0 || now - entry.createdAt >= tuning.bundleWindowMs)) return true;
+
+	for (const post of bundle(ready.sort((a, b) => a.entry.createdAt - b.entry.createdAt))) {
+		const ids = post.items.map(({ messageId }) => messageId);
+		const at = ctx.clock.now();
+		if (!ctx.quota.canSpend('insertMessage', at, ctx.config.quotaReserve)) {
+			for (const { messageId, entry } of post.items) await markFailed(ctx, messageId, entry, 'quota');
 			continue;
 		}
-		if (!ctx.limiter.tryTake(now)) {
+		if (!ctx.limiter.tryTake(at)) {
 			// Over the per-minute limit: try again shortly. Stale messages drop out above.
-			await ctx.store.patch('', { [`${paths.queue}/${messageId}`]: now + 5_000 });
+			await ctx.store.patch('', Object.fromEntries(ids.map((id) => [`${paths.queue}/${id}`, at + 5_000])));
 			waiting = true;
 			continue;
 		}
 
-		const attempts = entry.attempts + 1;
+		const items = post.items.map(({ messageId, entry }) => ({ messageId, entry: { ...entry, attempts: entry.attempts + 1 } }));
 		try {
-			const { id } = await ctx.api.insertMessage(entry.liveChatId, entry.text);
+			const { id } = await ctx.api.insertMessage(items[0].entry.liveChatId, post.text);
 			if (!id) throw new YoutubeApiError('transient', 0, 'no_id', 'YouTube did not return a message id.');
-			await markSent(ctx, messageId, { ...entry, attempts }, id);
+			for (const { messageId, entry } of items) await markSent(ctx, messageId, entry, id);
 		} catch (thrown) {
 			const error = thrown instanceof YoutubeApiError ? thrown : new YoutubeApiError('transient', 0, 'unknown', String(thrown));
-			ctx.log.warn(`Sending ${messageId} to YouTube failed (${error.kind}: ${error.reason || error.message}).`);
-			const failed = { ...entry, attempts };
+			ctx.log.warn(`Posting ${ids.length} message(s) to YouTube failed (${error.kind}: ${error.reason || error.message}).`);
+			const failAll = async (reason: string) => {
+				for (const { messageId, entry } of items) await markFailed(ctx, messageId, entry, reason);
+			};
 			if (error.kind === 'quota') {
 				ctx.quota.exhaust(ctx.clock.now());
 				ctx.onQuotaExhausted();
-				await markFailed(ctx, messageId, failed, 'quota');
+				await failAll('quota');
 				await failAllPending(ctx, 'quota');
 				return false;
 			}
 			if (error.kind === 'auth_revoked') {
 				ctx.onAuthRevoked(error);
-				await markFailed(ctx, messageId, failed, 'auth');
+				await failAll('auth');
 				await failAllPending(ctx, 'auth');
 				return false;
 			}
 			if (error.kind === 'chat_gone') {
-				await markFailed(ctx, messageId, failed, error.reason || 'chat_gone');
+				await failAll(error.reason || 'chat_gone');
 				ctx.onChatGone();
 				continue;
 			}
+			const attempts = Math.max(...items.map(({ entry }) => entry.attempts));
 			if (error.kind === 'permanent' || attempts >= ctx.config.maxAttempts) {
-				await markFailed(ctx, messageId, failed, error.reason || error.kind);
+				await failAll(error.reason || error.kind);
 				continue;
 			}
-			// Timed out: it may have gone through. Wait for the reader to see it before sending it again.
+			// Timed out: it may have gone through. Wait for the reader to see it before posting again.
 			const uncertain = error.kind === 'timeout';
-			if (uncertain) ctx.uncertain.set(entry.text, messageId);
+			if (uncertain) ctx.uncertain.set(post.text, { ids, at: ctx.clock.now() });
 			const retryAt = ctx.clock.now() + (uncertain ? ctx.config.uncertainWaitMs : backoff(attempts));
-			await ctx.store.patch('', {
-				[`${paths.outbox}/${messageId}/attempts`]: attempts,
-				[`${paths.outbox}/${messageId}/nextAt`]: retryAt,
-				[`${paths.outbox}/${messageId}/error`]: error.reason || error.kind,
-				[`${paths.outbox}/${messageId}/uncertainSince`]: uncertain ? ctx.clock.now() : null,
-				[`${paths.queue}/${messageId}`]: retryAt,
-			});
+			const writes: Record<string, unknown> = {};
+			for (const { messageId, entry } of items) {
+				writes[`${paths.outbox}/${messageId}/attempts`] = entry.attempts;
+				writes[`${paths.outbox}/${messageId}/nextAt`] = retryAt;
+				writes[`${paths.outbox}/${messageId}/error`] = error.reason || error.kind;
+				writes[`${paths.outbox}/${messageId}/uncertainSince`] = uncertain ? ctx.clock.now() : null;
+				writes[`${paths.queue}/${messageId}`] = retryAt;
+			}
+			await ctx.store.patch('', writes);
 			waiting = true;
 		}
 	}

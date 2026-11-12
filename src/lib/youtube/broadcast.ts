@@ -42,6 +42,24 @@ export const discover = async (api: YoutubeApi, includeUpcoming: boolean): Promi
 	return upcoming ? { kind: 'upcoming', broadcastId: upcoming.id, title: upcoming.title } : { kind: 'none' };
 };
 
+/**
+ * The free public page (page-check.ts) says this video is live: confirm it with the API (1 unit) and get its live chat.
+ * A video that hasn't started or has ended is not live, whatever the page said.
+ */
+export const confirmLive = async (api: YoutubeApi, videoId: string): Promise<Observation> => {
+	const details = await api.liveDetails(videoId);
+	if (!details || details.actualEndTime || !details.actualStartTime) return { kind: 'none' };
+	return {
+		kind: 'live',
+		broadcastId: videoId,
+		videoId,
+		title: details.title,
+		liveChatId: details.activeLiveChatId,
+		startedAt: time(details.actualStartTime),
+		viewers: details.concurrentViewers,
+	};
+};
+
 /** While live, only the video is checked (1 unit): it carries the viewer count and says when the broadcast ends. */
 export const followLive = async (api: YoutubeApi, current: { broadcastId: string; title: string }): Promise<Observation> => {
 	const details = await api.liveDetails(current.broadcastId);
@@ -51,7 +69,7 @@ export const followLive = async (api: YoutubeApi, current: { broadcastId: string
 		kind: 'live',
 		broadcastId: current.broadcastId,
 		videoId: details.videoId,
-		title: current.title,
+		title: details.title || current.title,
 		// Null while the chat is switched off; the sync pauses until it is back.
 		liveChatId: details.activeLiveChatId,
 		startedAt: time(details.actualStartTime),

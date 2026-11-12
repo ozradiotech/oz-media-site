@@ -21,11 +21,15 @@ const goLive = async (context: Awaited<ReturnType<typeof setup>>) => {
 	await context.sync.checkBroadcast();
 };
 
-/** What /api/chat does for a message sent while forwarding is on. */
+/**
+ * What /api/chat does for a message sent while forwarding is on. Then the clock moves past the bundle window, so the
+ * next outbox run posts it (bundling has its own tests in saver.test.ts).
+ */
 const sendFromWebsite = async (context: Awaited<ReturnType<typeof setup>>, id: string, text: string) => {
 	const target = await forwardingTarget(context.store, context.clock.now());
 	await saveWebsiteMessage(context.store, id, text, 'Bran', target ? 'pending' : undefined);
 	if (target) await enqueue(context.store, context.clock.now(), { messageId: id, room, name: 'Bran', text, target });
+	context.clock.advance(2_000);
 	return target;
 };
 
@@ -166,7 +170,7 @@ describe('website → YouTube', () => {
 		await sendFromWebsite(context, '-Nmsg0042', 'Never arrives');
 		for (let round = 0; round < 6; round++) {
 			await context.sync.processOutboxOnce();
-			context.clock.advance(60_000);
+			context.clock.advance(30_000);
 		}
 		const entry = await context.store.get<OutboxEntry>(`${paths.outbox}/-Nmsg0042`);
 		assert.equal(entry?.status, 'failed');
@@ -240,9 +244,13 @@ describe('website → YouTube', () => {
 		const context = await setup();
 		await goLive(context);
 		context.sync.outboxContext.limiter = new (context.sync.outboxContext.limiter.constructor as new (limit: number) => typeof context.sync.outboxContext.limiter)(2);
-		for (const id of ['-Nmsg0051', '-Nmsg0052', '-Nmsg0053']) await sendFromWebsite(context, id, `Message ${id}`);
-		await context.sync.processOutboxOnce();
+		// One post at a time (several at once would share a post).
+		for (const id of ['-Nmsg0051', '-Nmsg0052', '-Nmsg0053']) {
+			await sendFromWebsite(context, id, `Message ${id}`);
+			await context.sync.processOutboxOnce();
+		}
 		assert.equal(context.youtube.inserted.length, 2);
+		assert.equal((await context.store.get<OutboxEntry>(`${paths.outbox}/-Nmsg0053`))?.status, 'pending', 'held, not dropped');
 		context.clock.advance(61_000);
 		await context.sync.processOutboxOnce();
 		assert.equal(context.youtube.inserted.length, 3);

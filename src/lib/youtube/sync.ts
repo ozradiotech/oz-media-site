@@ -2,10 +2,12 @@
 // processes and machines: local development shares the database) talks to YouTube at a time. Every step catches its
 // own errors: whatever YouTube does, the website chat keeps working, because it never depends on this.
 import { YoutubeApiError, type ChatPage, type QuotaCall, type YoutubeApi } from './api.ts';
-import { checkDelay, discover, followLive, nextState, type Observation } from './broadcast.ts';
+import { checkDelay, confirmLive, discover, followLive, nextState, type Observation } from './broadcast.ts';
+import type { PageCheck } from './page-check.ts';
 import { defaultSettings, failAllPending, processOutbox, RateLimiter, readSettings, type OutboxConfig, type OutboxContext } from './outbox.ts';
 import { paths } from './paths.ts';
 import { QuotaTracker } from './quota.ts';
+import { saverLevel, saverTuning, type SaverLevel, type SaverReason } from './saver.ts';
 import { handlePage, type ReaderContext } from './reader.ts';
 import { closeBroadcast, recordSnapshot, type AnalyticsStore } from './snapshots.ts';
 import type { Clock, Logger, PublicLiveState, StoredAuth, Store, SyncSettings, SyncState } from './types.ts';
@@ -40,6 +42,11 @@ export type SyncDeps = {
 	ownerId: string;
 	/** Drops cached tokens after a disconnect. */
 	resetCredentials(): void;
+	/**
+	 * The free public-page check (page-check.ts). Without it every check uses the API, as the tests do unless they give
+	 * one.
+	 */
+	pageCheck?: PageCheck;
 };
 
 const emptyState = (now: number): SyncState => ({
@@ -80,6 +87,10 @@ export class YoutubeSync {
 	leader = false;
 	private errorsInARow = 0;
 	private checks = 0;
+	/** When the API last looked for broadcasts; between those, only the free public page is read. */
+	private lastApiCheck = -Infinity;
+	/** Check now (from the CMS): ask the API at the next check, which also finds unlisted broadcasts. */
+	private forceApiCheck = false;
 	private loaded = false;
 	private reader: { liveChatId: string; abort: AbortController; done: Promise<void> } | null = null;
 	private outboxRunning = false;
@@ -108,6 +119,7 @@ export class YoutubeSync {
 				? { broadcastId: this.state.broadcastId, liveChatId: this.state.liveChatId }
 				: null,
 			settings: () => this.settings,
+			tuning: () => saverTuning(this.saver().level),
 			uncertain: new Map(),
 			sentIds: new Set(),
 			counts: this.state.counts,
@@ -183,6 +195,7 @@ export class YoutubeSync {
 		this.lastStateSave = now;
 		this.state.updatedAt = now;
 		this.state.quota = { ...this.quota.record };
+		this.state.saver = this.saver();
 		await this.deps.store.put(paths.state, this.state);
 	}
 
@@ -212,6 +225,16 @@ export class YoutubeSync {
 		this.recordError(`YouTube access was refused (${error.reason || error.message}). Connect the channel again.`, 'auth');
 		this.stopReader();
 		this.soon('broadcast', 0);
+	}
+
+	/** How hard to economise on quota right now (saver.ts): from the day's use and the CMS's two switches. */
+	saver(): { level: SaverLevel; reason: SaverReason } {
+		return saverLevel({
+			used: this.quota.record.used,
+			limit: this.config.dailyQuota,
+			auto: this.settings.autoSaver,
+			manual: this.settings.saver,
+		});
 	}
 
 	isConnected() {
@@ -275,7 +298,7 @@ export class YoutubeSync {
 			this.checks++;
 			observation = previous === 'LIVE' && this.state.broadcastId
 				? await followLive(this.api, { broadcastId: this.state.broadcastId, title: this.state.title ?? '' })
-				: await discover(this.api, previous === 'UPCOMING' || this.checks % 3 === 1);
+				: await this.lookForBroadcast(now, previous);
 			this.errorsInARow = 0;
 		} catch (error) {
 			this.errorsInARow++;
@@ -323,6 +346,29 @@ export class YoutubeSync {
 
 		await this.saveState();
 		await this.publish();
+	}
+
+	/**
+	 * Nothing live yet: read the channel's public page first, which costs nothing, and only spend quota to confirm a
+	 * broadcast it shows. Every so often (and on Check now) the API looks too, since it also sees unlisted broadcasts.
+	 */
+	private async lookForBroadcast(now: number, previous: string): Promise<Observation> {
+		const channelId = this.auth?.channelId;
+		const apiDue = this.forceApiCheck || now - this.lastApiCheck >= saverTuning(this.saver().level).fullCheckMs;
+		if (this.deps.pageCheck && channelId && !apiDue) {
+			try {
+				const page = await this.deps.pageCheck(channelId);
+				if (page.status === 'live') return await confirmLive(this.api, page.videoId);
+				if (page.status === 'upcoming') return { kind: 'upcoming', broadcastId: page.videoId, title: this.state.title ?? '' };
+				return { kind: 'none' };
+			} catch (error) {
+				// The page couldn't be read: ask the API this once instead.
+				this.deps.log.warn('YouTube live page check failed; using the API.', error instanceof Error ? error.message : error);
+			}
+		}
+		this.forceApiCheck = false;
+		this.lastApiCheck = now;
+		return discover(this.api, previous === 'UPCOMING' || this.checks % 3 === 1);
 	}
 
 	/** The broadcast is over: stop reading, give up on unsent messages, and close its record in the analytics. */
@@ -504,7 +550,9 @@ export class YoutubeSync {
 		broadcast: async () => {
 			if (!this.leader) return this.config.broadcastCheckMs;
 			await this.checkBroadcast();
-			return checkDelay(this.state.state, { broadcastCheckMs: this.config.broadcastCheckMs, viewerRefreshMs: this.config.viewerRefreshMs }, this.errorsInARow);
+			// The saver checks a live broadcast (viewer count, has it ended) less often.
+			const viewerRefreshMs = this.config.viewerRefreshMs * saverTuning(this.saver().level).followFactor;
+			return checkDelay(this.state.state, { broadcastCheckMs: this.config.broadcastCheckMs, viewerRefreshMs }, this.errorsInARow);
 		},
 		outbox: async () => {
 			if (!this.leader) return this.config.outboxMs * 5;
@@ -542,6 +590,7 @@ export class YoutubeSync {
 
 	/** After an admin disconnects or connects the channel. */
 	async reconnect() {
+		this.forceApiCheck = true;
 		this.deps.resetCredentials();
 		this.stopReader();
 		await this.refreshSettings();

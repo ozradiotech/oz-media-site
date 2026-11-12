@@ -223,13 +223,26 @@ At the default 10,000 units/day:
 
 | Call | Cost | Typical use |
 | :--- | :--- | :--- |
-| `liveBroadcasts.list` | 1 | about 960/day while offline |
-| `videos.list` | 1 | 60/hour while live |
+| `liveBroadcasts.list` | 1 | about 100–200/day while offline (the free page does the rest, below) |
+| `videos.list` | 1 | to confirm a broadcast the page found; then 60/hour while live (20/hour when saving) |
 | `liveChatMessages.streamList` | 5 per connection | a few per hour |
 | `liveChatMessages.list` (fallback) | 5 per call | up to 360/hour at the 10 s floor = 1,800 units/hour |
-| `liveChatMessages.insert` | **20** per website message | |
+| `liveChatMessages.insert` | **20** per post | a post can carry several website messages (bundling, below) |
 
-**Website → YouTube is the expensive part:** about 400 forwarded messages a day after detection and reading. The worker keeps its own count (by Pacific day, shown in the panel), keeps 500 units in reserve for detection and reading, stops sending before the limit, and treats `quotaExceeded` from YouTube as final until the reset (midnight Pacific: 15:00 WIB, or 14:00 during US daylight saving).
+**Website → YouTube is the expensive part:** about 400 posts a day after detection and reading.
+
+How quota is saved (`src/lib/youtube/saver.ts`, `page-check.ts`, `outbox.ts`):
+
+- **Bundling.** Website messages that are ready together go to YouTube as one post, `[Website] Bran: hi · Sari: halo · Dodi: mantap`, up to YouTube's 200 characters, oldest first, never splitting a message. A message waits up to 2 seconds for others (6 when saving); a message on its own is posted unchanged. The echo of a bundle is recognised like any other, and a bundle that timed out is matched to its echo for every message in it.
+- **Free detection.** While nothing is live, the worker reads the connected channel's public page (`youtube.com/channel/<id>/live`), which costs nothing, and spends 1 unit to confirm a broadcast only when the page shows one. Scheduled broadcasts are seen for free too. The public page doesn't show unlisted broadcasts, so the API also looks every 15 minutes (30 when saving), and at once on **Check now** in the CMS. If the page can't be read, the API is asked instead.
+- **The quota saver**, switched on the CMS's **Broadcast → YouTube** page:
+  - **Automatic quota saver** (on by default): *Saving* from 50 % of the day's quota, *Strict* from 80 %.
+  - **Quota saver on now** (off by default): at least *Saving*, whatever the quota.
+  - *Saving*: bundles over 6 seconds, checks a live broadcast (viewer count, has it ended) every 3 minutes instead of every minute, and asks the API for new broadcasts every 30 minutes.
+  - *Strict*: as *Saving*, and only moderators' website messages go to YouTube. Everyone else's stay on the website, marked "not sent to YouTube" for the sender.
+  - The page shows the day's use and the current level. The two switches are stored with the other sync settings at `chat/private/youtube/settings` (`autoSaver`, `saver`).
+
+The worker keeps its own count (by Pacific day, shown in the panel) The worker keeps its own count (by Pacific day, shown in the panel), keeps 500 units in reserve for detection and reading, stops sending before the limit, and treats `quotaExceeded` from YouTube as final until the reset (midnight Pacific: 15:00 WIB, or 14:00 during US daylight saving).
 
 While the quota is used up, nothing can be asked of YouTube, so the site doesn't pretend to know. Posting and reading the YouTube chat stop, and website messages stay on the website, their senders seeing "not sent to YouTube". If a broadcast was live, its public status becomes **unknown**: the player hides the viewer bar instead of showing a frozen YouTube count, "YOUTUBE CHAT LINKED" goes, website viewers aren't counted, and no history snapshots are stored. The player can still find the stream through YouTube's public page. Everything resumes by itself at the next check after the reset. For a busy chat, request a higher quota or turn **Website → YouTube** off and keep YouTube → website on.
 
@@ -259,7 +272,7 @@ npx astro build
 15. repeated heartbeats and many sessions from one machine don't inflate the count
 16. only CMS Developer can manage, and Digital can only look; other roles and chat roles get nothing
 
-It also covers backoff, the attempt limit, moderator deletion, the per-minute limit, website rules on YouTube messages, history across a restart, and the lease.
+It also covers backoff, the attempt limit, moderator deletion, the per-minute limit, website rules on YouTube messages, history across a restart, the lease, and an exhausted quota while live (status unknown, no stale count). `tests/youtube/saver.test.ts` covers bundling (one post, the wait, the 200-character limit, a timed-out bundle), the saver levels and switches, strict mode keeping moderators' messages only, and free detection (no quota while nothing is live, one call to confirm, scheduled broadcasts, the 15-minute and Check now API checks, and falling back to the API).
 
 ### Trying it locally
 

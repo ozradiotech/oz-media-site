@@ -155,6 +155,7 @@ export type Broadcast = {
 
 export type LiveDetails = {
 	videoId: string;
+	title: string;
 	/** Null when YouTube leaves it out (hidden by the channel, or not live). Never guessed. */
 	concurrentViewers: number | null;
 	activeLiveChatId: string | null;
@@ -277,11 +278,13 @@ export const createYoutubeApi = ({ accessToken, onCall, fetch: fetchImpl = fetch
 		},
 
 		async liveDetails(videoId) {
-			const body = await json('videos', `${apiBase}/videos?part=liveStreamingDetails&id=${encodeURIComponent(videoId)}`);
+			// The snippet (title) comes at no extra cost: videos.list is 1 unit whatever parts it returns.
+			const body = await json('videos', `${apiBase}/videos?part=liveStreamingDetails,snippet&id=${encodeURIComponent(videoId)}`);
 			const details = body?.items?.[0]?.liveStreamingDetails;
 			if (!details) return null;
 			return {
 				videoId,
+				title: String(body.items[0].snippet?.title ?? ''),
 				concurrentViewers: toNumber(details.concurrentViewers),
 				activeLiveChatId: typeof details.activeLiveChatId === 'string' ? details.activeLiveChatId : null,
 				actualStartTime: details.actualStartTime ?? null,

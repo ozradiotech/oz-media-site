@@ -24,6 +24,7 @@ import { createYoutubeApi, type OAuthConfig } from './api.ts';
 import { createCredentials, type Credentials } from './credentials.ts';
 import { parseEncryptionKey, randomToken } from './crypto.ts';
 import { enqueue, forwardingTarget, type ForwardingTarget } from './outbox.ts';
+import { createPageCheck } from './page-check.ts';
 import { youtubeRoom } from './paths.ts';
 import type { AnalyticsStore, BroadcastDoc, SnapshotDoc } from './snapshots.ts';
 import { YoutubeSync } from './sync.ts';
@@ -128,6 +129,7 @@ const createRuntime = (): Runtime => {
 		analytics: cmsAnalytics,
 		ownerId: `${hostname()}:${process.pid}:${randomToken(6)}`,
 		resetCredentials: credentials.reset,
+		pageCheck: createPageCheck(),
 	}, {
 		room: youtubeRoom,
 		broadcastCheckMs: YOUTUBE_BROADCAST_CHECK_INTERVAL * 1000,
@@ -175,7 +177,7 @@ export const youtubeForwardingTarget = () => {
 };
 
 /** Queues a saved website message for YouTube and nudges the worker. */
-export const queueForYoutube = async (input: { messageId: string; room: string; name: string; text: string; target: ForwardingTarget }) => {
+export const queueForYoutube = async (input: { messageId: string; room: string; name: string; text: string; target: ForwardingTarget; moderator?: boolean }) => {
 	await enqueue(firebaseStore, Date.now(), input);
 	youtubeRuntime()?.sync.kickOutbox();
 };
