@@ -64,6 +64,10 @@ On-ground activity cards take their photo's own shape (between 3:4 and 2:1), so 
 
 **Page scale.** The layout sizes itself from the window's width, so wide but short windows (a 1080p monitor, or a laptop with display scaling) showed everything about a quarter too big. `src/styles/page-zoom.css` zooms the page to 80% on windows at least 1200 px wide and at most 1100 px tall; phones, tablets and tall monitors are unchanged. Anything meant to fill the screen's height divides by it: `height: calc(100svh / var(--page-zoom))`. Scripts that turn `getBoundingClientRect()` into pixel positions divide by the root's computed `zoom` too (the hero logo morph, the chat's ⋯ menu); ratios and scrolling need nothing.
 
+### YouTube unified chat (experimental, `feature/youtube-unified-chat`)
+
+While OZ Bandung is live on YouTube, the website chat and the YouTube live chat become one conversation (website messages are posted by the OZ channel as `[Website] Name: text`), and the player shows YouTube's viewer count next to our own website viewer estimate, with history on `/analytics`. Off unless configured; the website chat works the same either way. Setup, behaviour, quota, tests (`npm test`) and how to turn it off: [docs/youtube-unified-chat.md](docs/youtube-unified-chat.md).
+
 ### ozmedianet.com (the Payload site on the VPS)
 
 The `payload` branch runs on the same aaPanel VPS as ozradio.id, next to it, from its own clone:

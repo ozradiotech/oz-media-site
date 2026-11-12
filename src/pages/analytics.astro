@@ -434,6 +434,57 @@ const monthLabel = (month: string) =>
 				</div>
 			</section>
 
+			<section class="panel" aria-labelledby="livestream-title" data-livestream-panel hidden>
+				<div class="panel-heading">
+					<h2 id="livestream-title">LIVESTREAM · YOUTUBE</h2>
+					<div class="chart-controls">
+						<button class="action-button" type="button" data-export-livestream="broadcasts">Broadcasts CSV</button>
+						<button class="action-button" type="button" data-export-livestream="snapshots" disabled>Snapshots CSV</button>
+					</div>
+				</div>
+				<p class="panel-note">Two different measures, never added up behind your back. <strong>YouTube concurrent viewers</strong> is YouTube's official count of people watching the broadcast. <strong>Website active viewers</strong> is our own estimate: people whose embedded player is playing on this site, one per browser. <strong>Combined</strong> adds the two and is only an estimate (someone can be counted on both); it is not a YouTube figure. A dash means the number wasn't available, which is not zero.</p>
+				<h3 class="section-label">Live now</h3>
+				<p class="chart-note" data-livestream-live-status aria-live="polite"></p>
+				<div class="tiles" data-livestream-tiles></div>
+				<div class="livestream-admin" data-livestream-admin hidden>
+					<h3 class="section-label">YouTube chat sync</h3>
+					<dl class="sync-status" data-livestream-sync></dl>
+					<div class="sync-controls" data-livestream-controls hidden>
+						<label class="sync-toggle"><input type="checkbox" data-sync-setting="toYoutube" /> Website messages → YouTube</label>
+						<label class="sync-toggle"><input type="checkbox" data-sync-setting="fromYoutube" /> YouTube messages → website</label>
+						<button class="action-button" type="button" data-sync-action="connect">Connect YouTube channel</button>
+						<button class="action-button" type="button" data-sync-action="recheck">Check now</button>
+						<button class="text-button" type="button" data-sync-action="disconnect">Disconnect</button>
+					</div>
+					<p class="chart-note" data-livestream-admin-status aria-live="polite"></p>
+				</div>
+				<h3 class="section-label">History</h3>
+				<div class="chart-grid">
+					<article class="chart-card chart-card-wide" data-chart="livestream-history" data-style="line">
+						<header class="chart-card-header">
+							<h3 data-livestream-chart-title>Viewers during a broadcast</h3>
+							<div class="chart-controls">
+								<label class="filter filter-compact"><span class="visually-hidden">Broadcast</span>
+									<select data-livestream-broadcast></select>
+								</label>
+								<div class="style-switch" role="group" aria-label="Chart style">
+									{trendStyles.filter((style) => style.value !== 'area').map((style) => <button type="button" data-style-option={style.value} aria-pressed={style.value === 'line' ? 'true' : 'false'}>{style.label}</button>)}
+								</div>
+							</div>
+						</header>
+						<div class="chart-body"><canvas aria-label="YouTube and website viewers over the broadcast"></canvas><div class="chart-table" hidden></div></div>
+						<p class="chart-note" data-livestream-chart-note>Stored snapshots, not live. Gaps are times a count wasn't available.</p>
+					</article>
+					<article class="chart-card chart-card-wide">
+						<header class="chart-card-header">
+							<h3>Broadcasts</h3>
+						</header>
+						<div class="chart-table record-table" data-livestream-broadcasts></div>
+						<p class="chart-note">Times are Jakarta time (WIB). Peaks and averages come from the stored snapshots, counting only those where the number was available.</p>
+					</article>
+				</div>
+			</section>
+
 			<section class="panel" aria-labelledby="site-title" data-site-panel hidden>
 				<div class="panel-heading">
 					<h2 id="site-title">SITE PERFORMANCE</h2>
@@ -964,6 +1015,63 @@ const monthLabel = (month: string) =>
 		display: none;
 	}
 
+	/* Livestream: the YouTube sync's status and switches (CMS developers can change them, Digital can look). */
+	.sync-status {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+		gap: 10px 18px;
+		margin: 12px 0 14px;
+	}
+
+	/* The broadcast table's "Chart" links (the rows are built in the script, hence :global). */
+	.record-table :global(.livestream-show) {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: var(--ink-secondary);
+		font: inherit;
+		font-size: 12px;
+		text-decoration: underline;
+		cursor: pointer;
+	}
+
+	.sync-status :global(div) {
+		min-width: 0;
+	}
+
+	.sync-status :global(dt) {
+		font-size: 12px;
+		font-weight: 700;
+		color: var(--ink-secondary);
+	}
+
+	.sync-status :global(dd) {
+		margin: 2px 0 0;
+		font-size: 14px;
+		font-weight: 600;
+		overflow-wrap: anywhere;
+	}
+
+	.sync-controls {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 10px 16px;
+	}
+
+	.sync-controls[hidden] {
+		display: none;
+	}
+
+	.sync-toggle {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 14px;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
 	.panel-note {
 		max-width: 75ch;
 		margin: -8px 0 0;
@@ -1385,10 +1493,10 @@ const monthLabel = (month: string) =>
 			this.drawnStyle = this.style;
 		}
 
-		trend(labels: string[], series: Series[], colors: string[], format: Format = formatNumber) {
+		trend(labels: string[], series: Series[], colors: string[], format: Format = formatNumber, heading = 'Month') {
 			const style = this.style as TrendStyle;
 			if (style === 'table') {
-				renderTable(this.table, 'Month', labels, series, format);
+				renderTable(this.table, heading, labels, series, format);
 				this.draw(null);
 				return;
 			}
@@ -2256,6 +2364,274 @@ const monthLabel = (month: string) =>
 			}
 		};
 
+
+		/* ----- Livestream (YouTube) ----- */
+
+		// Loaded on its own, like Google Analytics: it is also open to CMS Developers and Digital without the analytics
+		// role, and a problem here (YouTube, the CMS) leaves the other panels alone.
+		type LiveNow = { state?: string; sync?: boolean; youtubeViewers?: number | null; youtubeViewersAt?: number | null; websiteViewers?: number | null; websiteViewersAt?: number | null };
+		type BroadcastRow = {
+			broadcastId: string; title: string; startedAt: string | null; endedAt: string | null;
+			peakYoutubeViewers: number | null; peakWebsiteViewers: number | null; averageYoutubeViewers: number | null; averageWebsiteViewers: number | null;
+		};
+		type SnapshotRow = { recordedAt: string; youtubeConcurrentViewers: number | null; websiteActiveViewers: number | null; combinedEstimatedViewers: number | null };
+		type AdminStatus = {
+			configured: boolean;
+			access: 'manage' | 'view';
+			connection?: { connected: boolean; status: string; channelId?: string; channelTitle?: string };
+			settings?: { toYoutube: boolean; fromYoutube: boolean };
+			sync?: {
+				active: boolean; state: string; videoId: string | null; liveChatId: string | null; title: string | null;
+				readerMode: string | null; workerRunning: boolean;
+				lastError: { at: number; message: string } | null; quota: { used: number; exhaustedUntil?: number } | null;
+				counts: { sent: number; failed: number; imported: number } | null;
+			};
+			queue?: { pending: number; failed: number };
+		};
+
+		const livestreamPanel = document.querySelector<HTMLElement>('[data-livestream-panel]')!;
+		const livestreamTiles = livestreamPanel.querySelector<HTMLElement>('[data-livestream-tiles]')!;
+		const livestreamLiveStatus = livestreamPanel.querySelector<HTMLElement>('[data-livestream-live-status]')!;
+		const livestreamAdmin = livestreamPanel.querySelector<HTMLElement>('[data-livestream-admin]')!;
+		const livestreamSync = livestreamPanel.querySelector<HTMLElement>('[data-livestream-sync]')!;
+		const livestreamControls = livestreamPanel.querySelector<HTMLElement>('[data-livestream-controls]')!;
+		const livestreamAdminStatus = livestreamPanel.querySelector<HTMLElement>('[data-livestream-admin-status]')!;
+		const livestreamSelect = livestreamPanel.querySelector<HTMLSelectElement>('[data-livestream-broadcast]')!;
+		const livestreamTable = livestreamPanel.querySelector<HTMLElement>('[data-livestream-broadcasts]')!;
+		const livestreamChartTitle = livestreamPanel.querySelector<HTMLElement>('[data-livestream-chart-title]')!;
+		const livestreamChartNote = livestreamPanel.querySelector<HTMLElement>('[data-livestream-chart-note]')!;
+		const snapshotExport = livestreamPanel.querySelector<HTMLButtonElement>('[data-export-livestream="snapshots"]')!;
+		const livestreamCard = new ChartCard(livestreamPanel.querySelector<HTMLElement>('[data-chart="livestream-history"]')!);
+		let livestreamTimer: number | undefined;
+		let snapshotMinutes = 5;
+
+		const wibTime = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit' });
+		const wibDateTime = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jakarta', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+		const formatWhen = (value: string | number | null | undefined) => (value === null || value === undefined ? '—' : wibDateTime.format(new Date(value)));
+		const formatViewerAverage = (value: number | null | undefined) => (typeof value === 'number' ? value.toLocaleString('en-US', { maximumFractionDigits: 1 }) : '—');
+		const known = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
+
+		const renderLiveNow = (live: LiveNow) => {
+			const isLive = live.state === 'live';
+			livestreamLiveStatus.textContent = isLive
+				? 'Live on YouTube now. These are live measurements, refreshed every 30 seconds.'
+				: live.state === 'upcoming' ? 'A broadcast is scheduled; not live yet.' : 'Not live on YouTube right now.';
+			const youtube = isLive && known(live.youtubeViewers) ? live.youtubeViewers : null;
+			const website = isLive && known(live.websiteViewers) ? live.websiteViewers : null;
+			livestreamTiles.innerHTML = [
+				tile('YouTube concurrent viewers', formatNumber(youtube), isLive && youtube === null ? 'YouTube is not sharing a count right now' : 'Official YouTube API measurement'),
+				tile('Website active viewers', formatNumber(website), 'Estimated from active embedded playback'),
+				tile('Combined audience (estimate)', youtube !== null && website !== null ? formatNumber(youtube + website) : '—', youtube !== null && website !== null ? 'Sum of the two; not a YouTube figure' : 'Shown only when both counts are known'),
+			].join('');
+		};
+
+		const loadSnapshots = async (broadcastId: string) => {
+			if (!broadcastId) return;
+			snapshotExport.disabled = true;
+			try {
+				const { broadcast, snapshots } = await (await request('/api/analytics/livestream', { broadcast: broadcastId })).json() as { broadcast: BroadcastRow; snapshots: SnapshotRow[] };
+				livestreamChartTitle.textContent = `Viewers · ${broadcast.title || broadcast.broadcastId}`;
+				livestreamChartNote.textContent = `Stored snapshots (about every ${snapshotMinutes} minutes, WIB), not live. YouTube and website are separate series; gaps are times a count wasn't available.`;
+				const labels = snapshots.map((row) => wibTime.format(new Date(row.recordedAt)));
+				// Two separate series: different measures, never stacked into one.
+				livestreamCard.render = () => livestreamCard.trend(labels, [
+					{ label: 'YouTube concurrent viewers (official)', values: snapshots.map((row) => row.youtubeConcurrentViewers) },
+					{ label: 'Website active viewers (estimate)', values: snapshots.map((row) => row.websiteActiveViewers) },
+				], [platformColors.youtube, palette[2]], formatNumber, 'Time (WIB)');
+				livestreamCard.render();
+				snapshotExport.disabled = !snapshots.length;
+			} catch (error) {
+				livestreamChartNote.textContent = error instanceof Error ? error.message : 'The broadcast history could not be loaded.';
+			}
+		};
+
+		const renderBroadcasts = (rows: BroadcastRow[]) => {
+			const previous = livestreamSelect.value;
+			livestreamSelect.replaceChildren(...rows.map((row) => new Option(`${formatWhen(row.startedAt)} · ${row.title || row.broadcastId}`, row.broadcastId)));
+			livestreamSelect.disabled = !rows.length;
+			if (rows.some((row) => row.broadcastId === previous)) livestreamSelect.value = previous;
+			if (!rows.length) {
+				livestreamTable.innerHTML = '<p class="chart-note">No broadcasts in this date range. History starts with the first broadcast after the YouTube channel is connected.</p>';
+				livestreamCard.render = () => livestreamCard.trend([], [], palette);
+				livestreamCard.render();
+				snapshotExport.disabled = true;
+				return;
+			}
+			const cell = (text: string) => `<td>${escapeHtml(text)}</td>`;
+			const head = ['Broadcast', 'Started', 'Ended', 'Peak YouTube', 'Avg YouTube', 'Peak website', 'Avg website', ''].map((label) => `<th scope="col">${label}</th>`).join('');
+			livestreamTable.innerHTML = `<table><thead><tr>${head}</tr></thead><tbody>${rows.map((row) =>
+				`<tr><th scope="row">${escapeHtml(row.title || row.broadcastId)}</th>${cell(formatWhen(row.startedAt))}${cell(row.endedAt ? formatWhen(row.endedAt) : 'Live or unknown')}${cell(formatNumber(row.peakYoutubeViewers))}${cell(formatViewerAverage(row.averageYoutubeViewers))}${cell(formatNumber(row.peakWebsiteViewers))}${cell(formatViewerAverage(row.averageWebsiteViewers))}<td><button class="livestream-show" type="button" data-show-broadcast="${escapeHtml(row.broadcastId)}">Chart</button></td></tr>`).join('')}</tbody></table>`;
+			void loadSnapshots(livestreamSelect.value);
+		};
+
+		const syncStateLabels: Record<string, string> = { OFFLINE: 'Offline', UPCOMING: 'Scheduled', LIVE: 'Live', ENDING: 'Ending', ENDED: 'Ended', ERROR: 'Error' };
+		const youtubeResults: Record<string, string> = {
+			connected: 'The YouTube channel is connected.',
+			cancelled: 'Connecting was cancelled on the Google page.',
+			state_mismatch: 'That sign-in was not started from this browser. Please try again.',
+			state_expired: 'That sign-in took too long. Please try again.',
+			no_refresh_token: 'Google did not grant offline access. Please try again.',
+			scope_missing: 'The YouTube permission was not granted.',
+			no_channel: 'That Google account has no YouTube channel.',
+			wrong_channel: 'That is not the channel set in YOUTUBE_CHANNEL_ID.',
+			not_configured: 'The YouTube integration is not configured on this server.',
+		};
+
+		const renderAdmin = (status: AdminStatus) => {
+			livestreamAdmin.hidden = false;
+			if (!status.configured) {
+				livestreamSync.innerHTML = '';
+				livestreamControls.hidden = true;
+				livestreamAdminStatus.textContent = 'The YouTube integration is not configured on this server (see docs/youtube-unified-chat.md). The website chat works as usual.';
+				return;
+			}
+			const sync = status.sync;
+			const connection = status.connection;
+			const item = (label: string, value: string) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`;
+			livestreamSync.innerHTML = [
+				item('Channel', connection?.connected ? `${connection.channelTitle ?? ''} (${connection.channelId ?? ''})` : connection?.status === 'revoked' ? 'Access revoked: connect again' : 'Not connected'),
+				item('Broadcast', `${syncStateLabels[sync?.state ?? 'OFFLINE'] ?? sync?.state}${sync?.title ? ` · ${sync.title}` : ''}`),
+				item('Video ID', sync?.videoId ?? '—'),
+				item('Live chat ID', sync?.liveChatId ?? '—'),
+				item('Chat sync', sync?.active ? `Active (${sync.readerMode === 'poll' ? 'polling' : 'streaming'})` : 'Not active'),
+				item('Queued for YouTube', formatNumber(status.queue?.pending ?? 0)),
+				item('Sent / failed / imported', sync?.counts ? `${formatNumber(sync.counts.sent)} / ${formatNumber(sync.counts.failed)} / ${formatNumber(sync.counts.imported)}` : '—'),
+				item('Quota used today (estimate)', sync?.quota ? `${formatNumber(sync.quota.used)} units${sync.quota.exhaustedUntil ? ' · used up until reset' : ''}` : '—'),
+				item('Worker', sync?.workerRunning ? 'Running' : 'Not running'),
+				item('Last error', sync?.lastError ? `${formatWhen(sync.lastError.at)}: ${sync.lastError.message}` : 'None'),
+			].join('');
+			const manage = status.access === 'manage';
+			livestreamControls.hidden = false;
+			livestreamControls.querySelectorAll<HTMLInputElement>('[data-sync-setting]').forEach((input) => {
+				input.checked = Boolean(status.settings?.[input.dataset.syncSetting as 'toYoutube' | 'fromYoutube']);
+				input.disabled = !manage;
+			});
+			livestreamControls.querySelectorAll<HTMLButtonElement>('[data-sync-action]').forEach((button) => {
+				const action = button.dataset.syncAction;
+				button.hidden = !manage || (action === 'connect' ? Boolean(connection?.connected) : action === 'disconnect' ? !connection?.connected : false);
+				if (action === 'connect') button.textContent = connection?.status === 'revoked' ? 'Reconnect YouTube channel' : 'Connect YouTube channel';
+			});
+			if (!manage && !livestreamAdminStatus.textContent) livestreamAdminStatus.textContent = 'View only. CMS developers can change these settings.';
+		};
+
+		const loadAdmin = async () => {
+			try {
+				renderAdmin(await (await request('/api/youtube/admin')).json() as AdminStatus);
+			} catch (error) {
+				// No Developer or Digital role in the CMS: the counts and history show, the sync status doesn't.
+				if (error instanceof AccessError && error.status === 403) livestreamAdmin.hidden = true;
+				else livestreamAdminStatus.textContent = error instanceof Error ? error.message : 'The sync status could not be loaded.';
+			}
+		};
+
+		// The live numbers and the sync status refresh while the page is open and visible; the history when asked.
+		const refreshLivestream = async () => {
+			window.clearTimeout(livestreamTimer);
+			if (livestreamPanel.hidden || !auth?.currentUser()) return;
+			if (document.visibilityState === 'visible') {
+				try {
+					renderLiveNow((await (await request('/api/analytics/livestream')).json() as { live: LiveNow }).live);
+					await loadAdmin();
+				} catch {
+					// Left as it was; the next refresh tries again.
+				}
+			}
+			livestreamTimer = window.setTimeout(refreshLivestream, 30_000);
+		};
+
+		const loadLivestream = async () => {
+			window.clearTimeout(livestreamTimer);
+			try {
+				const data = await (await request('/api/analytics/livestream')).json() as { live: LiveNow; snapshotIntervalSeconds: number; broadcasts: BroadcastRow[] };
+				snapshotMinutes = Math.round(data.snapshotIntervalSeconds / 60) || 5;
+				livestreamPanel.hidden = false;
+				renderLiveNow(data.live);
+				renderBroadcasts(data.broadcasts);
+				void loadAdmin();
+				livestreamTimer = window.setTimeout(refreshLivestream, 30_000);
+			} catch (error) {
+				// No access: the panel just doesn't show. Anything else is said in the panel.
+				const denied = error instanceof AccessError && (error.status === 401 || error.status === 403);
+				livestreamPanel.hidden = denied;
+				if (!denied) livestreamLiveStatus.textContent = error instanceof Error ? error.message : 'The livestream analytics could not be loaded.';
+			}
+		};
+
+		const hideLivestream = () => {
+			window.clearTimeout(livestreamTimer);
+			livestreamPanel.hidden = true;
+		};
+
+		const adminPost = async (path: string, body: Record<string, unknown>) => {
+			const token = await auth?.idToken();
+			if (!token) throw new AccessError(401, 'Please sign in.');
+			const response = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+			const result = await response.json().catch(() => ({})) as { error?: string; url?: string };
+			if (!response.ok) throw new AccessError(response.status, result.error ?? 'That did not work. Please try again.');
+			return result;
+		};
+
+		livestreamControls.addEventListener('change', async (event) => {
+			const input = event.target instanceof HTMLInputElement ? event.target : null;
+			const setting = input?.dataset.syncSetting;
+			if (!input || !setting) return;
+			input.disabled = true;
+			try {
+				await adminPost('/api/youtube/admin', { action: 'settings', [setting]: input.checked });
+				livestreamAdminStatus.textContent = 'Saved.';
+			} catch (error) {
+				input.checked = !input.checked;
+				livestreamAdminStatus.textContent = error instanceof Error ? error.message : 'Could not save.';
+			} finally {
+				input.disabled = false;
+				void loadAdmin();
+			}
+		});
+
+		livestreamControls.addEventListener('click', async (event) => {
+			const button = event.target instanceof Element ? event.target.closest<HTMLButtonElement>('[data-sync-action]') : null;
+			const action = button?.dataset.syncAction;
+			if (!button || !action) return;
+			if (action === 'disconnect' && !window.confirm('Disconnect the YouTube channel? Chat sync stops until it is connected again. The website chat keeps working.')) return;
+			button.disabled = true;
+			try {
+				if (action === 'connect') {
+					const { url } = await adminPost('/api/youtube/connect', {});
+					if (url) location.assign(url);
+					return;
+				}
+				await adminPost('/api/youtube/admin', { action });
+				livestreamAdminStatus.textContent = action === 'disconnect' ? 'Disconnected.' : 'Checking YouTube now…';
+				window.setTimeout(() => void loadAdmin(), action === 'recheck' ? 3_000 : 0);
+			} catch (error) {
+				livestreamAdminStatus.textContent = error instanceof Error ? error.message : 'That did not work.';
+			} finally {
+				button.disabled = false;
+			}
+		});
+
+		livestreamSelect.addEventListener('change', () => void loadSnapshots(livestreamSelect.value));
+		livestreamTable.addEventListener('click', (event) => {
+			const id = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-show-broadcast]')?.dataset.showBroadcast : undefined;
+			if (!id) return;
+			livestreamSelect.value = id;
+			void loadSnapshots(id);
+			livestreamCard.root.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+		});
+		livestreamPanel.querySelectorAll<HTMLButtonElement>('[data-export-livestream]').forEach((button) => {
+			button.addEventListener('click', () => void downloadFrom(button, '/api/analytics/livestream',
+				button.dataset.exportLivestream === 'snapshots' ? { broadcast: livestreamSelect.value } : {}));
+		});
+
+		// Back from the Google consent page (/api/youtube/callback): say how it went, once.
+		const youtubeResult = new URLSearchParams(location.search).get('youtube');
+		if (youtubeResult) {
+			livestreamAdminStatus.textContent = youtubeResults[youtubeResult] ?? `Connecting the channel failed (${youtubeResult}).`;
+			const cleanUrl = new URL(location.href);
+			cleanUrl.searchParams.delete('youtube');
+			history.replaceState(null, '', cleanUrl);
+		}
+
 		/* ----- Loading ----- */
 
 		const load = async () => {
@@ -2290,6 +2666,8 @@ const monthLabel = (month: string) =>
 
 		fromInput.addEventListener('change', load);
 		toInput.addEventListener('change', load);
+		fromInput.addEventListener('change', () => void loadLivestream());
+		toInput.addEventListener('change', () => void loadLivestream());
 
 		listenerPanel.querySelector<HTMLButtonElement>('[data-export-listeners]')?.addEventListener('click', (event) => {
 			void downloadFrom(event.currentTarget as HTMLButtonElement, '/api/analytics/listeners', {});
@@ -2342,8 +2720,13 @@ const monthLabel = (month: string) =>
 				auth.onChange((user) => {
 					account.hidden = !user;
 					accountEmail.textContent = user?.email ?? '';
-					if (user) void load();
-					else showGate('Listener forms, radio listening, chat and site analytics are private. Sign in with a Google account that has analytics access.');
+					if (user) {
+						void load();
+						void loadLivestream();
+					} else {
+						hideLivestream();
+					}
+					if (!user) showGate('Listener forms, radio listening, chat and site analytics are private. Sign in with a Google account that has analytics access.');
 				});
 			})
 			.catch(() => showGate('Google sign-in could not be loaded. Please reload the page.', { signIn: false }));

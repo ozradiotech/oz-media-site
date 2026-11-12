@@ -76,6 +76,22 @@ export default defineConfig({
 			// the CMS needs for the social media numbers. Published content reads without it.
 			CMS_URL: envField.string({ context: 'server', access: 'public', default: 'http://localhost:3000' }),
 			CMS_API_KEY: envField.string({ context: 'server', access: 'secret', optional: true }),
+			// Experimental: YouTube live chat sync and livestream viewer counts (docs/youtube-unified-chat.md). Off unless
+			// the OAuth client and the encryption key are set; YOUTUBE_SYNC=off turns it off with them set.
+			YOUTUBE_SYNC: envField.enum({ context: 'server', access: 'public', values: ['on', 'off'], default: 'on' }),
+			YOUTUBE_CLIENT_ID: envField.string({ context: 'server', access: 'secret', optional: true }),
+			YOUTUBE_CLIENT_SECRET: envField.string({ context: 'server', access: 'secret', optional: true }),
+			YOUTUBE_REDIRECT_URI: envField.string({ context: 'server', access: 'public', optional: true }),
+			YOUTUBE_TOKEN_ENCRYPTION_KEY: envField.string({ context: 'server', access: 'secret', optional: true }),
+			YOUTUBE_CHANNEL_ID: envField.string({ context: 'server', access: 'public', optional: true }),
+			YOUTUBE_BROADCAST_CHECK_INTERVAL: envField.number({ context: 'server', access: 'public', default: 120, int: true, gt: 14 }),
+			YOUTUBE_VIEWER_COUNT_REFRESH_INTERVAL: envField.number({ context: 'server', access: 'public', default: 60, int: true, gt: 14 }),
+			YOUTUBE_CHAT_POLL_MIN_INTERVAL: envField.number({ context: 'server', access: 'public', default: 10, int: true, gt: 1 }),
+			YOUTUBE_DAILY_QUOTA: envField.number({ context: 'server', access: 'public', default: 10000, int: true, gt: 0 }),
+			YOUTUBE_OUTBOUND_PER_MINUTE: envField.number({ context: 'server', access: 'public', default: 20, int: true, gt: 0 }),
+			WEBSITE_VIEWER_HEARTBEAT_INTERVAL: envField.number({ context: 'server', access: 'public', default: 20, int: true, gt: 4 }),
+			WEBSITE_VIEWER_SESSION_TTL: envField.number({ context: 'server', access: 'public', default: 60, int: true, gt: 9 }),
+			LIVESTREAM_SNAPSHOT_INTERVAL: envField.number({ context: 'server', access: 'public', default: 300, int: true, gt: 29 }),
 		},
 	},
 });

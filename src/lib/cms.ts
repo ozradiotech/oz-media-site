@@ -21,6 +21,21 @@ export const cmsFetch = async <T>(path: string): Promise<T> => {
 	return value;
 };
 
+/** An uncached request as the website user, for the few things the site writes (the livestream history). */
+export const cmsRequest = async <T>(method: 'GET' | 'POST' | 'PATCH', path: string, body?: unknown): Promise<T> => {
+	const response = await fetch(new URL(`/api/${path}`, CMS_URL), {
+		method,
+		headers: {
+			...(CMS_API_KEY ? { Authorization: `users API-Key ${CMS_API_KEY}` } : {}),
+			...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+		},
+		body: body === undefined ? undefined : JSON.stringify(body),
+		signal: AbortSignal.timeout(10_000),
+	});
+	if (!response.ok) throw new Error(`CMS ${response.status} for ${method} /api/${path}: ${await response.text()}`);
+	return response.json() as Promise<T>;
+};
+
 export interface CmsMedia {
 	url: string;
 	alt?: string | null;

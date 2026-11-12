@@ -1,4 +1,4 @@
-import { getDatabase, goOffline, goOnline, limitToLast, onChildAdded, onChildRemoved, onValue, orderByKey, query, ref } from 'firebase/database';
+import { getDatabase, goOffline, goOnline, limitToLast, onChildAdded, onChildChanged, onChildRemoved, onValue, orderByKey, query, ref } from 'firebase/database';
 import type { OzAuth, OzUser } from './oz-auth';
 import { getAppCheckToken, getOzFirebaseApp, isChatConfigured } from './oz-firebase';
 import { chatRoles, isChatRole, type ChatRole } from '../lib/chat-events';
@@ -8,7 +8,9 @@ import { track } from './oz-track';
 // Live chat. Anyone can read it straight from the Realtime Database; sending, reporting and moderating go
 // through /api/chat and /api/chat-mod (see src/lib/chat-server.ts), which check the signed-in Google account.
 
-type ChatMessage = { u: string; n: string; p?: string; t: string; ts: number; m?: boolean; r?: string };
+// `s: 'yt'` marks messages copied in from the YouTube live chat; `ys` is how a website message's trip to YouTube went
+// (src/lib/youtube/*). Both are absent on older messages and whenever YouTube isn't live.
+type ChatMessage = { u: string; n: string; p?: string; t: string; ts: number; m?: boolean; r?: string; s?: 'yt'; ys?: 'pending' | 'sent' | 'failed' };
 type ChatAction = 'report' | 'delete' | 'timeout' | 'ban';
 
 // Only this many recent messages are downloaded and kept on the page (database.rules.json enforces the cap).
@@ -73,6 +75,7 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth, signal }:
 	const sendButton = form?.querySelector<HTMLButtonElement>('button[type="submit"]');
 	const selfAvatar = form?.querySelector<HTMLElement>('[data-chat-self-avatar]');
 	const slowModeLabel = root.querySelector<HTMLElement>('[data-chat-slow-mode]');
+	const youtubeLabel = root.querySelector<HTMLElement>('[data-chat-youtube]');
 	const modControl = root.querySelector<HTMLElement>('[data-chat-mod-control]');
 	const slowModeSelect = modControl?.querySelector<HTMLSelectElement>('select');
 	const menu = root.querySelector<HTMLElement>('[data-chat-menu]');
@@ -174,6 +177,21 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth, signal }:
 		if (modControl) modControl.hidden = !moderator;
 	};
 
+	// Shown to the sender only (see the styles): the message is in this chat but didn't make it to YouTube.
+	const renderDelivery = (item: HTMLElement, message: ChatMessage) => {
+		const meta = item.querySelector('.chat-message-meta');
+		let note = meta?.querySelector<HTMLElement>('.chat-delivery');
+		if (message.ys !== 'failed') {
+			note?.remove();
+			return;
+		}
+		if (!meta || note) return;
+		note = document.createElement('span');
+		note.className = 'chat-delivery';
+		note.textContent = 'not sent to YouTube';
+		meta.append(note);
+	};
+
 	const renderMessage = (key: string, message: ChatMessage) => {
 		const item = document.createElement('li');
 		item.className = 'chat-message';
@@ -187,6 +205,14 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth, signal }:
 		const name = document.createElement('strong');
 		name.textContent = message.n;
 		meta.append(name);
+		if (message.s === 'yt') {
+			item.classList.add('is-youtube');
+			const source = document.createElement('span');
+			source.className = 'chat-source-badge';
+			source.textContent = 'YT';
+			source.title = 'From the YouTube live chat';
+			meta.append(source);
+		}
 		if (message.m) {
 			// DEV, OPERATOR, HOST or MOD; messages from before roles, or from the other site, just say MOD.
 			const role = isChatRole(message.r) ? message.r : 'mod';
@@ -220,6 +246,7 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth, signal }:
 		more.textContent = '⋯';
 
 		item.append(createAvatar(message.n, message.p), body, more);
+		renderDelivery(item, message);
 		return item;
 	};
 
@@ -277,6 +304,13 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth, signal }:
 		scheduleLayout(loaded);
 	}, showLoadError),
 
+	// Only the YouTube delivery status changes on a message after it is posted.
+	onChildChanged(messagesQuery, (snapshot) => {
+		const message: unknown = snapshot.val();
+		const item = snapshot.key ? items.get(snapshot.key) : undefined;
+		if (item && isChatMessage(message)) renderDelivery(item, message);
+	}),
+
 	onChildRemoved(messagesQuery, (snapshot) => {
 		if (!snapshot.key) return;
 		if (menuTarget?.item === items.get(snapshot.key)) closeMenu();
@@ -300,6 +334,11 @@ export const mountOzChat = async (root: HTMLElement, { room, loadAuth, signal }:
 			slowModeLabel.textContent = `SLOW MODE · ${slowMode}S`;
 		}
 		if (slowModeSelect) slowModeSelect.value = String(slowMode);
+	}),
+
+	// Only while messages really cross over: nothing about YouTube shows when it is offline.
+	onValue(ref(database, `chat/rooms/${room}/meta/youtube/sync`), (snapshot) => {
+		if (youtubeLabel) youtubeLabel.hidden = snapshot.val() !== true;
 	})];
 
 	// Connections are the scarce resource (the free plan allows 100 at once), so idle viewers let theirs go.

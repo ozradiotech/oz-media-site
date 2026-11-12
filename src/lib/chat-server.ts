@@ -27,6 +27,12 @@ export type ChatMessage = {
 	m?: boolean;
 	/** The moderator's chat role, for the badge. Older messages and other sites only have `m`. */
 	r?: ChatRole;
+	/** Source: absent for website messages, 'yt' for ones copied in from YouTube (src/lib/youtube/reader.ts). */
+	s?: 'yt';
+	/** YouTube messages: the author's YouTube channel id. */
+	c?: string;
+	/** Website messages sent while YouTube was live: how forwarding to YouTube went. */
+	ys?: 'pending' | 'sent' | 'failed';
 };
 
 const databaseUrl: string | undefined = import.meta.env.PUBLIC_FIREBASE_DATABASE_URL?.replace(/\/+$/, '');
@@ -179,6 +185,34 @@ export const db = async <T = unknown>(
 	});
 	if (!response.ok) throw new Error(`Database ${method} ${path} failed with ${response.status}: ${await response.text()}`);
 	return (await response.json()) as T;
+};
+
+/**
+ * Compare-and-set on one path, with the REST API's ETags: `update` gets the current value and returns the new one
+ * (null deletes), or undefined to leave it. Retried when another writer got in first.
+ */
+export const dbTransaction = async <T>(path: string, update: (current: T | null) => T | null | undefined) => {
+	const url = `${databaseUrl}/${path}.json`;
+	for (let attempt = 0; attempt < 5; attempt++) {
+		const headers = { Authorization: `Bearer ${await getAccessToken()}` };
+		const read = await fetch(url, { headers: { ...headers, 'X-Firebase-ETag': 'true' }, signal: AbortSignal.timeout(8000) });
+		if (!read.ok) throw new Error(`Database GET ${path} failed with ${read.status}: ${await read.text()}`);
+		const etag = read.headers.get('ETag') ?? '';
+		const current = (await read.json()) as T | null;
+		const next = update(current);
+		if (next === undefined) return { committed: false, value: current };
+		const write = await fetch(url, {
+			method: 'PUT',
+			headers: { ...headers, 'Content-Type': 'application/json', 'if-match': etag },
+			body: JSON.stringify(next),
+			signal: AbortSignal.timeout(8000),
+		});
+		// 412: someone else wrote since the read; read again.
+		if (write.status === 412) continue;
+		if (!write.ok) throw new Error(`Database PUT ${path} failed with ${write.status}: ${await write.text()}`);
+		return { committed: true, value: next };
+	}
+	throw new Error(`Database transaction on ${path} kept conflicting.`);
 };
 
 let blocklistCache: { value: Blocklist; expiresAt: number } | undefined;

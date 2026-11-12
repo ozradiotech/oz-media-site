@@ -236,6 +236,7 @@ const sections = [
 						<section class="live-chat" aria-labelledby="live-chat-title" data-live-chat data-chat-room="bandung">
 							<div class="live-chat-heading">
 								<h2 id="live-chat-title">LIVE CHAT</h2>
+								<span class="live-chat-youtube" data-chat-youtube hidden title="Messages here and in the YouTube live chat appear in both">● YOUTUBE CHAT LINKED</span>
 								<span class="live-chat-slow-mode" data-chat-slow-mode hidden></span>
 								<label class="live-chat-mod-control" data-chat-mod-control hidden>
 									SLOW MODE
@@ -348,6 +349,12 @@ const sections = [
 												<span class="placeholder-caption">YOUTUBE LIVESTREAM · CHANNEL TO BE ADDED</span>
 											</div>
 										)}
+									</div>
+									<div class="listener-stats live-viewer-stats" data-live-viewers aria-live="polite" aria-label="Livestream viewers" hidden>
+										<span class="live-viewer-flag">LIVE</span>
+										<span title="YouTube's official count of people watching this broadcast on YouTube">YOUTUBE <strong data-live-youtube>—</strong></span>
+										<span title="People playing the livestream on this website right now. Our own estimate, separate from YouTube's count.">WEBSITE <strong data-live-website>—</strong></span>
+										<span data-live-combined hidden title="YouTube plus website viewers. An estimate, not an official YouTube figure: someone can be counted on both.">COMBINED (EST.) <strong data-live-combined-count>—</strong></span>
 									</div>
 								</div>
 							</div>
@@ -1062,6 +1069,7 @@ const sections = [
 		stopNowPlayingUpdates();
 		pauseAudio();
 		liveLookup += 1;
+		stopLiveViewers();
 		livePlayer?.removeAttribute('src');
 		isStreaming = false;
 		broadcastPanels.forEach((panel) => { panel.hidden = true; });
@@ -1090,12 +1098,32 @@ const sections = [
 		void startLivestream();
 	};
 
+	// Livestream viewer counts beside the player, and this visitor's own website heartbeat while the player plays
+	// (src/scripts/oz-live-viewers.ts). Loaded with the livestream; stopped with it.
+	let liveViewers: AbortController | undefined;
+	const stopLiveViewers = () => {
+		liveViewers?.abort();
+		liveViewers = undefined;
+	};
+	const startLiveViewers = (player: HTMLIFrameElement) => {
+		stopLiveViewers();
+		const controller = new AbortController();
+		liveViewers = controller;
+		const stats = station?.querySelector<HTMLElement>('[data-live-viewers]');
+		void import('../scripts/oz-live-viewers')
+			.then(({ mountLiveViewers }) => {
+				if (!controller.signal.aborted) mountLiveViewers({ player, stats, signal: controller.signal });
+			})
+			.catch((error) => console.warn('Livestream viewer counts unavailable:', error));
+	};
+
 	// The iframe only gets its src here, so YouTube loads nothing until a visitor picks video.
-	const startLivestream = async () => {
+	// `retry`: a repeat check while "not live" shows, which leaves that message up until a stream is found.
+	const startLivestream = async (retry = false) => {
 		if (!livePlayer) return;
 		const lookup = ++liveLookup;
 		livePlayer.hidden = true;
-		if (liveOffline) liveOffline.hidden = true;
+		if (liveOffline && !retry) liveOffline.hidden = true;
 
 		let videoId = livePlayer.dataset.youtubeVideoId ?? '';
 		const channel = livePlayer.dataset.youtubeChannel;
@@ -1112,15 +1140,25 @@ const sections = [
 
 		if (!videoId) {
 			if (liveOffline) liveOffline.hidden = false;
+			// Ask again while video stays picked: a stream that starts (or that YouTube was slow to list) then plays by
+			// itself. Stopping or switching to audio bumps liveLookup, which ends this.
+			window.setTimeout(() => {
+				if (lookup === liveLookup && selectedBroadcast === 'video' && isStreaming) void startLivestream(true);
+			}, 30_000);
 			return;
 		}
 
+		if (liveOffline) liveOffline.hidden = true;
 		const playerUrl = new URL(`https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}`);
 		playerUrl.searchParams.set('autoplay', '1');
 		playerUrl.searchParams.set('playsinline', '1');
 		playerUrl.searchParams.set('rel', '0');
+		// Lets the page hear whether the player is actually playing, for the website viewer count.
+		playerUrl.searchParams.set('enablejsapi', '1');
+		playerUrl.searchParams.set('origin', location.origin);
 		livePlayer.src = playerUrl.toString();
 		livePlayer.hidden = false;
+		startLiveViewers(livePlayer);
 		// The embed doesn't report playback, so watching counts from when the livestream is picked until it's closed.
 		radioTracker.start('video', 'tune_in');
 		track('stream_start', { stream_type: 'video', source: 'tune_in' });
@@ -2930,6 +2968,31 @@ const sections = [
 		color: var(--c-text);
 	}
 
+	/* Messages from the YouTube live chat: YouTube's own red, the same in every theme, shaped like the role badges. */
+	.live-chat-messages :global(.chat-source-badge) {
+		flex: none;
+		padding: 2px 5px;
+		border-radius: 2px;
+		background: #FF0033;
+		color: #FFFFFF;
+		font-size: 8px;
+		font-weight: 700;
+		letter-spacing: 0.12em;
+		line-height: 1;
+	}
+
+	/* Only the sender sees that their message didn't reach YouTube; it is still in this chat. */
+	.live-chat-messages :global(.chat-delivery) {
+		flex: none;
+		color: var(--c-muted);
+		font-size: 10px;
+		font-style: italic;
+	}
+
+	.live-chat-messages :global(.chat-message:not(.is-own) .chat-delivery) {
+		display: none;
+	}
+
 	.live-chat-messages :global(.chat-message-body p) {
 		margin: 3px 0 0;
 		color: var(--c-text);
@@ -3251,6 +3314,14 @@ const sections = [
 	}
 
 	:where(.broadcast) .broadcast-panel[data-broadcast-panel='video']:not([hidden]) {
+		flex: 1;
+		min-height: 0;
+		display: flex;
+		flex-direction: column;
+	}
+
+	/* The player takes what the livestream viewer counts below it leave. */
+	:where(.broadcast) .broadcast-panel[data-broadcast-panel='video'] .video-frame {
 		flex: 1;
 		min-height: 0;
 	}
@@ -3886,6 +3957,22 @@ const sections = [
 		color: var(--c-accent);
 		font-size: 12px;
 		letter-spacing: 0;
+	}
+
+	/* Livestream viewers: YouTube's count and our website estimate, side by side, wrapping on phones. */
+	:where(.broadcast) .live-viewer-stats {
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 4px 14px;
+	}
+
+	:where(.broadcast) .live-viewer-stats[hidden],
+	:where(.broadcast) .live-viewer-stats [hidden] {
+		display: none;
+	}
+
+	:where(.broadcast) .live-viewer-flag {
+		color: var(--c-accent);
 	}
 
 	:where(.broadcast) .icon,

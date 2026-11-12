@@ -16,6 +16,8 @@ import {
 	verifyChatRequest,
 	type ChatMessage,
 } from '../../lib/chat-server';
+import { youtubeRoom } from '../../lib/youtube/paths';
+import { queueForYoutube, youtubeForwardingTarget } from '../../lib/youtube/runtime';
 
 export const prerender = false;
 
@@ -99,11 +101,21 @@ const send = async (user: DecodedIdToken, room: string, input: unknown, tab: str
 		message.m = true;
 		message.r = role;
 	}
+	// While the YouTube livestream is synced, the message also goes to YouTube (src/lib/youtube/outbox.ts), after it
+	// has passed every check above and been saved. Never waited on: YouTube trouble can't hold up or fail the chat.
+	const youtubeTarget = room === youtubeRoom ? await youtubeForwardingTarget() : null;
+	if (youtubeTarget) message.ys = 'pending';
 
 	const [{ name: id }] = await Promise.all([
 		db<{ name: string }>('POST', `chat/rooms/${room}/messages`, message),
 		db('PATCH', `chat/private/users/${user.uid}`, { last: now, lastText: key }),
 	]);
+	if (youtubeTarget) {
+		await queueForYoutube({ messageId: id, room, name: message.n, text: safeText, target: youtubeTarget }).catch(async (error) => {
+			console.error('[youtube] Could not queue a message for YouTube:', error);
+			await db('PATCH', `chat/rooms/${room}/messages/${id}`, { ys: 'failed' }).catch(() => undefined);
+		});
+	}
 	void logChatEvent({ type: 'chat_message', room, cid: chatterId(user.uid), tab, moderator: moderator || undefined });
 	return Response.json({ id }, { status: 201 });
 };
