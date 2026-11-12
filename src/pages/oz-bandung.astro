@@ -18,20 +18,25 @@ import { getLiveCollection, render } from 'astro:content';
 import { cmsImage } from '../lib/cms';
 import { ageRanges } from '../lib/listener';
 import { getVisibleNews, imageFrame, newsCategoryLabel, newsIndexPath, newsPath } from '../lib/news';
-import { whatsappLink } from '../lib/station-defaults';
+import { profileHandle, whatsappLink } from '../lib/station-defaults';
 import { getStationSettings } from '../lib/station-settings';
 import '../styles/ozubathon.css';
 import '../styles/media-fit.css';
 // Loaded with the page rather than with the player script, so it stays when the player is carried to OZ News.
 import '../styles/oz-audio-player.css';
 
-// The stream, livestream, YouTube carousel, links, contact details, ticker and Ozubathon come from the CMS's Station
-// settings (src/lib/station-settings.ts), with built-in defaults for anything left empty or a CMS that can't be reached.
+// From the CMS (src/lib/station-settings.ts): Broadcast → Streams (audio stream, livestream), Digital → Socials (the
+// Online digital cards), Content → OZ Bandung page (ticker, Ozubathon, contact). Built-in values if it can't be reached.
 const station = await getStationSettings();
-const { audioStreamUrl, youtubeLive, youtubeChannelUrl, youtubeVideos, instagramUrl, tiktokUrl, threadsUrl } = station;
-// Livestream: channelId plays whatever that channel is streaming when a visitor picks video, looked up by
-// /api/youtube-live, and says "not live right now" otherwise; a videoId always plays that one broadcast instead.
-const hasYoutubeLive = Boolean(youtubeLive.videoId || youtubeLive.channelId);
+const { audioStreamUrl, youtubeLive } = station;
+const youtubeChannelUrl = station.youtube.channelUrl;
+const youtubeVideos = station.youtube.videos;
+const instagramUrl = station.instagram.url;
+const tiktokUrl = station.tiktok.url;
+const tiktokHandle = profileHandle(tiktokUrl);
+// Livestream: a pinned videoId always plays that video. Otherwise /api/youtube-live finds what the channel is streaming
+// (the channel connected to the YouTube integration when channelId is empty) and says "not live right now" if nothing.
+const hasYoutubeLive = true;
 
 // Published items only, in the order set in the CMS. Unpublished announcers are left out as program hosts too.
 // A CMS outage empties a section rather than breaking the page.
@@ -556,7 +561,7 @@ const sections = [
 								</div>
 							</div>
 							<div class="social-card-bottom">
-								<div><h3>Watch podcasts.</h3><p>Live sets, studio sessions and more from OZ Radio Bandung.</p></div>
+								<div><h3>{station.youtube.heading}</h3><p>{station.youtube.text}</p></div>
 								<a class="outline-link" href={youtubeChannelUrl || undefined} target="_blank" rel="noopener noreferrer" aria-disabled={!youtubeChannelUrl}>
 									{youtubeChannelUrl ? 'VISIT YOUTUBE ↗' : 'CHANNEL LINK COMING SOON'}
 								</a>
@@ -567,14 +572,14 @@ const sections = [
 							<div class="instagram-preview">
 								<blockquote
 									class="instagram-media"
-									data-instgrm-permalink="https://www.instagram.com/ozradiobandung/"
+									data-instgrm-permalink={`${instagramUrl.replace(/\/+$/, '')}/`}
 									data-instgrm-version="14"
 								>
 									<a href={instagramUrl}>View this profile on Instagram</a>
 								</blockquote>
 							</div>
 							<div class="social-card-bottom">
-								<div><h3>Stay in the loop.</h3><p>Behind the scenes and everything.</p></div>
+								<div><h3>{station.instagram.heading}</h3><p>{station.instagram.text}</p></div>
 								<a class="outline-link" href={instagramUrl} target="_blank" rel="noopener noreferrer">VISIT INSTAGRAM ↗</a>
 							</div>
 						</article>
@@ -584,17 +589,17 @@ const sections = [
 								<blockquote
 									class="tiktok-embed"
 									cite={tiktokUrl}
-									data-unique-id="ozradio"
+									data-unique-id={tiktokHandle}
 									data-embed-type="creator"
 									style="max-width: 720px; min-width: 288px;"
 								>
 									<section>
-										<a target="_blank" rel="noopener noreferrer" href={`${tiktokUrl}?refer=creator_embed`}>@ozradio</a>
+										<a target="_blank" rel="noopener noreferrer" href={`${tiktokUrl}?refer=creator_embed`}>@{tiktokHandle}</a>
 									</section>
 								</blockquote>
 							</div>
 							<div class="social-card-bottom">
-								<div><h3>Catch the moments.</h3><p>Short-form updates and behind the scenes from OZ Radio Bandung.</p></div>
+								<div><h3>{station.tiktok.heading}</h3><p>{station.tiktok.text}</p></div>
 								<a class="outline-link" href={tiktokUrl} target="_blank" rel="noopener noreferrer">VISIT TIKTOK ↗</a>
 							</div>
 						</article>
@@ -1117,9 +1122,10 @@ const sections = [
 
 		let videoId = livePlayer.dataset.youtubeVideoId ?? '';
 		const channel = livePlayer.dataset.youtubeChannel;
-		if (!videoId && channel) {
+		if (!videoId) {
 			try {
-				const response = await fetch(`/api/youtube-live?channel=${encodeURIComponent(channel)}`);
+				// Without a channel the server uses the one connected to the YouTube integration.
+				const response = await fetch(`/api/youtube-live${channel ? `?channel=${encodeURIComponent(channel)}` : ''}`);
 				const status = (await response.json()) as { live?: boolean; videoId?: string };
 				if (status.live && status.videoId) videoId = status.videoId;
 			} catch {

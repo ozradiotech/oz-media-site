@@ -43,7 +43,7 @@ Three things need to run:
 | :--- | :--- |
 | `CMS_URL` | The CMS address: `http://localhost:3000` locally, `https://cms.ozmedianet.com` once deployed. |
 | `CMS_API_KEY` | The API key of the CMS's `website` user. Needed for the social numbers on `/analytics` and the chat roles; published content reads without it. Locally it is in `oz-cms/dev-accounts.local.txt`. |
-| `CMS_SITE_SECRET` | 32+ random characters, the same as the CMS's `CMS_SITE_SECRET`. Lets the CMS's Station pages use this site's admin routes (`src/lib/admin-token.ts`, `src/lib/admin-access.ts`). Optional: without it those CMS pages say they can't connect. |
+| `CMS_SITE_SECRET` | 32+ random characters, the same as the CMS's `CMS_SITE_SECRET`. Lets the CMS's website pages (Broadcast → YouTube, Live chat → YouTube chat sync and Moderation, Digital → Analytics) use this site's admin routes (`src/lib/admin-token.ts`, `src/lib/admin-access.ts`). Optional: without it those CMS pages say they can't connect. |
 | `SITE_URL` | This site's own address: `https://ozmedianet.com` on the VPS, `http://127.0.0.1:4321` locally. Canonical links, share URLs, the sitemap and robots.txt use it, so it must match the domain the site is served on. Read at build time (`astro.config.mjs`); ozradio.id when unset. |
 
 ### What the CMS drives
@@ -56,10 +56,13 @@ Three things need to run:
 | Programs, announcers, activities and their order | **Programs**, **Announcers**, **On-ground activities** |
 | `/analytics` social numbers | **Social media numbers** (digital) |
 | Chat badges and who can moderate | **Chat roles** (developers only), see Live chat → Moderation |
-| OZ Bandung's audio stream, YouTube livestream channel (or a pinned video), YouTube carousel, social links, contact email and WhatsApp (page and footer), ticker phrases, Ozubathon date and hours | **Settings → Station settings** (developer, digital). Built-in values in `src/lib/station-defaults.ts` are used for anything left empty or if the CMS is down |
-| Extra blocked chat words | **Settings → Chat settings** (developer, digital), on top of `src/lib/chat-filter.ts` |
-| YouTube connection, chat sync switches, chat bans and unbanning | **Station → YouTube & live chat** (developer; digital read-only) |
-| `/analytics` | **Station → Analytics** shows the same dashboard inside the CMS (developer, digital). `/analytics` here still works with Google sign-in |
+| OZ Bandung's audio stream URL, and the YouTube livestream channel (or a pinned video) | **Broadcast → Streams** (developer, digital). Clear the channel to follow the one connected under Broadcast → YouTube |
+| The Online digital section (YouTube channel link, carousel videos, card texts, Instagram and TikTok profiles) and the footer's social links | **Digital → Socials** (developer, digital) |
+| Ticker phrases, Ozubathon date and hours, contact email and WhatsApp (page and footer) | **Content → OZ Bandung page** (developer, editorial, digital) |
+| What the CMS doesn't have, or when it can't be reached | The built-in values in `src/lib/station-defaults.ts`, the same ones the CMS fields start with |
+| Extra blocked chat words | **Live chat → Chat settings** (developer, digital), on top of `src/lib/chat-filter.ts` |
+| YouTube connection and viewers; chat sync switches; bans and unbanning | **Broadcast → YouTube**; **Live chat → YouTube chat sync**; **Live chat → Moderation** (developer; digital read-only) |
+| `/analytics` | **Digital → Analytics** shows the same dashboard inside the CMS (developer, digital). `/analytics` here still works with Google sign-in |
 | Who can see analytics and run the YouTube integration | The CMS user's **role** (Developer or Digital), matched on the Google email someone signs in with here |
 
 News pictures are meant to be landscape 16:9 (best 1600 × 900 px, at least 1200 × 675). Anything narrower than 3:2 is shown whole on a blurred copy of itself instead of being cropped (`imageFrame` in `src/lib/news.ts`, styles in `src/styles/media-fit.css`), on the cards and on the article's lead photo.
@@ -313,7 +316,7 @@ node --env-file=.env scripts/chat-admin.mjs unmod someone@gmail.com   # remove t
 
 #### Bans and mutes
 
-Banned accounts are listed in the CMS under **Station → YouTube & live chat**, where a CMS Developer can **Unban** them. The script does the same from the server:
+Banned accounts are listed in the CMS under **Live chat → Moderation**, where a CMS Developer can **Unban** them. The script does the same from the server:
 
 ```sh
 node --env-file=.env scripts/chat-admin.mjs unban someone@gmail.com   # lifts a ban and any mute
@@ -360,7 +363,7 @@ The `jwks-rsa` override in `package.json` keeps `firebase-admin` on `jose` 5. `j
 
 ### Listener forms
 
-Listener details are personal data, so the private analytics are only for CMS **Developer** and **Digital** users: in the CMS under **Station → Analytics**, or here on `/analytics` by signing in with Google using the same email as their CMS account. Give or take away the role in the CMS (**Admin → Users**); it applies within 30 seconds. The older per-account grant still works for people without a CMS account:
+Listener details are personal data, so the private analytics are only for CMS **Developer** and **Digital** users: in the CMS under **Digital → Analytics**, or here on `/analytics` by signing in with Google using the same email as their CMS account. Give or take away the role in the CMS (**Admin → Users**); it applies within 30 seconds. The older per-account grant still works for people without a CMS account:
 
 ```sh
 node --env-file=.env scripts/chat-admin.mjs analytics someone@gmail.com     # grant access

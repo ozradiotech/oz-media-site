@@ -2526,11 +2526,11 @@ const monthLabel = (month: string) =>
 				item('Last error', sync?.lastError ? `${formatWhen(sync.lastError.at)}: ${sync.lastError.message}` : 'None'),
 			].join('');
 			const manage = status.access === 'manage';
-			// In the CMS, connecting and the switches are on its own YouTube & live chat page (Google's pages can't open
+			// In the CMS, connecting and the switches are on its own pages (Broadcast → YouTube, Live chat → YouTube chat sync) (Google's pages can't open
 			// inside this frame).
 			livestreamControls.hidden = isEmbedded;
 			if (isEmbedded) {
-				livestreamAdminStatus.textContent = 'Connect, disconnect and switch the sync on the CMS page YouTube & live chat.';
+				livestreamAdminStatus.textContent = 'In the CMS: connect or disconnect under Broadcast → YouTube, and switch the sync under Live chat → YouTube chat sync.';
 				return;
 			}
 			livestreamControls.querySelectorAll<HTMLInputElement>('[data-sync-setting]').forEach((input) => {

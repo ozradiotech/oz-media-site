@@ -4,7 +4,7 @@ import { ChatError, chatErrorResponse, db, isChatServerConfigured, isDatabaseKey
 
 export const prerender = false;
 
-// Live chat administration for the CMS admin's "YouTube & live chat" page (and anyone with the same CMS role).
+// Live chat administration for the CMS admin's Live chat → Moderation page (and anyone with the same CMS role).
 //   GET   the bans. CMS Developer or Digital.
 //   POST  { action: 'unban', uid } lifts a ban and any mute. CMS Developer.
 // Moderators keep banning, muting and slow mode from the chat itself; this is for undoing and overseeing it.

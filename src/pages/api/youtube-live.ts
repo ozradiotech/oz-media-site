@@ -1,8 +1,10 @@
 import type { APIRoute } from 'astro';
+import { defaultStationSettings } from '../../lib/station-defaults';
 import { isYoutubeConfigured, publicLiveState } from '../../lib/youtube/runtime';
 
-// `?channel=UC…` picks the YouTube channel; without one (or with an invalid id) it falls back to OZ Media.
-const defaultChannel = 'UCdc4ztl0di-Fv58CI5TK73w';
+// `?channel=UC…` picks the YouTube channel. Without one: the channel connected to the YouTube integration, or else the
+// built-in one (OZ Media). The page sends the channel set in the CMS (Broadcast → Streams), if any.
+const defaultChannel = defaultStationSettings.youtubeLive.channelId;
 // A found broadcast is reused for a minute; "not live" only briefly, so a stream that just started shows up soon.
 const liveCacheMs = 60_000;
 const offlineCacheMs = 20_000;
@@ -48,7 +50,8 @@ const fromPage = async (channel: string): Promise<LiveStatus> => {
 
 export const GET: APIRoute = async ({ url }) => {
 	const requestedChannel = url.searchParams.get('channel') ?? '';
-	const channel = /^UC[\w-]{22}$/.test(requestedChannel) ? requestedChannel : defaultChannel;
+	const connectedChannel = isYoutubeConfigured ? (await publicLiveState())?.channelId ?? null : null;
+	const channel = /^UC[\w-]{22}$/.test(requestedChannel) ? requestedChannel : connectedChannel ?? defaultChannel;
 	const headers = { 'Cache-Control': 'public, max-age=15' };
 
 	const cached = cache.get(channel);

@@ -1,15 +1,20 @@
-// OZ Bandung's page settings: the built-in values, and how the CMS's "Station settings" (oz-cms
-// src/globals/StationSettings.ts) override them. Pure, so it is tested on its own (tests/admin/station-settings.test.ts).
-// Anything left empty in the CMS, or a CMS that can't be reached, falls back to these.
+// OZ Bandung's page settings: the values the CMS starts with (oz-cms src/siteDefaults.ts holds the same ones as its
+// fields' defaults), and how what the CMS returns becomes what the page uses. The CMS keeps them in three places:
+// Broadcast → Streams, Digital → Socials, Content → OZ Bandung page. These values are only used when the CMS can't be
+// reached, or for a field it returns empty. Pure, so it is tested on its own (tests/admin/station-settings.test.ts).
+
+type Card = { heading: string; text: string };
 
 export type StationSettings = {
 	audioStreamUrl: string;
-	/** channelId: plays whatever the channel streams (looked up by /api/youtube-live). videoId: always that broadcast. */
+	/**
+	 * videoId: always plays that video. Otherwise channelId: plays whatever that channel streams (looked up by
+	 * /api/youtube-live); empty means the channel connected to the YouTube integration.
+	 */
 	youtubeLive: { channelId: string; videoId: string };
-	youtubeChannelUrl: string;
-	youtubeVideos: { id: string; title: string }[];
-	instagramUrl: string;
-	tiktokUrl: string;
+	youtube: Card & { channelUrl: string; videos: { id: string; title: string }[] };
+	instagram: Card & { url: string };
+	tiktok: Card & { url: string };
 	threadsUrl: string;
 	contactEmail: string;
 	/** As shown, e.g. +62 851-1139-1031; the wa.me link is made from its digits. */
@@ -23,14 +28,18 @@ export type StationSettings = {
 export const defaultStationSettings: StationSettings = {
 	audioStreamUrl: 'https://streaming.ozradio.id:8443/ozbandung',
 	youtubeLive: { channelId: 'UCdc4ztl0di-Fv58CI5TK73w', videoId: '' },
-	youtubeChannelUrl: 'https://www.youtube.com/@OZMEDIANET',
-	youtubeVideos: [
-		{ id: 'UDmfDJTzg4w', title: 'Featured video' },
-		{ id: 'dn73m2_u71E', title: 'Studio session' },
-		{ id: 'ZStRwkoiTQY', title: 'Live set' },
-	],
-	instagramUrl: 'https://www.instagram.com/ozradiobandung',
-	tiktokUrl: 'https://www.tiktok.com/@ozradio',
+	youtube: {
+		channelUrl: 'https://www.youtube.com/@OZMEDIANET',
+		heading: 'Watch podcasts.',
+		text: 'Live sets, studio sessions and more from OZ Radio Bandung.',
+		videos: [
+			{ id: 'UDmfDJTzg4w', title: 'Featured video' },
+			{ id: 'dn73m2_u71E', title: 'Studio session' },
+			{ id: 'ZStRwkoiTQY', title: 'Live set' },
+		],
+	},
+	instagram: { url: 'https://www.instagram.com/ozradiobandung', heading: 'Stay in the loop.', text: 'Behind the scenes and everything.' },
+	tiktok: { url: 'https://www.tiktok.com/@ozradio', heading: 'Catch the moments.', text: 'Short-form updates and behind the scenes from OZ Radio Bandung.' },
 	threadsUrl: 'https://www.threads.net/@ozradiobandung',
 	contactEmail: 'ozmedianet.id@gmail.com',
 	whatsappNumber: '+62 851-1139-1031',
@@ -38,54 +47,68 @@ export const defaultStationSettings: StationSettings = {
 	ozubathon: { start: '2026-12-23T19:00:00+07:00', hours: 55, dateLabel: '23 DECEMBER 2026' },
 };
 
-/** The global as the CMS REST API returns it (every field optional, nulls for empty). */
+type Text = string | null | undefined;
+type CmsCard = { heading?: Text; text?: Text };
+
+/** The three globals as the CMS REST API returns them (fields optional, nulls for empty). Null: unreachable. */
 export type CmsStationSettings = {
-	audioStreamUrl?: string | null;
-	youtube?: {
-		liveChannelId?: string | null;
-		liveVideoId?: string | null;
-		channelUrl?: string | null;
-		videos?: { videoId?: string | null; title?: string | null }[] | null;
+	streams: { audioStreamUrl?: Text; liveChannelId?: Text; liveVideoId?: Text } | null;
+	socials: {
+		youtube?: (CmsCard & { channelUrl?: Text; videos?: { videoId?: Text; title?: Text }[] | null }) | null;
+		instagram?: (CmsCard & { url?: Text }) | null;
+		tiktok?: (CmsCard & { url?: Text }) | null;
+		threads?: { url?: Text } | null;
 	} | null;
-	social?: { instagramUrl?: string | null; tiktokUrl?: string | null; threadsUrl?: string | null } | null;
-	contact?: { email?: string | null; whatsappNumber?: string | null } | null;
-	ticker?: { phrase?: string | null }[] | null;
-	ozubathon?: { start?: string | null; hours?: number | null; dateLabel?: string | null } | null;
+	page: {
+		ticker?: { phrase?: Text }[] | null;
+		ozubathon?: { start?: Text; hours?: number | null; dateLabel?: Text } | null;
+		contact?: { email?: Text; whatsappNumber?: Text } | null;
+	} | null;
 };
 
 const text = (value: unknown, fallback: string) => (typeof value === 'string' && value.trim() ? value.trim() : fallback);
+const card = (cms: CmsCard | null | undefined, fallback: Card): Card => ({ heading: text(cms?.heading, fallback.heading), text: text(cms?.text, fallback.text) });
 
-export const mergeStationSettings = (cms: CmsStationSettings | null | undefined, defaults = defaultStationSettings): StationSettings => {
-	if (!cms) return defaults;
-	const videos = (cms.youtube?.videos ?? [])
+export const mergeStationSettings = (cms: Partial<CmsStationSettings> | null | undefined, defaults = defaultStationSettings): StationSettings => {
+	const streams = cms?.streams;
+	const socials = cms?.socials;
+	const page = cms?.page;
+	const videos = (socials?.youtube?.videos ?? [])
 		.map((video) => ({ id: text(video?.videoId, ''), title: text(video?.title, 'YouTube video') }))
 		.filter((video) => /^[\w-]{11}$/.test(video.id));
-	const phrases = (cms.ticker ?? []).map((item) => text(item?.phrase, '')).filter(Boolean);
-	const hours = cms.ozubathon?.hours;
-	const start = cms.ozubathon?.start && Number.isFinite(Date.parse(cms.ozubathon.start)) ? cms.ozubathon.start : defaults.ozubathon.start;
-	// A pinned video wins over the channel; the channel is only replaced when one is given.
-	const videoId = text(cms.youtube?.liveVideoId, '');
+	const phrases = (page?.ticker ?? []).map((item) => text(item?.phrase, '')).filter(Boolean);
+	const hours = page?.ozubathon?.hours;
+	const start = text(page?.ozubathon?.start, '');
+	const channelId = text(streams?.liveChannelId, '');
+	const videoId = text(streams?.liveVideoId, '');
 	return {
-		audioStreamUrl: text(cms.audioStreamUrl, defaults.audioStreamUrl),
+		audioStreamUrl: text(streams?.audioStreamUrl, defaults.audioStreamUrl),
 		youtubeLive: {
-			channelId: /^UC[\w-]{22}$/.test(text(cms.youtube?.liveChannelId, '')) ? text(cms.youtube?.liveChannelId, '') : defaults.youtubeLive.channelId,
+			// Reachable CMS with the channel cleared: follow the connected channel. Unreachable: the built-in one.
+			channelId: /^UC[\w-]{22}$/.test(channelId) ? channelId : streams ? '' : defaults.youtubeLive.channelId,
 			videoId: /^[\w-]{11}$/.test(videoId) ? videoId : '',
 		},
-		youtubeChannelUrl: text(cms.youtube?.channelUrl, defaults.youtubeChannelUrl),
-		youtubeVideos: videos.length ? videos : defaults.youtubeVideos,
-		instagramUrl: text(cms.social?.instagramUrl, defaults.instagramUrl),
-		tiktokUrl: text(cms.social?.tiktokUrl, defaults.tiktokUrl),
-		threadsUrl: text(cms.social?.threadsUrl, defaults.threadsUrl),
-		contactEmail: text(cms.contact?.email, defaults.contactEmail),
-		whatsappNumber: text(cms.contact?.whatsappNumber, defaults.whatsappNumber),
+		youtube: {
+			...card(socials?.youtube, defaults.youtube),
+			channelUrl: text(socials?.youtube?.channelUrl, defaults.youtube.channelUrl),
+			videos: videos.length ? videos : defaults.youtube.videos,
+		},
+		instagram: { ...card(socials?.instagram, defaults.instagram), url: text(socials?.instagram?.url, defaults.instagram.url) },
+		tiktok: { ...card(socials?.tiktok, defaults.tiktok), url: text(socials?.tiktok?.url, defaults.tiktok.url) },
+		threadsUrl: text(socials?.threads?.url, defaults.threadsUrl),
+		contactEmail: text(page?.contact?.email, defaults.contactEmail),
+		whatsappNumber: text(page?.contact?.whatsappNumber, defaults.whatsappNumber),
 		tickerPhrases: phrases.length ? phrases : defaults.tickerPhrases,
 		ozubathon: {
-			start,
+			start: start && Number.isFinite(Date.parse(start)) ? start : defaults.ozubathon.start,
 			hours: typeof hours === 'number' && hours > 0 ? hours : defaults.ozubathon.hours,
-			dateLabel: text(cms.ozubathon?.dateLabel, defaults.ozubathon.dateLabel),
+			dateLabel: text(page?.ozubathon?.dateLabel, defaults.ozubathon.dateLabel),
 		},
 	};
 };
 
 /** https://wa.me/<digits> for a number written any way. */
 export const whatsappLink = (number: string) => `https://wa.me/${number.replace(/\D/g, '')}`;
+
+/** The handle in a profile link: https://www.tiktok.com/@ozradio → ozradio. */
+export const profileHandle = (url: string) => url.replace(/\/+$/, '').split('/').pop()?.replace(/^@/, '') ?? '';
