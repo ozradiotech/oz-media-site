@@ -16,6 +16,8 @@ export type AdminTokenPayload = {
 	email: string;
 	/** Their CMS roles: developer, digital, editorial. */
 	roles: string[];
+	/** What they may do on the site's admin features, from all their roles (src/lib/youtube/roles.ts). */
+	capabilities?: unknown;
 	purpose: AdminTokenPurpose;
 	/** Expiry, ms since the epoch. */
 	exp: number;

@@ -327,6 +327,12 @@ const sections = [
 											allowfullscreen
 											hidden
 										></iframe>
+										{station.offlineVideo && (
+											<div class="offline-video" data-youtube-offline-video hidden>
+												<video muted loop playsinline preload="none" disablepictureinpicture aria-label="OZ Radio Bandung, while we're not live" data-src={station.offlineVideo.url} data-type={station.offlineVideo.mimeType}></video>
+												<a class="offline-video-note" href={youtubeChannelUrl} target="_blank" rel="noopener noreferrer">NOT LIVE · CATCH OUR PAST STREAMS ON YOUTUBE ↗</a>
+											</div>
+										)}
 										<div class="video-placeholder" data-youtube-offline hidden>
 											<img src="/images/studio-livestream.jpg" alt="" aria-hidden="true" loading="lazy" decoding="async" />
 											<p>We're not live right now</p>
@@ -810,6 +816,31 @@ const sections = [
 	const broadcastPanels = station?.querySelectorAll<HTMLElement>('[data-broadcast-panel]') ?? [];
 	const livePlayer = station?.querySelector<HTMLIFrameElement>('[data-youtube-live]');
 	const liveOffline = station?.querySelector<HTMLElement>('[data-youtube-offline]');
+	// The loop from the CMS (Content → OZ Bandung page → Offline video), shown instead of the picture when there is one.
+	const offlineVideo = station?.querySelector<HTMLElement>('[data-youtube-offline-video]');
+	const offlineVideoPlayer = offlineVideo?.querySelector<HTMLVideoElement>('video');
+	// "Not live": the loop if there is one, otherwise the picture. The loop only downloads the first time it shows, and
+	// pauses whenever it isn't on screen.
+	const showOffline = (show: boolean) => {
+		if (offlineVideo && offlineVideoPlayer) {
+			if (liveOffline) liveOffline.hidden = true;
+			offlineVideo.hidden = !show;
+			if (show) {
+				if (!offlineVideoPlayer.querySelector('source') && offlineVideoPlayer.dataset.src) {
+					const source = document.createElement('source');
+					source.src = offlineVideoPlayer.dataset.src;
+					source.type = offlineVideoPlayer.dataset.type ?? 'video/mp4';
+					offlineVideoPlayer.append(source);
+					offlineVideoPlayer.load();
+				}
+				void offlineVideoPlayer.play().catch(() => undefined);
+			} else {
+				offlineVideoPlayer.pause();
+			}
+			return;
+		}
+		if (liveOffline) liveOffline.hidden = !show;
+	};
 	const audioPlayerContainer = station?.querySelector<HTMLElement>('[data-audio-player]');
 	const fallbackAudio = audioPlayerContainer?.querySelector<HTMLAudioElement>('audio');
 	const trackTitle = station?.querySelector<HTMLElement>('[data-track-title]');
@@ -1053,6 +1084,7 @@ const sections = [
 		pauseAudio();
 		liveLookup += 1;
 		stopLiveViewers();
+		showOffline(false);
 		livePlayer?.removeAttribute('src');
 		isStreaming = false;
 		broadcastPanels.forEach((panel) => { panel.hidden = true; });
@@ -1106,7 +1138,7 @@ const sections = [
 		if (!livePlayer) return;
 		const lookup = ++liveLookup;
 		livePlayer.hidden = true;
-		if (liveOffline && !retry) liveOffline.hidden = true;
+		if (!retry) showOffline(false);
 
 		let videoId = livePlayer.dataset.youtubeVideoId ?? '';
 		const channel = livePlayer.dataset.youtubeChannel;
@@ -1123,7 +1155,7 @@ const sections = [
 		if (lookup !== liveLookup) return;
 
 		if (!videoId) {
-			if (liveOffline) liveOffline.hidden = false;
+			showOffline(true);
 			// Ask again while video stays picked: a stream that starts (or that YouTube was slow to list) then plays by
 			// itself. Stopping or switching to audio bumps liveLookup, which ends this.
 			window.setTimeout(() => {
@@ -1132,7 +1164,7 @@ const sections = [
 			return;
 		}
 
-		if (liveOffline) liveOffline.hidden = true;
+		showOffline(false);
 		const playerUrl = new URL(`https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}`);
 		playerUrl.searchParams.set('autoplay', '1');
 		playerUrl.searchParams.set('playsinline', '1');
@@ -3878,6 +3910,44 @@ const sections = [
 	:where(.broadcast) .video-placeholder > :not(img) {
 		position: relative;
 		z-index: 1;
+	}
+
+	/* The offline loop: the whole video inside the player's 16:9 frame (never cropped), on the stage colour. */
+	:where(.broadcast) .offline-video {
+		position: relative;
+		height: 100%;
+		overflow: hidden;
+		background: var(--c-stage);
+	}
+
+	:where(.broadcast) .offline-video[hidden] {
+		display: none;
+	}
+
+	:where(.broadcast) .offline-video video {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+	}
+
+	:where(.broadcast) .offline-video-note {
+		position: absolute;
+		left: 10px;
+		bottom: 10px;
+		padding: 4px 8px;
+		border-radius: 999px;
+		background: rgb(0 0 0 / 60%);
+		color: #FFFFFF;
+		font-size: 8px;
+		font-weight: 700;
+		letter-spacing: 0.12em;
+		text-decoration: none;
+	}
+
+	:where(.broadcast) .offline-video-note:hover,
+	:where(.broadcast) .offline-video-note:focus-visible {
+		background: rgb(0 0 0 / 80%);
 	}
 
 	:where(.broadcast) .video-placeholder p {

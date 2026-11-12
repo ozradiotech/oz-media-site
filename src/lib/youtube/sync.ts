@@ -589,8 +589,9 @@ export class YoutubeSync {
 	}
 
 	/** After an admin disconnects or connects the channel. */
-	async reconnect() {
-		this.forceApiCheck = true;
+	async reconnect(lookForUnlisted = true) {
+		// Check now and (dis)connecting also ask the API, which sees unlisted broadcasts; a settings switch doesn't.
+		if (lookForUnlisted) this.forceApiCheck = true;
 		this.deps.resetCredentials();
 		this.stopReader();
 		await this.refreshSettings();

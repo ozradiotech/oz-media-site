@@ -56,14 +56,15 @@ Three things need to run:
 | Programs, announcers, activities and their order | **Programs**, **Announcers**, **On-ground activities** |
 | `/analytics` social numbers | **Social media numbers** (digital) |
 | Chat badges and who can moderate | **Chat roles** (developers only), see Live chat → Moderation |
-| OZ Bandung's audio stream URL, and the YouTube livestream channel (or a pinned video) | **Broadcast → Streams** (developer, digital). Clear the channel to follow the one connected under Broadcast → YouTube |
-| The Online digital section (YouTube channel link, carousel videos, card texts, Instagram and TikTok profiles) and the footer's social links | **Digital → Socials** (developer, digital) |
-| Ticker phrases, Ozubathon date and hours, contact email and WhatsApp (page and footer) | **Content → OZ Bandung page** (developer, editorial, digital) |
+| OZ Bandung's audio stream URL, and the YouTube livestream channel (or a pinned video) | **Broadcast → Streams** (developer). Clear the channel to follow the one connected under Broadcast → YouTube |
+| The Online digital section (YouTube channel link, carousel videos, card texts, Instagram and TikTok profiles) and the footer's social links | **Digital → Socials** (developer, editorial, digital) |
+| Ticker phrases, Ozubathon date and hours, contact email and WhatsApp (page and footer) | **Content → OZ Bandung page** (developer, editorial) |
+| A looping video in the video player while nothing is live (instead of the "not live" picture) | **Content → OZ Bandung page → Offline video**, uploaded under **Content → Videos**. Empty keeps the picture. Fitted to the player without cropping, muted, and only downloaded once someone picks video |
 | What the CMS doesn't have, or when it can't be reached | The built-in values in `src/lib/station-defaults.ts`, the same ones the CMS fields start with |
-| Extra blocked chat words | **Live chat → Chat settings** (developer, digital), on top of `src/lib/chat-filter.ts` |
-| YouTube connection and viewers; chat sync switches; bans and unbanning | **Broadcast → YouTube**; **Live chat → YouTube chat sync**; **Live chat → Moderation** (developer; digital read-only) |
-| `/analytics` | **Digital → Analytics** shows the same dashboard inside the CMS (developer, digital). `/analytics` here still works with Google sign-in |
-| Who can see analytics and run the YouTube integration | The CMS user's **role** (Developer or Digital), matched on the Google email someone signs in with here |
+| Extra blocked chat words | **Live chat → Chat settings** (developer), on top of `src/lib/chat-filter.ts` |
+| YouTube connection and viewers; chat sync switches; bans and unbanning | **Broadcast → YouTube**; **Live chat → YouTube chat sync**; **Live chat → Moderation** (developer, or a custom role that gives them) |
+| `/analytics` | **Digital → Analytics** shows the same dashboard inside the CMS (developer, digital, or a custom role). `/analytics` here still works with Google sign-in |
+| Who can see analytics and run the YouTube integration | The CMS user's **roles**, built-in and custom (oz-cms `src/permissions.ts`), matched on the Google email someone signs in with here. The CMS sends what each person may do per page (`src/lib/youtube/roles.ts`) |
 
 News pictures are meant to be landscape 16:9 (best 1600 × 900 px, at least 1200 × 675). Anything narrower than 3:2 is shown whole on a blurred copy of itself instead of being cropped (`imageFrame` in `src/lib/news.ts`, styles in `src/styles/media-fit.css`), on the cards and on the article's lead photo.
 
@@ -363,7 +364,7 @@ The `jwks-rsa` override in `package.json` keeps `firebase-admin` on `jose` 5. `j
 
 ### Listener forms
 
-Listener details are personal data, so the private analytics are only for CMS **Developer** and **Digital** users: in the CMS under **Digital → Analytics**, or here on `/analytics` by signing in with Google using the same email as their CMS account. Give or take away the role in the CMS (**Admin → Users**); it applies within 30 seconds. The older per-account grant still works for people without a CMS account:
+Listener details are personal data, so the private analytics are only for CMS users whose roles include Analytics (**Developer**, **Digital**, or a custom role): in the CMS under **Digital → Analytics**, or here on `/analytics` by signing in with Google using the same email as their CMS account. Give or take away the role in the CMS (**Admin → Users**); it applies within 30 seconds. The older per-account grant still works for people without a CMS account:
 
 ```sh
 node --env-file=.env scripts/chat-admin.mjs analytics someone@gmail.com     # grant access

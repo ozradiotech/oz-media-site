@@ -55,6 +55,21 @@ describe('station settings', () => {
 		assert.deepEqual(merged.youtube.videos, defaultStationSettings.youtube.videos);
 	});
 
+	test('offline video: only an uploaded video with an address; nothing set keeps the picture', () => {
+		const withVideo = (offlineVideo: unknown) =>
+			mergeStationSettings({ streams: null, socials: null, page: { offlineVideo: offlineVideo as never } }).offlineVideo;
+		assert.equal(defaultStationSettings.offlineVideo, null);
+		assert.deepEqual(withVideo({ url: 'https://cms.ozmedianet.com/api/videos/file/loop.mp4', mimeType: 'video/mp4' }), {
+			url: 'https://cms.ozmedianet.com/api/videos/file/loop.mp4',
+			mimeType: 'video/mp4',
+		});
+		assert.equal(withVideo({ url: 'https://cms.example/loop.webm', mimeType: 'video/webm' })?.mimeType, 'video/webm');
+		assert.equal(withVideo(null), null);
+		assert.equal(withVideo(12), null, 'an id without the upload (depth 0) is ignored');
+		assert.equal(withVideo({ url: 'javascript:alert(1)' }), null);
+		assert.equal(withVideo({ url: '/relative.mp4' }), null);
+	});
+
 	test('links: WhatsApp from the digits, profile handles from the URL', () => {
 		assert.equal(whatsappLink('+62 851-1139-1031'), 'https://wa.me/6285111391031');
 		assert.equal(profileHandle('https://www.tiktok.com/@ozradio'), 'ozradio');

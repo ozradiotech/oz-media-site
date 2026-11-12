@@ -9,7 +9,7 @@ import { formatForYoutube } from '../../src/lib/youtube/normalize.ts';
 import { paths } from '../../src/lib/youtube/paths.ts';
 import { timeKey } from '../../src/lib/youtube/push-id.ts';
 import { nextQuotaReset, QuotaTracker, quotaDay } from '../../src/lib/youtube/quota.ts';
-import { accessFromRoles, allows } from '../../src/lib/youtube/roles.ts';
+import { accessLabel, allows, capabilitiesFrom, noCapabilities } from '../../src/lib/youtube/roles.ts';
 import { JsonArrayStreamParser } from '../../src/lib/youtube/stream-parser.ts';
 import { AddressLimiter, countViewers, recordHeartbeat } from '../../src/lib/youtube/viewers.ts';
 import { MemoryStore, TestClock } from './helpers.ts';
@@ -104,17 +104,34 @@ describe('quota', () => {
 });
 
 describe('16. who may run the integration', () => {
-	test('CMS developer manages, digital looks, everyone else (and chat roles) gets nothing', () => {
-		assert.equal(accessFromRoles(['developer']), 'manage');
-		assert.equal(accessFromRoles(['digital', 'editorial']), 'view');
-		assert.equal(accessFromRoles(['editorial']), null);
-		assert.equal(accessFromRoles(['website']), null);
-		assert.equal(accessFromRoles(['mod', 'dev', 'host', 'operator']), null);
-		assert.equal(accessFromRoles([]), null);
-		assert.equal(allows('view', 'manage'), false);
-		assert.equal(allows('view', 'view'), true);
-		assert.equal(allows('manage', 'manage'), true);
+	test('what the CMS sends is what counts, page by page (built-in or custom roles alike)', () => {
+		const host = capabilitiesFrom({ youtube: 'view', chatSync: 'edit', moderation: 'edit', analytics: 'none' }, []);
+		assert.deepEqual(host, { youtube: 'view', chatSync: 'edit', moderation: 'edit', analytics: 'none' });
+		assert.equal(allows(host.youtube, 'view'), true);
+		assert.equal(allows(host.youtube, 'edit'), false, 'can look at YouTube, not connect it');
+		assert.equal(allows(host.moderation, 'edit'), true);
+		assert.equal(allows(host.analytics, 'view'), false);
+	});
+
+	test('the CMS\'s answer wins over role names; nonsense levels count as none', () => {
+		assert.deepEqual(capabilitiesFrom({ youtube: 'everything', analytics: 'view' }, ['developer']), { ...noCapabilities, analytics: 'view' });
+	});
+
+	test('a CMS from before custom roles: Developer has everything, Digital the analytics, others and chat roles nothing', () => {
+		assert.deepEqual(capabilitiesFrom(undefined, ['developer']), { youtube: 'edit', chatSync: 'edit', moderation: 'edit', analytics: 'view' });
+		assert.deepEqual(capabilitiesFrom(undefined, ['digital', 'editorial']), { ...noCapabilities, analytics: 'view' });
+		assert.deepEqual(capabilitiesFrom(undefined, ['editorial']), noCapabilities);
+		assert.deepEqual(capabilitiesFrom(undefined, ['website']), noCapabilities);
+		assert.deepEqual(capabilitiesFrom(undefined, ['mod', 'dev', 'host', 'operator']), noCapabilities);
+	});
+
+	test('levels', () => {
+		assert.equal(allows('view', 'edit'), false);
+		assert.equal(allows('edit', 'view'), true);
 		assert.equal(allows(null, 'view'), false);
+		assert.equal(accessLabel('edit'), 'manage');
+		assert.equal(accessLabel('view'), 'view');
+		assert.equal(accessLabel('none'), null);
 	});
 });
 

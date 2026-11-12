@@ -1,12 +1,13 @@
-// Server only. The private analytics routes (/api/analytics/*) answer CMS Developer and Digital users, signed in with
-// Google here or through the CMS admin's Analytics page (src/lib/admin-access.ts), and Google accounts given the older
-// analytics claim with `node --env-file=.env scripts/chat-admin.mjs analytics <email>`.
+// Server only. The private analytics routes (/api/analytics/*) answer CMS users whose roles include Analytics (Developer,
+// Digital, or a custom role), signed in with Google here or through the CMS admin's Analytics page
+// (src/lib/admin-access.ts), and Google accounts given the older analytics claim with
+// `node --env-file=.env scripts/chat-admin.mjs analytics <email>`.
 import { adminIdentity, canSeeAnalytics } from './admin-access';
 import { ChatError } from './chat-server';
 
 export const requireAnalyticsUser = async (request: Request) => {
 	const identity = await adminIdentity(request, 'Please sign in to see the analytics.');
-	if (!canSeeAnalytics(identity)) throw new ChatError(403, 'This account does not have access to the analytics (CMS Developer or Digital).');
+	if (!canSeeAnalytics(identity)) throw new ChatError(403, 'This account does not have access to the analytics (Analytics in its CMS roles).');
 	return identity;
 };
 

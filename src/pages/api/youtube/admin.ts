@@ -1,7 +1,8 @@
 import type { APIRoute } from 'astro';
 import { YOUTUBE_DAILY_QUOTA } from 'astro:env/server';
 import { ChatError, chatErrorResponse, readJsonBody } from '../../../lib/chat-server';
-import { requireLivestreamAccess } from '../../../lib/admin-access';
+import { requireCapability } from '../../../lib/admin-access';
+import { accessLabel, type Capability } from '../../../lib/youtube/roles';
 import { revokeToken } from '../../../lib/youtube/api';
 import { decryptSecret } from '../../../lib/youtube/crypto';
 import { readSettings } from '../../../lib/youtube/outbox';
@@ -11,14 +12,19 @@ import type { PublicLiveState, StoredAuth, SyncState } from '../../../lib/youtub
 
 export const prerender = false;
 
-// The YouTube integration's status and switches, for the Livestream panel on /analytics.
-//   GET   status. CMS Developer or Digital.
-//   POST  { action: 'settings', toYoutube?, fromYoutube? } | { action: 'disconnect' } | { action: 'recheck' }. Developer.
+// The YouTube integration's status and switches, for the CMS's Broadcast → YouTube and Live chat → YouTube chat sync
+// pages and the Livestream panel on /analytics. Who may do what comes from their CMS roles (src/lib/admin-access.ts):
+//   GET   status: whoever can see either page
+//   POST  { action: 'settings', toYoutube?, fromYoutube? }   manage YouTube chat sync
+//         { action: 'settings', autoSaver?, saver? }         manage YouTube (the quota saver)
+//         { action: 'disconnect' } | { action: 'recheck' }   manage YouTube
 // Tokens and the client secret never appear in a response.
 
 export const GET: APIRoute = async ({ request }) => {
 	try {
-		const { access } = await requireLivestreamAccess(request, 'view');
+		const identity = await requireCapability(request, ['youtube', 'chatSync'], 'view');
+		// The Livestream panel on /analytics shows the YouTube page's controls, so it goes by that page.
+		const access = accessLabel(identity.capabilities.youtube) ?? 'view';
 		if (!isYoutubeConfigured) return Response.json({ configured: false, access }, { headers: { 'Cache-Control': 'no-store' } });
 		youtubeRuntime();
 		const [auth, settings, state, live, queue, lease] = await Promise.all([
@@ -68,9 +74,13 @@ export const GET: APIRoute = async ({ request }) => {
 
 export const POST: APIRoute = async ({ request }) => {
 	try {
-		await requireLivestreamAccess(request, 'manage');
-		if (!isYoutubeConfigured) throw new ChatError(503, 'The YouTube integration is not configured on this server.');
 		const body = await readJsonBody(request);
+		// Which page's permission this needs: the two directions belong to YouTube chat sync, the rest to YouTube.
+		const syncSwitch = body.action === 'settings' && ('toYoutube' in body || 'fromYoutube' in body);
+		const saverSwitch = body.action === 'settings' && ('autoSaver' in body || 'saver' in body);
+		const needs: Capability[] = syncSwitch && saverSwitch ? ['chatSync', 'youtube'] : syncSwitch ? ['chatSync'] : ['youtube'];
+		for (const area of needs) await requireCapability(request, [area], 'edit');
+		if (!isYoutubeConfigured) throw new ChatError(503, 'The YouTube integration is not configured on this server.');
 		const runtime = youtubeRuntime();
 
 		if (body.action === 'settings') {
@@ -83,7 +93,8 @@ export const POST: APIRoute = async ({ request }) => {
 			}
 			if (!Object.keys(update).length) throw new ChatError(400, 'Nothing to change.');
 			await firebaseStore.patch(paths.settings, update);
-			await runtime?.sync.reconnect();
+			// A switch is no reason to spend quota on looking for unlisted broadcasts.
+			await runtime?.sync.reconnect(false);
 			return Response.json({ ok: true, settings: await readSettings(firebaseStore) });
 		}
 

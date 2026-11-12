@@ -4,8 +4,8 @@
 import { cmsFetch } from './cms';
 import { mergeStationSettings, type CmsStationSettings } from './station-defaults';
 
-const read = <K extends keyof CmsStationSettings>(slug: string) =>
-	cmsFetch<NonNullable<CmsStationSettings[K]>>(`globals/${slug}?depth=0`).catch((error) => {
+const read = <K extends keyof CmsStationSettings>(slug: string, depth = 0) =>
+	cmsFetch<NonNullable<CmsStationSettings[K]>>(`globals/${slug}?depth=${depth}`).catch((error) => {
 		console.error(`[settings] ${slug}:`, error);
 		return null;
 	});
@@ -14,7 +14,8 @@ export const getStationSettings = async () => {
 	const [streams, socials, page] = await Promise.all([
 		read<'streams'>('streams'),
 		read<'socials'>('socials'),
-		read<'page'>('oz-bandung-page'),
+		// depth 1: the offline video comes with its address.
+		read<'page'>('oz-bandung-page', 1),
 	]);
 	return mergeStationSettings({ streams, socials, page });
 };

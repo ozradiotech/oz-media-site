@@ -185,10 +185,10 @@ These are **different metrics** and are shown side by side, never merged silentl
 
 ## /analytics
 
-A **LIVESTREAM · YOUTUBE** panel sits after Live Chat, on `/analytics` and in the CMS under **Digital → Analytics** (the same page, embedded and signed in by the CMS; there the connect button and switches are left to the CMS's YouTube page). It loads on its own, so a YouTube or CMS problem leaves the other panels alone. It is visible to accounts with the analytics role and to CMS **Developer** and **Digital** users. It has:
+A **LIVESTREAM · YOUTUBE** panel sits after Live Chat, on `/analytics` and in the CMS under **Digital → Analytics** (the same page, embedded and signed in by the CMS; there the connect button and switches are left to the CMS's YouTube page). It loads on its own, so a YouTube or CMS problem leaves the other panels alone. It is visible to accounts with the analytics role and to CMS users whose roles include Analytics (Developer, Digital, or a custom role). It has:
 
 - **Live now:** the three counts with their sources, refreshed every 30 s. These are live measurements, as the panel says.
-- **YouTube chat sync** (CMS Developer and Digital only): connected channel, broadcast state and title, video id, live chat id, whether sync is active (streaming or polling), queued messages, sent/failed/imported counters, the quota estimate, whether the worker is running, and the last error. Developers also get the **Website → YouTube** / **YouTube → website** switches and Connect / Check now / Disconnect. Digital users see it read-only.
+- **YouTube chat sync** (for whoever's CMS roles include the YouTube or YouTube chat sync page): connected channel, broadcast state and title, video id, live chat id, whether sync is active (streaming or polling), queued messages, sent/failed/imported counters, the quota estimate, whether the worker is running, and the last error. Those who can manage the YouTube page also get the switches and Connect / Check now / Disconnect here; everyone else sees it read-only.
 - **History:** a line/bar/table chart of one broadcast with YouTube and website as **separate series** (never stacked; gaps where a count wasn't available), and a table of broadcasts with start, end, peak and average for each measure. Both export to CSV.
 
 ### Storage (Postgres, via oz-cms)
@@ -208,11 +208,12 @@ The site writes with its existing `website` API key, which can now create and up
 | :--- | :--- |
 | Visitors | chat as before; their player reports while playing |
 | `analytics` role (scripts/chat-admin.mjs) | see the Livestream counts and history on `/analytics` |
-| CMS **Digital** | the same, plus the sync status, read-only (in the CMS under Broadcast → YouTube and Live chat → YouTube chat sync, or on `/analytics`) |
-| CMS **Developer** | everything: connect/disconnect, the switches, check now, unban |
+| CMS **Digital** | the analytics, including the Livestream counts and history |
+| CMS **Developer** | everything: connect/disconnect, check now, the quota saver, the chat sync switches, unban |
+| CMS **custom roles** (Admin → Roles) | per page: *View* or *Manage* on YouTube (connect, check now, quota saver), YouTube chat sync (the two directions) and Moderation (unban), and *View* on Analytics |
 
-There are two ways to be recognised, and both end in the CMS role:
-- **In the CMS** (its website pages): the CMS checks the signed-in user and signs a short-lived token (`CMS_SITE_SECRET`, `src/lib/admin-token.ts`). The site checks the signature, the expiry and the role again.
+The CMS works out what each person may do from all their roles (oz-cms `src/permissions.ts`) and sends it to the site per page: `{ youtube, chatSync, moderation, analytics }`, each none, view or edit (`src/lib/youtube/roles.ts`). There are two ways to be recognised:
+- **In the CMS** (its website pages): the CMS checks the signed-in user and signs a short-lived token (`CMS_SITE_SECRET`, `src/lib/admin-token.ts`) carrying those permissions. The site checks the signature, the expiry and the permissions again.
 - **On this site** (`/analytics`): Google sign-in, matched to the CMS user with the same verified email (`src/lib/admin-access.ts`), so a staff member's CMS email must be that Google address.
 
 Chat roles (DEV/OPERATOR/HOST/MOD) only give chat badges and moderation and grant nothing here. Nothing is trusted from the browser.

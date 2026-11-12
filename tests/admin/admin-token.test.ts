@@ -22,6 +22,12 @@ describe('CMS admin tokens', () => {
 		assert.equal(signAdminToken(payload, secret), signLikeCms(payload, secret));
 	});
 
+	test('the capabilities the CMS worked out travel inside the signed token', () => {
+		const capabilities = { youtube: 'view', chatSync: 'edit', moderation: 'edit', analytics: 'none' };
+		const verified = verifyAdminToken(signLikeCms({ ...payload, roles: [], capabilities }, secret), secret, 'admin', now);
+		assert.deepEqual(verified?.capabilities, capabilities);
+	});
+
 	test('expired, tampered, wrongly signed or wrong-purpose tokens are refused', () => {
 		const token = signAdminToken(payload, secret);
 		assert.equal(verifyAdminToken(token, secret, 'admin', now + 61_000), null, 'expired');

@@ -23,6 +23,8 @@ export type StationSettings = {
 	tickerPhrases: string[];
 	/** Ozubathon, the anniversary marathon (night style only): start drives the countdown; dateLabel is what's printed. */
 	ozubathon: { start: string; hours: number; dateLabel: string };
+	/** Plays on a loop in the video player while nothing is live; null keeps the "not live" picture. */
+	offlineVideo: { url: string; mimeType: string } | null;
 };
 
 export const defaultStationSettings: StationSettings = {
@@ -45,6 +47,7 @@ export const defaultStationSettings: StationSettings = {
 	whatsappNumber: '+62 851-1139-1031',
 	tickerPhrases: ['55 LOUD AND LIVE', 'OZUBATHON', '{hours} HOURS NONSTOP', 'OZ RADIO BANDUNG ANNIVERSARY'],
 	ozubathon: { start: '2026-12-23T19:00:00+07:00', hours: 55, dateLabel: '23 DECEMBER 2026' },
+	offlineVideo: null,
 };
 
 type Text = string | null | undefined;
@@ -63,6 +66,8 @@ export type CmsStationSettings = {
 		ticker?: { phrase?: Text }[] | null;
 		ozubathon?: { start?: Text; hours?: number | null; dateLabel?: Text } | null;
 		contact?: { email?: Text; whatsappNumber?: Text } | null;
+		/** The upload, read with depth 1 so it comes with its URL (an id alone is ignored). */
+		offlineVideo?: { url?: Text; mimeType?: Text } | number | string | null;
 	} | null;
 };
 
@@ -104,7 +109,18 @@ export const mergeStationSettings = (cms: Partial<CmsStationSettings> | null | u
 			hours: typeof hours === 'number' && hours > 0 ? hours : defaults.ozubathon.hours,
 			dateLabel: text(page?.ozubathon?.dateLabel, defaults.ozubathon.dateLabel),
 		},
+		offlineVideo: offlineVideo(page?.offlineVideo),
 	};
+};
+
+const videoTypes = new Set(['video/mp4', 'video/webm']);
+
+/** The offline loop, if one is set and it is a video the browser can play from an http(s) address. */
+const offlineVideo = (value: unknown): StationSettings['offlineVideo'] => {
+	if (!value || typeof value !== 'object') return null;
+	const { url, mimeType } = value as { url?: unknown; mimeType?: unknown };
+	if (typeof url !== 'string' || !/^https?:\/\//.test(url)) return null;
+	return { url, mimeType: typeof mimeType === 'string' && videoTypes.has(mimeType) ? mimeType : 'video/mp4' };
 };
 
 /** https://wa.me/<digits> for a number written any way. */
