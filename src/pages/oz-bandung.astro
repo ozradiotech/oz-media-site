@@ -18,26 +18,20 @@ import { getLiveCollection, render } from 'astro:content';
 import { cmsImage } from '../lib/cms';
 import { ageRanges } from '../lib/listener';
 import { getVisibleNews, imageFrame, newsCategoryLabel, newsIndexPath, newsPath } from '../lib/news';
+import { whatsappLink } from '../lib/station-defaults';
+import { getStationSettings } from '../lib/station-settings';
 import '../styles/ozubathon.css';
 import '../styles/media-fit.css';
 // Loaded with the page rather than with the player script, so it stays when the player is carried to OZ News.
 import '../styles/oz-audio-player.css';
 
-const audioStreamUrl = 'https://streaming.ozradio.id:8443/ozbandung';
-// Livestream: channelId (UC…) plays whatever that channel is streaming when a visitor picks video, looked up by
-// /api/youtube-live, and says "not live right now" otherwise. Set videoId to always play that one broadcast instead.
-// Leave both empty to show the placeholder.
-const youtubeLive = { videoId: '', channelId: 'UCdc4ztl0di-Fv58CI5TK73w' };
+// The stream, livestream, YouTube carousel, links, contact details, ticker and Ozubathon come from the CMS's Station
+// settings (src/lib/station-settings.ts), with built-in defaults for anything left empty or a CMS that can't be reached.
+const station = await getStationSettings();
+const { audioStreamUrl, youtubeLive, youtubeChannelUrl, youtubeVideos, instagramUrl, tiktokUrl, threadsUrl } = station;
+// Livestream: channelId plays whatever that channel is streaming when a visitor picks video, looked up by
+// /api/youtube-live, and says "not live right now" otherwise; a videoId always plays that one broadcast instead.
 const hasYoutubeLive = Boolean(youtubeLive.videoId || youtubeLive.channelId);
-const youtubeChannelUrl = 'https://www.youtube.com/@OZMEDIANET';
-const youtubeVideos = [
-	{ id: 'UDmfDJTzg4w', title: 'Featured video' },
-	{ id: 'dn73m2_u71E', title: 'Studio session' },
-	{ id: 'ZStRwkoiTQY', title: 'Live set' },
-];
-const instagramUrl = 'https://www.instagram.com/ozradiobandung';
-const tiktokUrl = 'https://www.tiktok.com/@ozradio';
-const threadsUrl = 'https://www.threads.net/@ozradiobandung';
 
 // Published items only, in the order set in the CMS. Unpublished announcers are left out as program hosts too.
 // A CMS outage empties a section rather than breaking the page.
@@ -92,11 +86,7 @@ const optimizeImageUrl = (src: string, width: number) => {
 
 // Ozubathon: the anniversary livestream marathon, shown by the night style only. `start` drives the countdown, the
 // live hour counter and the wrap-up message; `dateLabel` is what the page prints, so it can stay vague until the date is set.
-const ozubathon = {
-	start: '2026-12-23T19:00:00+07:00',
-	hours: 55,
-	dateLabel: '23 DECEMBER 2026',
-};
+const ozubathon = station.ozubathon;
 const ozubathonStartMs = Date.parse(ozubathon.start);
 const ozubathonUntil = Math.max(0, ozubathonStartMs - Date.now());
 const ozubathonInitial = {
@@ -111,7 +101,7 @@ const instagramHandle = (value: string) => value.trim()
 	.replace(/^(https?:\/\/)?(www\.)?instagram\.com\//i, '')
 	.replace(/^@/, '')
 	.replace(/[/?#].*$/, '');
-const tickerPhrases = ['55 LOUD AND LIVE', 'OZUBATHON', `${ozubathon.hours} HOURS NONSTOP`, 'OZ RADIO BANDUNG ANNIVERSARY'];
+const tickerPhrases = station.tickerPhrases.map((phrase) => phrase.replaceAll('{hours}', String(ozubathon.hours)));
 
 const sections = [
 	{ id: 'listen', label: 'ON AIR' },
@@ -715,8 +705,8 @@ const sections = [
 					<div class="contact-layout">
 						<div class="contact-intro"><img class="contact-mark" data-sticker src="/images/logo-oz-bandung.png" alt="OZ Radio Bandung" loading="lazy" decoding="async" /><p>Your friendly station.</p></div>
 						<div class="contact-details">
-							<div class="contact-item"><span>EMAIL</span><strong><a href="mailto:ozmedianet.id@gmail.com">ozmedianet.id@gmail.com</a></strong><small>Business &amp; general enquiries</small></div>
-							<div class="contact-item"><span>WHATSAPP</span><strong><a href="https://wa.me/6285111391031" target="_blank" rel="noopener noreferrer">+62 851-1139-1031</a></strong><small>Reach the OZ team</small></div>
+							<div class="contact-item"><span>EMAIL</span><strong><a href={`mailto:${station.contactEmail}`}>{station.contactEmail}</a></strong><small>Business &amp; general enquiries</small></div>
+							<div class="contact-item"><span>WHATSAPP</span><strong><a href={whatsappLink(station.whatsappNumber)} target="_blank" rel="noopener noreferrer">{station.whatsappNumber}</a></strong><small>Reach the OZ team</small></div>
 							<div class="contact-item"><span>STUDIO</span><strong><a href="https://maps.app.goo.gl/q3EVYekYc3u6HNsT7" target="_blank" rel="noopener noreferrer">Jl. Setrasari II No.14, Kota Bandung, Jawa Barat 40152</a></strong><small>Open in Google Maps</small></div>
 							<div class="contact-item">
 								<span>SOCIAL MEDIA</span>

@@ -76,6 +76,9 @@ export default defineConfig({
 			// the CMS needs for the social media numbers. Published content reads without it.
 			CMS_URL: envField.string({ context: 'server', access: 'public', default: 'http://localhost:3000' }),
 			CMS_API_KEY: envField.string({ context: 'server', access: 'secret', optional: true }),
+			// Shared with the CMS (oz-cms CMS_SITE_SECRET): verifies the tokens its admin pages use to work this site's
+			// admin routes (src/lib/admin-token.ts). At least 32 characters; without it those CMS pages can't connect.
+			CMS_SITE_SECRET: envField.string({ context: 'server', access: 'secret', optional: true }),
 			// Experimental: YouTube live chat sync and livestream viewer counts (docs/youtube-unified-chat.md). Off unless
 			// the OAuth client and the encryption key are set; YOUTUBE_SYNC=off turns it off with them set.
 			YOUTUBE_SYNC: envField.enum({ context: 'server', access: 'public', values: ['on', 'off'], default: 'on' }),

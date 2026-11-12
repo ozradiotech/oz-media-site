@@ -1,12 +1,13 @@
-// Server only. The private analytics routes (/api/analytics/*) answer only Google accounts with the analytics role,
-// granted with `node --env-file=.env scripts/chat-admin.mjs analytics <email>`.
-import { ChatError, isChatServerConfigured, verifyIdToken } from './chat-server';
+// Server only. The private analytics routes (/api/analytics/*) answer CMS Developer and Digital users, signed in with
+// Google here or through the CMS admin's Analytics page (src/lib/admin-access.ts), and Google accounts given the older
+// analytics claim with `node --env-file=.env scripts/chat-admin.mjs analytics <email>`.
+import { adminIdentity, canSeeAnalytics } from './admin-access';
+import { ChatError } from './chat-server';
 
 export const requireAnalyticsUser = async (request: Request) => {
-	if (!isChatServerConfigured) throw new ChatError(503, 'Analytics sign-in is not set up on this server.');
-	const user = await verifyIdToken(request, 'Please sign in to see the analytics.');
-	if (user.analytics !== true) throw new ChatError(403, 'This Google account does not have access to the analytics.');
-	return user;
+	const identity = await adminIdentity(request, 'Please sign in to see the analytics.');
+	if (!canSeeAnalytics(identity)) throw new ChatError(403, 'This account does not have access to the analytics (CMS Developer or Digital).');
+	return identity;
 };
 
 const isDate = (value: string | null): value is string => Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value));

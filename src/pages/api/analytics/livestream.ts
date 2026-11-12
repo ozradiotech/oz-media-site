@@ -1,10 +1,9 @@
 import type { APIRoute } from 'astro';
 import { LIVESTREAM_SNAPSHOT_INTERVAL } from 'astro:env/server';
-import { dateRange } from '../../../lib/analytics-access';
-import { ChatError, chatErrorResponse, isChatServerConfigured, verifyIdToken } from '../../../lib/chat-server';
+import { dateRange, requireAnalyticsUser } from '../../../lib/analytics-access';
+import { ChatError, chatErrorResponse } from '../../../lib/chat-server';
 import { cmsRequest } from '../../../lib/cms';
 import { csvFileName, toCsv } from '../../../lib/csv';
-import { livestreamAccessFor } from '../../../lib/youtube/access';
 import { publicLiveState } from '../../../lib/youtube/runtime';
 import type { BroadcastDoc } from '../../../lib/youtube/snapshots';
 
@@ -25,13 +24,6 @@ type Snapshot = {
 };
 
 type Broadcast = BroadcastDoc & { videoId?: string | null; title?: string | null };
-
-const requireViewer = async (request: Request) => {
-	if (!isChatServerConfigured) throw new ChatError(503, 'Analytics sign-in is not set up on this server.');
-	const user = await verifyIdToken(request, 'Please sign in to see the analytics.');
-	if (user.analytics === true || await livestreamAccessFor(user)) return user;
-	throw new ChatError(403, 'This Google account does not have access to the livestream analytics.');
-};
 
 const average = (sum?: number | null, samples?: number | null) => (samples ? Math.round(((sum ?? 0) / samples) * 10) / 10 : null);
 
@@ -60,7 +52,7 @@ const csv = (name: string, headers: string[], rows: (string | number | null)[][]
 
 export const GET: APIRoute = async ({ request, url }) => {
 	try {
-		await requireViewer(request);
+		await requireAnalyticsUser(request);
 		const wantsCsv = url.searchParams.get('format') === 'csv';
 		const broadcastId = url.searchParams.get('broadcast');
 

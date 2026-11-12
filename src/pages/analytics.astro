@@ -135,6 +135,8 @@ const listenerBreakdowns = [
 
 // Campaign links: the address the links point at, and the pages offered in the page field.
 const siteUrl = Astro.site?.origin ?? 'https://ozradio.id';
+// ?embed=1: shown inside the CMS admin's Analytics page, signed in by the CMS (see the script), without this header.
+const embedded = Astro.url.searchParams.get('embed') === '1';
 const campaignPages = [
 	{ path: '/oz-bandung', label: 'OZ Radio Bandung' },
 	{ path: '/oz-bandung#listen', label: 'OZ Radio Bandung · Listen live' },
@@ -162,25 +164,28 @@ const monthLabel = (month: string) =>
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" class:list={{ 'is-embedded': embedded }}>
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width" />
 		<meta name="theme-color" content="#FFFFF3" />
 		<meta name="robots" content="noindex, nofollow" />
+		<meta name="referrer" content="no-referrer" />
 		<Font cssVariable="--font-tango" preload={[{ style: 'normal' }]} />
 		<Font cssVariable="--font-jakarta" preload={[{ style: 'normal' }]} />
 		<title>OZ Analytics</title>
 	</head>
 	<body>
 		<main class="analytics-page">
-			<header class="page-header">
-				<a class="wordmark" href="/oz-bandung" aria-label="Back to OZ Radio Bandung"><img src="/images/logo-oz-bandung.png" alt="OZ Radio Bandung" width="1246" height="648" /></a>
-				<div>
-					<h1>ANALYTICS</h1>
-					<p class="page-subtitle">Live radio listeners, listener forms and monthly social media numbers.</p>
-				</div>
-			</header>
+			{!embedded && (
+				<header class="page-header">
+					<a class="wordmark" href="/oz-bandung" aria-label="Back to OZ Radio Bandung"><img src="/images/logo-oz-bandung.png" alt="OZ Radio Bandung" width="1246" height="648" /></a>
+					<div>
+						<h1>ANALYTICS</h1>
+						<p class="page-subtitle">Live radio listeners, listener forms and monthly social media numbers.</p>
+					</div>
+				</header>
+			)}
 
 			<section class="panel live-panel" aria-labelledby="live-title">
 				<div class="panel-heading">
@@ -1872,6 +1877,26 @@ const monthLabel = (month: string) =>
 
 		let auth: OzAuth | undefined;
 
+		// Inside the CMS admin (Analytics page), the CMS hands over a short-lived token in the address's #fragment, which
+		// never reaches a server log. It replaces Google sign-in: requests carry it, and the CMS user's role decides.
+		const cmsToken = /(?:^#|&)cms=([^&]+)/.exec(location.hash)?.[1] ?? null;
+		if (cmsToken) history.replaceState(null, '', location.pathname + location.search);
+		const cmsEmail = (() => {
+			try {
+				return cmsToken ? String(JSON.parse(atob(cmsToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).email ?? '') : '';
+			} catch {
+				return '';
+			}
+		})();
+		const isEmbedded = document.documentElement.classList.contains('is-embedded');
+		const signedIn = () => Boolean(cmsToken || auth?.currentUser());
+		/** The Authorization header for our routes; `refresh` asks Firebase for a new ID token. */
+		const authHeader = async (refresh = false) => {
+			if (cmsToken) return `OZAdmin ${cmsToken}`;
+			const token = await auth?.idToken(refresh);
+			return token ? `Bearer ${token}` : null;
+		};
+
 		class AccessError extends Error {
 			constructor(readonly status: number, message: string) {
 				super(message);
@@ -1893,10 +1918,10 @@ const monthLabel = (month: string) =>
 			if (fromInput.value) params.set('from', fromInput.value);
 			if (toInput.value) params.set('to', toInput.value);
 			let response: Response | undefined;
-			for (const refresh of [false, true]) {
-				const token = await auth?.idToken(refresh);
-				if (!token) throw new AccessError(401, 'Please sign in to see the analytics.');
-				response = await fetch(`${path}?${params}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+			for (const refresh of cmsToken ? [false] : [false, true]) {
+				const header = await authHeader(refresh);
+				if (!header) throw new AccessError(401, 'Please sign in to see the analytics.');
+				response = await fetch(`${path}?${params}`, { headers: { Authorization: header }, cache: 'no-store' });
 				if (response.status !== 403) break;
 			}
 			if (!response!.ok) {
@@ -2501,7 +2526,13 @@ const monthLabel = (month: string) =>
 				item('Last error', sync?.lastError ? `${formatWhen(sync.lastError.at)}: ${sync.lastError.message}` : 'None'),
 			].join('');
 			const manage = status.access === 'manage';
-			livestreamControls.hidden = false;
+			// In the CMS, connecting and the switches are on its own YouTube & live chat page (Google's pages can't open
+			// inside this frame).
+			livestreamControls.hidden = isEmbedded;
+			if (isEmbedded) {
+				livestreamAdminStatus.textContent = 'Connect, disconnect and switch the sync on the CMS page YouTube & live chat.';
+				return;
+			}
 			livestreamControls.querySelectorAll<HTMLInputElement>('[data-sync-setting]').forEach((input) => {
 				input.checked = Boolean(status.settings?.[input.dataset.syncSetting as 'toYoutube' | 'fromYoutube']);
 				input.disabled = !manage;
@@ -2527,7 +2558,7 @@ const monthLabel = (month: string) =>
 		// The live numbers and the sync status refresh while the page is open and visible; the history when asked.
 		const refreshLivestream = async () => {
 			window.clearTimeout(livestreamTimer);
-			if (livestreamPanel.hidden || !auth?.currentUser()) return;
+			if (livestreamPanel.hidden || !signedIn()) return;
 			if (document.visibilityState === 'visible') {
 				try {
 					renderLiveNow((await (await request('/api/analytics/livestream')).json() as { live: LiveNow }).live);
@@ -2563,9 +2594,9 @@ const monthLabel = (month: string) =>
 		};
 
 		const adminPost = async (path: string, body: Record<string, unknown>) => {
-			const token = await auth?.idToken();
-			if (!token) throw new AccessError(401, 'Please sign in.');
-			const response = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+			const header = await authHeader();
+			if (!header) throw new AccessError(401, 'Please sign in.');
+			const response = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: header }, body: JSON.stringify(body) });
 			const result = await response.json().catch(() => ({})) as { error?: string; url?: string };
 			if (!response.ok) throw new AccessError(response.status, result.error ?? 'That did not work. Please try again.');
 			return result;
@@ -2654,8 +2685,8 @@ const monthLabel = (month: string) =>
 				status.textContent = `Updated ${new Date().toLocaleTimeString('en-GB')}`;
 			} catch (error) {
 				if (error instanceof AccessError && error.status === 403) {
-					const email = escapeHtml(auth?.currentUser()?.email ?? 'this account');
-					showGate(`${email} does not have access to the analytics. An admin can grant it with <code>node --env-file=.env scripts/chat-admin.mjs analytics ${email}</code>, then reload this page.`, { signIn: false });
+					const email = escapeHtml(cmsEmail || auth?.currentUser()?.email || 'this account');
+					showGate(`${email} does not have access to the analytics. Give the CMS user with this email the Developer or Digital role, then reload this page.`, { signIn: false });
 				} else if (error instanceof AccessError && error.status === 401) {
 					showGate(escapeHtml(error.message));
 				} else {
@@ -2707,29 +2738,40 @@ const monthLabel = (month: string) =>
 
 		privateArea.querySelector('[data-sign-out]')?.addEventListener('click', () => { void auth?.signOut(); });
 
-		signInButton.disabled = true;
-		import('../scripts/oz-auth')
-			.then(async ({ createOzAuth, isAuthConfigured }) => {
-				if (!isAuthConfigured) {
-					showGate('Google sign-in is not set up on this site, so the private analytics cannot be shown.', { signIn: false });
-					return;
-				}
-				auth = createOzAuth();
-				await auth.ready();
-				signInButton.disabled = false;
-				auth.onChange((user) => {
-					account.hidden = !user;
-					accountEmail.textContent = user?.email ?? '';
-					if (user) {
-						void load();
-						void loadLivestream();
-					} else {
-						hideLivestream();
+		if (cmsToken) {
+			// Signed in by the CMS: no Google sign-in here.
+			account.hidden = false;
+			accountEmail.textContent = cmsEmail ? `${cmsEmail} (CMS)` : 'CMS user';
+			privateArea.querySelector<HTMLElement>('[data-sign-out]')!.hidden = true;
+			void load();
+			void loadLivestream();
+		} else if (isEmbedded) {
+			showGate('Open this from the CMS admin (Analytics), which signs you in.', { signIn: false });
+		} else {
+			signInButton.disabled = true;
+			import('../scripts/oz-auth')
+				.then(async ({ createOzAuth, isAuthConfigured }) => {
+					if (!isAuthConfigured) {
+						showGate('Google sign-in is not set up on this site, so the private analytics cannot be shown.', { signIn: false });
+						return;
 					}
-					if (!user) showGate('Listener forms, radio listening, chat and site analytics are private. Sign in with a Google account that has analytics access.');
-				});
-			})
-			.catch(() => showGate('Google sign-in could not be loaded. Please reload the page.', { signIn: false }));
+					auth = createOzAuth();
+					await auth.ready();
+					signInButton.disabled = false;
+					auth.onChange((user) => {
+						account.hidden = !user;
+						accountEmail.textContent = user?.email ?? '';
+						if (user) {
+							void load();
+							void loadLivestream();
+						} else {
+							hideLivestream();
+						}
+						if (!user) showGate('Listener forms, radio listening, chat and site analytics are private. Sign in with a Google account that has analytics access.');
+					});
+				})
+				.catch(() => showGate('Google sign-in could not be loaded. Please reload the page.', { signIn: false }));
+		}
 	}
 
 	/* ---------- Campaign links ---------- */

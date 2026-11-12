@@ -78,7 +78,9 @@ The YouTube message id, broadcast id, attempts and errors of a forwarded message
 
 ## YouTube OAuth
 
-The channel is connected once by a CMS **Developer** on `/analytics` → Livestream → **Connect YouTube channel**. This is separate from Firebase Google sign-in, which visitors still use to chat.
+The channel is connected once by a CMS **Developer** in the CMS: **Station → YouTube & live chat → Connect YouTube channel** (or on this site's `/analytics` → Livestream, signed in with Google). This is separate from Firebase Google sign-in, which visitors still use to chat.
+
+From the CMS, the button goes to the CMS's `/api/site-admin/youtube-connect`, which signs a 5-minute token for the user (`CMS_SITE_SECRET`) and sends the browser to this site's `GET /api/youtube/connect?token=…`. From there the flow below is the same, and the callback returns the browser to the CMS page.
 
 1. `POST /api/youtube/connect` (Firebase ID token; CMS Developer). The server makes a random `state`, stores it single-use for 10 minutes at `chat/private/youtube/oauthStates/<hash>`, sets it in an httpOnly `SameSite=Lax` cookie scoped to `/api/youtube`, and returns Google's consent URL (authorization code flow, `access_type=offline`, `prompt=consent`).
 2. Google sends the browser to `/api/youtube/callback?code&state`. The server requires the `state` to match **both** the cookie and an unexpired stored record (CSRF protection), deletes the record, exchanges the code, checks that the scope was granted, reads the channel (`channels.list mine=true`), checks it against `YOUTUBE_CHANNEL_ID` if set, encrypts the refresh token (AES-256-GCM, `YOUTUBE_TOKEN_ENCRYPTION_KEY`) and stores it. Any earlier grant is revoked.
@@ -111,6 +113,7 @@ All optional; the feature is off unless `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SEC
 | Variable | Default | Purpose |
 | :--- | :--- | :--- |
 | `YOUTUBE_SYNC` | `on` | `off` disables everything without removing the other settings |
+| `CMS_SITE_SECRET` | | shared with the CMS, so its Station pages (YouTube & live chat, Analytics) can use this site's admin routes |
 | `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET` | | the OAuth client |
 | `YOUTUBE_REDIRECT_URI` | `SITE_URL` + `/api/youtube/callback` | must match the client exactly |
 | `YOUTUBE_TOKEN_ENCRYPTION_KEY` | | 32 bytes, hex or base64 (`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`). Changing it means connecting again |
@@ -141,7 +144,7 @@ The worker only talks to YouTube once a channel is connected. Then:
 
 The broadcast's own `activeLiveChatId` is used. A broadcast in YouTube's private `testing` preview isn't treated as live. Two failed checks in a row while live don't stop the sync; the third does. A permanent livestream is not needed: each new broadcast is found and followed on its own.
 
-The page's player still finds the current video through `/api/youtube-live` as before, without needing the connection.
+The page's player finds the video to play through `/api/youtube-live`. It uses the channel set in the CMS (**Settings → Station settings → Livestream channel ID**, or a **Pinned livestream video ID** that always plays that one video). When that channel is the connected one, the integration's own state answers first (official API, unlisted streams included). Otherwise it reads YouTube's page, which only sees public streams, and the player checks again every 30 seconds while "not live" shows.
 
 ## Message sync
 
@@ -182,7 +185,7 @@ These are **different metrics** and are shown side by side, never merged silentl
 
 ## /analytics
 
-A **LIVESTREAM · YOUTUBE** panel sits after Live Chat. It loads on its own, so a YouTube or CMS problem leaves the other panels alone. It is visible to accounts with the analytics role and to CMS **Developer** and **Digital** users. It has:
+A **LIVESTREAM · YOUTUBE** panel sits after Live Chat, on `/analytics` and in the CMS under **Station → Analytics** (the same page, embedded and signed in by the CMS; there the connect button and switches are left to the CMS's YouTube page). It loads on its own, so a YouTube or CMS problem leaves the other panels alone. It is visible to accounts with the analytics role and to CMS **Developer** and **Digital** users. It has:
 
 - **Live now:** the three counts with their sources, refreshed every 30 s. These are live measurements, as the panel says.
 - **YouTube chat sync** (CMS Developer and Digital only): connected channel, broadcast state and title, video id, live chat id, whether sync is active (streaming or polling), queued messages, sent/failed/imported counters, the quota estimate, whether the worker is running, and the last error. Developers also get the **Website → YouTube** / **YouTube → website** switches and Connect / Check now / Disconnect. Digital users see it read-only.
@@ -204,11 +207,15 @@ The site writes with its existing `website` API key, which can now create and up
 | Who | Can |
 | :--- | :--- |
 | Visitors | chat as before; their player reports while playing |
-| `analytics` role (scripts/chat-admin.mjs) | see the Livestream counts and history |
-| CMS **Digital** | the same, plus the sync status, read-only |
-| CMS **Developer** | everything: connect/disconnect, the switches, check now |
+| `analytics` role (scripts/chat-admin.mjs) | see the Livestream counts and history on `/analytics` |
+| CMS **Digital** | the same, plus the sync status, read-only (in the CMS under **Station**, or on `/analytics`) |
+| CMS **Developer** | everything: connect/disconnect, the switches, check now, unban |
 
-CMS roles are matched on the verified Google email the person signs in to the site with, so their CMS account email must be that Google address. Chat roles (DEV/OPERATOR/HOST/MOD) only give chat badges and moderation and grant nothing here. Every admin route verifies the Firebase ID token on the server and asks the CMS for the role; nothing is trusted from the browser.
+There are two ways to be recognised, and both end in the CMS role:
+- **In the CMS** (Station pages): the CMS checks the signed-in user and signs a short-lived token (`CMS_SITE_SECRET`, `src/lib/admin-token.ts`). The site checks the signature, the expiry and the role again.
+- **On this site** (`/analytics`): Google sign-in, matched to the CMS user with the same verified email (`src/lib/admin-access.ts`), so a staff member's CMS email must be that Google address.
+
+Chat roles (DEV/OPERATOR/HOST/MOD) only give chat badges and moderation and grant nothing here. Nothing is trusted from the browser.
 
 ## Quota
 
@@ -258,7 +265,7 @@ Local development shares the production Firebase project, so a local worker woul
 
 1. Add the YouTube variables to `.env`, with `http://127.0.0.1:4321/api/youtube/callback` as an authorized redirect URI.
 2. Start the CMS (`oz-cms`: `docker compose up -d`, `npm run dev`; dev mode creates the new tables) and the site (`astro dev --background --host 127.0.0.1`).
-3. Sign in on `/analytics` with a Google account whose email belongs to a CMS Developer, then use **Connect YouTube channel**.
+3. Set the same `CMS_SITE_SECRET` in both `.env` files, and in the CMS's `.env` set `SITE_URL=http://127.0.0.1:4321`: the same host as the redirect URI, or the check cookie is set on `localhost` and missing on `127.0.0.1`. Sign in to the CMS as a Developer and open **Station → YouTube & live chat → Connect YouTube channel**. Alternatively, sign in on `/analytics` with a Google account whose email belongs to a CMS Developer and use the button there.
 4. **Offline mode:** with nothing live, the panel shows `Offline`, the chat has no YouTube indicator, and messages send as usual.
 5. **Live mode:** start a broadcast on the OZ channel (an unlisted one is fine). Within the check interval the panel shows `Live`, the chat heading shows **● YOUTUBE CHAT LINKED**, and messages cross over both ways. Tune in to video on `/oz-bandung` and the website count rises within about 15 seconds. End the broadcast and the state goes to `Ended` then `Offline`.
 

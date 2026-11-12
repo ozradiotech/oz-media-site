@@ -7,8 +7,12 @@ interface Props {
 }
 
 import { consentEnabled } from '../lib/analytics-config';
+import { whatsappLink } from '../lib/station-defaults';
+import { getStationSettings } from '../lib/station-settings';
 
 const { topHref = '#top' } = Astro.props;
+// Links and contact details from the CMS's Station settings (cached; built-in defaults if it can't be reached).
+const station = await getStationSettings();
 const columns = [
 	{
 		title: 'EXPLORE',
@@ -21,16 +25,16 @@ const columns = [
 	{
 		title: 'FOLLOW',
 		links: [
-			{ label: 'INSTAGRAM', href: 'https://www.instagram.com/ozradiobandung/', external: true },
-			{ label: 'TIKTOK', href: 'https://www.tiktok.com/@ozradio', external: true },
-			{ label: 'THREADS', href: 'https://www.threads.net/@ozradiobandung', external: true },
+			{ label: 'INSTAGRAM', href: station.instagramUrl, external: true },
+			{ label: 'TIKTOK', href: station.tiktokUrl, external: true },
+			{ label: 'THREADS', href: station.threadsUrl, external: true },
 		],
 	},
 	{
 		title: 'GET IN TOUCH',
 		links: [
-			{ label: 'EMAIL', href: 'mailto:ozmedianet.id@gmail.com' },
-			{ label: 'WHATSAPP', href: 'https://wa.me/6285111391031', external: true },
+			{ label: 'EMAIL', href: `mailto:${station.contactEmail}` },
+			{ label: 'WHATSAPP', href: whatsappLink(station.whatsappNumber), external: true },
 		],
 	},
 ];

@@ -4,17 +4,25 @@ import { decryptSecret, encryptSecret, hashKey, safeEqual } from '../../../lib/y
 import { paths } from '../../../lib/youtube/paths';
 import { firebaseStore, getEncryptionKey, isYoutubeConfigured, oauthConfig, oauthCookie, requiredChannelId, youtubeRuntime } from '../../../lib/youtube/runtime';
 import type { StoredAuth } from '../../../lib/youtube/types';
+import { safeReturnTo } from '../../../lib/admin-token';
 
 export const prerender = false;
 
 // Step 2: Google sends the admin back here with a one-time code. The code is exchanged on the server; the refresh
 // token is encrypted and stored, and neither it nor the client secret ever reaches a browser.
-const back = (result: string) => new Response(null, {
+// Back to where the connection was started: the CMS admin's YouTube page, or /analytics on this site.
+const backTo = (returnTo: string | null, result: string) => new Response(null, {
 	status: 303,
-	headers: { Location: `/analytics?youtube=${encodeURIComponent(result)}#livestream-title` },
+	headers: {
+		Location: returnTo
+			? `${returnTo}${returnTo.includes('?') ? '&' : '?'}youtube=${encodeURIComponent(result)}`
+			: `/analytics?youtube=${encodeURIComponent(result)}#livestream-title`,
+	},
 });
 
 export const GET: APIRoute = async ({ url, cookies }) => {
+	let returnTo: string | null = null;
+	const back = (result: string) => backTo(returnTo, result);
 	if (!isYoutubeConfigured) return back('not_configured');
 	const state = url.searchParams.get('state') ?? '';
 	const cookieState = cookies.get(oauthCookie)?.value ?? '';
@@ -23,8 +31,9 @@ export const GET: APIRoute = async ({ url, cookies }) => {
 	// CSRF: the state must match this browser's cookie and an unexpired, unused record.
 	if (!state || !cookieState || !safeEqual(state, cookieState)) return back('state_mismatch');
 	const recordPath = `${paths.oauthStates}/${hashKey(state)}`;
-	const record = await firebaseStore.get<{ uid: string; email: string | null; expiresAt: number }>(recordPath).catch(() => null);
+	const record = await firebaseStore.get<{ uid: string; email: string | null; returnTo?: string | null; expiresAt: number }>(recordPath).catch(() => null);
 	await firebaseStore.remove(recordPath).catch(() => undefined);
+	returnTo = safeReturnTo(record?.returnTo);
 	if (!record || record.expiresAt < Date.now()) return back('state_expired');
 
 	const googleError = url.searchParams.get('error');

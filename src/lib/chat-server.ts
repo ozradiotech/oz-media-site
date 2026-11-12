@@ -217,20 +217,28 @@ export const dbTransaction = async <T>(path: string, update: (current: T | null)
 
 let blocklistCache: { value: Blocklist; expiresAt: number } | undefined;
 
-// Extra words live at chat/private/blocklist as { mild: "word, word", severe: "word, word" } (lists also work).
+// Extra words: separated by commas or new lines (the CMS text boxes), or as lists. The older place for them,
+// chat/private/blocklist { mild, severe } in the database, still counts.
 const parseWords = (value: unknown): string[] => {
 	if (Array.isArray(value)) return value.filter((word): word is string => typeof word === 'string');
-	if (typeof value === 'string') return value.split(',').map((word) => word.trim()).filter(Boolean);
+	if (typeof value === 'string') return value.split(/[,\n]/).map((word) => word.trim()).filter(Boolean);
 	if (value && typeof value === 'object') return Object.keys(value);
 	return [];
 };
 
+/**
+ * The built-in words, plus the CMS's Chat settings (Blocklist; oz-cms src/globals/ChatSettings.ts), plus any older list
+ * kept in the database. Cached for a minute; a source that can't be read just adds nothing.
+ */
 export const getBlocklist = async (): Promise<Blocklist> => {
 	if (blocklistCache && blocklistCache.expiresAt > Date.now()) return blocklistCache.value;
-	const extra = await db<{ mild?: unknown; severe?: unknown } | null>('GET', 'chat/private/blocklist').catch(() => null);
+	const [extra, cms] = await Promise.all([
+		db<{ mild?: unknown; severe?: unknown } | null>('GET', 'chat/private/blocklist').catch(() => null),
+		cmsFetch<{ blocklistMild?: unknown; blocklistSevere?: unknown }>('globals/chat-settings?depth=0').catch(() => null),
+	]);
 	const value = {
-		mild: [...defaultBlocklist.mild, ...parseWords(extra?.mild)],
-		severe: [...defaultBlocklist.severe, ...parseWords(extra?.severe)],
+		mild: [...defaultBlocklist.mild, ...parseWords(cms?.blocklistMild), ...parseWords(extra?.mild)],
+		severe: [...defaultBlocklist.severe, ...parseWords(cms?.blocklistSevere), ...parseWords(extra?.severe)],
 	};
 	blocklistCache = { value, expiresAt: Date.now() + 60_000 };
 	return value;

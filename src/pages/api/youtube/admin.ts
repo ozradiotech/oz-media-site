@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { ChatError, chatErrorResponse, readJsonBody } from '../../../lib/chat-server';
-import { requireLivestreamAccess } from '../../../lib/youtube/access';
+import { requireLivestreamAccess } from '../../../lib/admin-access';
 import { revokeToken } from '../../../lib/youtube/api';
 import { decryptSecret } from '../../../lib/youtube/crypto';
 import { readSettings } from '../../../lib/youtube/outbox';
