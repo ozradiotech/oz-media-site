@@ -10,6 +10,10 @@ import SiteMonitor from '../components/SiteMonitor.astro';
 import ShareMeta from '../components/ShareMeta.astro';
 import { consentEnabled } from '../lib/analytics-config';
 
+// Search results and share previews (see ShareMeta.astro).
+const title = 'OZ Radio Bali 101.2 FM - Your Friendly Station';
+const description = 'OZ Radio Bali 101.2 FM, your friendly station from the island. Listen live online and see what is playing now.';
+
 // OZ Bali is audio-only for now. The title, artist and listener count are read from the same Icecast mount,
 // so they always follow whichever stream this points at.
 const audioStreamUrl = 'https://streaming.ozradio.id:8443/bali';
@@ -23,11 +27,11 @@ const nowPlayingUrl = `/api/now-playing?mount=${encodeURIComponent(new URL(audio
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="theme-color" content="#4A1835" />
 		<GoogleAnalytics />
-		<meta name="description" content="Listen live to ozradio bali 101.2 fm, your friendly station from the island." />
-		<ShareMeta title="ozradio bali 101.2 fm — listen live" description="Listen live to ozradio bali 101.2 fm, your friendly station from the island." path="/oz-bali" siteName="OZ Radio Bali" image="/images/logo-oz-bali.png" />
+		<meta name="description" content={description} />
+		<ShareMeta {title} {description} path="/oz-bali" siteName="OZ Radio Bali" image="/images/logo-oz-bali.png" />
 		<Font cssVariable="--font-tango" preload={[{ style: 'normal' }]} />
 		<Font cssVariable="--font-jakarta" preload={[{ style: 'normal' }]} />
-		<title>ozradio bali 101.2 fm — listen live</title>
+		<title>{title}</title>
 		<link rel="preload" as="image" href="/images/logo-oz-bali.png" fetchpriority="high" />
 		<script type="speculationrules" is:inline set:html={JSON.stringify({ prefetch: [{ where: { href_matches: '/' }, eagerness: 'moderate' }, { where: { href_matches: '/oz-bandung/' }, eagerness: 'moderate' }] })} />
 		<script is:inline>
