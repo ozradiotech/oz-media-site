@@ -14,6 +14,7 @@ import ThemeSwitch from '../components/ThemeSwitch.astro';
 import BandungRibbon from '../components/BandungRibbon.astro';
 import SiteFooter from '../components/SiteFooter.astro';
 import StationDock from '../components/StationDock.astro';
+import ShareMeta from '../components/ShareMeta.astro';
 import { getLiveCollection, render } from 'astro:content';
 import { cmsImage } from '../lib/cms';
 import { ageRanges } from '../lib/listener';
@@ -27,6 +28,7 @@ import '../styles/oz-audio-player.css';
 
 // From the CMS (src/lib/station-settings.ts): Broadcast → Streams (audio stream, livestream), Digital → Socials (the
 // Online digital cards), Content → OZ Bandung page (ticker, Ozubathon, contact). Built-in values if it can't be reached.
+const description = 'OZ Radio Bandung 103.1 FM, your friendly station. Listen live, watch the studio livestream, chat with other listeners and read OZ News.';
 const station = await getStationSettings();
 const { audioStreamUrl, youtubeLive } = station;
 const youtubeChannelUrl = station.youtube.channelUrl;
@@ -126,7 +128,8 @@ const sections = [
 		<ThemeHead />
 		<StationRouter />
 		<GoogleAnalytics />
-		<meta name="description" content="Your Friendly Station 103.1 FM" />
+		<meta name="description" content={description} />
+		<ShareMeta title="OZ Radio Bandung - Your Friendly Station" {description} path="/oz-bandung" siteName="OZ Radio Bandung" image="/images/logo-oz-bandung.png" />
 		<Font cssVariable="--font-tango" preload={[{ style: 'normal' }]} />
 		<Font cssVariable="--font-jakarta" preload={[{ style: 'normal' }]} />
 		<Font cssVariable="--font-mono" />

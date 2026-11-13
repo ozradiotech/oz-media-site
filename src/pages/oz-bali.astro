@@ -7,6 +7,7 @@ import '../styles/oz-audio-player-bali.css';
 import GoogleAnalytics from '../components/GoogleAnalytics.astro';
 import ConsentBanner from '../components/ConsentBanner.astro';
 import SiteMonitor from '../components/SiteMonitor.astro';
+import ShareMeta from '../components/ShareMeta.astro';
 import { consentEnabled } from '../lib/analytics-config';
 
 // OZ Bali is audio-only for now. The title, artist and listener count are read from the same Icecast mount,
@@ -23,6 +24,7 @@ const nowPlayingUrl = `/api/now-playing?mount=${encodeURIComponent(new URL(audio
 		<meta name="theme-color" content="#4A1835" />
 		<GoogleAnalytics />
 		<meta name="description" content="Listen live to ozradio bali 101.2 fm, your friendly station from the island." />
+		<ShareMeta title="ozradio bali 101.2 fm — listen live" description="Listen live to ozradio bali 101.2 fm, your friendly station from the island." path="/oz-bali" siteName="OZ Radio Bali" image="/images/logo-oz-bali.png" />
 		<Font cssVariable="--font-tango" preload={[{ style: 'normal' }]} />
 		<Font cssVariable="--font-jakarta" preload={[{ style: 'normal' }]} />
 		<title>ozradio bali 101.2 fm — listen live</title>

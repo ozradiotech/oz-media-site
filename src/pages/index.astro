@@ -9,10 +9,12 @@ import GoogleAnalytics from '../components/GoogleAnalytics.astro';
 import ConsentBanner from '../components/ConsentBanner.astro';
 import SiteMonitor from '../components/SiteMonitor.astro';
 import ThemeSwitch from '../components/ThemeSwitch.astro';
+import ShareMeta from '../components/ShareMeta.astro';
 const locations = [
 	{ name: 'Bandung', href: '/oz-bandung/', logo: '/images/logo-oz-bandung.png', transitionName: 'oz-bandung-logo' },
 	{ name: 'Bali', href: '/oz-bali/', logo: '/images/logo-oz-bali.png', transitionName: 'oz-bali-logo' },
 ];
+const description = 'OZ Media is home to OZ Radio Bandung 103.1 FM and OZ Radio Bali 101.2 FM. Listen live, watch the studio livestream and read OZ News.';
 ---
 
 <!doctype html>
@@ -22,7 +24,8 @@ const locations = [
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<ThemeHead />
 		<GoogleAnalytics />
-		<meta name="description" content="Location select for OZ Radio" />
+		<meta name="description" content={description} />
+		<ShareMeta title="OZ Media - Above and Beyond" {description} path="/" />
 		<Font cssVariable="--font-tango" preload={[{ style: 'normal' }]} />
 		<Font cssVariable="--font-jakarta" preload={[{ style: 'normal' }]} />
 		<Font cssVariable="--font-mono" />

@@ -1,0 +1,27 @@
+---
+// Canonical link and share previews (WhatsApp, Facebook, X) for the pages outside NewsLayout, which has its own.
+// URLs become absolute from `site` in astro.config.mjs, so each server points them at its own domain.
+interface Props {
+	title: string;
+	description: string;
+	/** Site path of this page, written the way the sitemap lists it. */
+	path: string;
+	siteName?: string;
+	image?: string;
+}
+
+const { title, description, path, siteName = 'OZ Media', image = '/images/logo-oz-logogram.png' } = Astro.props;
+const absolute = (value: string) => (Astro.site ? new URL(value, Astro.site).href : value);
+---
+
+<link rel="canonical" href={absolute(path)} />
+<meta property="og:site_name" content={siteName} />
+<meta property="og:type" content="website" />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={absolute(path)} />
+<meta property="og:image" content={absolute(image)} />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={absolute(image)} />
