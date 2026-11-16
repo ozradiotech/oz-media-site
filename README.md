@@ -58,7 +58,8 @@ Three things need to run:
 | `/analytics` social numbers | **Social media numbers** (digital) |
 | Chat badges and who can moderate | **Chat roles** (developers only), see Live chat → Moderation |
 | OZ Bandung's audio stream URL, and the YouTube livestream channel (or a pinned video) | **Broadcast → Streams** (developer). Clear the channel to follow the one connected under Broadcast → YouTube |
-| The Online digital section (YouTube channel link, carousel videos, card texts, Instagram and TikTok profiles) and the footer's social links | **Digital → Socials** (developer, editorial, digital) |
+| The Online digital section (YouTube channel link, pinned videos, card texts, Instagram and TikTok profiles) and the footer's social links | **Digital → Socials** (developer, editorial, digital) |
+| The Instagram and TikTok posts in the Online digital section (the newest videos and Shorts come from the channel's YouTube feed by themselves; `src/lib/online.ts`) | **Digital → Social posts** (developer, editorial, digital) |
 | Ticker phrases, Ozubathon date and hours, contact email and WhatsApp (page and footer) | **Content → OZ Bandung page** (developer, editorial) |
 | A looping video in the video player while nothing is live (instead of the "not live" picture) | **Content → OZ Bandung page → Offline video**, uploaded under **Content → Videos**. Empty keeps the picture. Fitted to the player without cropping, muted, and only downloaded once someone picks video |
 | What the CMS doesn't have, or when it can't be reached | The built-in values in `src/lib/station-defaults.ts`, the same ones the CMS fields start with |

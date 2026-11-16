@@ -12,9 +12,12 @@ export type StationSettings = {
 	 * /api/youtube-live); empty means the channel connected to the YouTube integration.
 	 */
 	youtubeLive: { channelId: string; videoId: string };
+	/** videos: pinned in the CMS, shown before the channel's latest uploads (src/lib/online-feed.ts). */
 	youtube: Card & { channelUrl: string; videos: { id: string; title: string }[] };
-	instagram: Card & { url: string };
-	tiktok: Card & { url: string };
+	instagram: { url: string };
+	tiktok: { url: string };
+	/** The card of Shorts and Instagram/TikTok posts in the Online digital section. */
+	posts: Card;
 	threadsUrl: string;
 	contactEmail: string;
 	/** As shown, e.g. +62 851-1139-1031; the wa.me link is made from its digits. */
@@ -34,14 +37,11 @@ export const defaultStationSettings: StationSettings = {
 		channelUrl: 'https://www.youtube.com/@OZMEDIANET',
 		heading: 'Watch podcasts.',
 		text: 'Live sets, studio sessions and more from OZ Radio Bandung.',
-		videos: [
-			{ id: 'UDmfDJTzg4w', title: 'Featured video' },
-			{ id: 'dn73m2_u71E', title: 'Studio session' },
-			{ id: 'ZStRwkoiTQY', title: 'Live set' },
-		],
+		videos: [],
 	},
-	instagram: { url: 'https://www.instagram.com/ozradiobandung', heading: 'Stay in the loop.', text: 'Behind the scenes and everything.' },
-	tiktok: { url: 'https://www.tiktok.com/@ozradio', heading: 'Catch the moments.', text: 'Short-form updates and behind the scenes from OZ Radio Bandung.' },
+	instagram: { url: 'https://www.instagram.com/ozradiobandung' },
+	tiktok: { url: 'https://www.tiktok.com/@ozradio' },
+	posts: { heading: 'Catch the moments.', text: 'Shorts, reels and behind the scenes from OZ Radio Bandung.' },
 	threadsUrl: 'https://www.threads.net/@ozradiobandung',
 	contactEmail: 'ozmedianet.id@gmail.com',
 	whatsappNumber: '+62 851-1139-1031',
@@ -58,8 +58,9 @@ export type CmsStationSettings = {
 	streams: { audioStreamUrl?: Text; liveChannelId?: Text; liveVideoId?: Text } | null;
 	socials: {
 		youtube?: (CmsCard & { channelUrl?: Text; videos?: { videoId?: Text; title?: Text }[] | null }) | null;
-		instagram?: (CmsCard & { url?: Text }) | null;
-		tiktok?: (CmsCard & { url?: Text }) | null;
+		instagram?: { url?: Text } | null;
+		tiktok?: { url?: Text } | null;
+		posts?: CmsCard | null;
 		threads?: { url?: Text } | null;
 	} | null;
 	page: {
@@ -96,10 +97,12 @@ export const mergeStationSettings = (cms: Partial<CmsStationSettings> | null | u
 		youtube: {
 			...card(socials?.youtube, defaults.youtube),
 			channelUrl: text(socials?.youtube?.channelUrl, defaults.youtube.channelUrl),
-			videos: videos.length ? videos : defaults.youtube.videos,
+			// Optional: none pinned shows the latest uploads only.
+			videos,
 		},
-		instagram: { ...card(socials?.instagram, defaults.instagram), url: text(socials?.instagram?.url, defaults.instagram.url) },
-		tiktok: { ...card(socials?.tiktok, defaults.tiktok), url: text(socials?.tiktok?.url, defaults.tiktok.url) },
+		instagram: { url: text(socials?.instagram?.url, defaults.instagram.url) },
+		tiktok: { url: text(socials?.tiktok?.url, defaults.tiktok.url) },
+		posts: card(socials?.posts, defaults.posts),
 		threadsUrl: text(socials?.threads?.url, defaults.threadsUrl),
 		contactEmail: text(page?.contact?.email, defaults.contactEmail),
 		whatsappNumber: text(page?.contact?.whatsappNumber, defaults.whatsappNumber),

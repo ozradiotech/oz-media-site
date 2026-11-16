@@ -32,6 +32,8 @@ import {
 } from '../lib/activities';
 import { profileHandle, whatsappLink } from '../lib/station-defaults';
 import { getStationSettings } from '../lib/station-settings';
+import { getOnlineContent } from '../lib/online';
+import { shortDate, viewCount, type FeedVideo } from '../lib/online-feed';
 import '../styles/ozubathon.css';
 import '../styles/media-fit.css';
 // Loaded with the page rather than with the player script, so it stays when the player is carried to OZ News.
@@ -43,7 +45,6 @@ const description = 'OZ Radio Bandung 103.1 FM, your friendly station. Listen li
 const station = await getStationSettings();
 const { audioStreamUrl, youtubeLive } = station;
 const youtubeChannelUrl = station.youtube.channelUrl;
-const youtubeVideos = station.youtube.videos;
 const instagramUrl = station.instagram.url;
 const tiktokUrl = station.tiktok.url;
 const tiktokHandle = profileHandle(tiktokUrl);
@@ -57,12 +58,20 @@ const live = async <C extends 'programs' | 'announcers'>(collection: C) => {
 	if (error) console.error(`[${collection}]`, error);
 	return entries ?? [];
 };
-const [orderedPrograms, orderedAnnouncers, orderedActivities, orderedNews] = await Promise.all([
+const [orderedPrograms, orderedAnnouncers, orderedActivities, orderedNews, online] = await Promise.all([
 	live('programs'),
 	live('announcers'),
 	getActivities(),
 	getVisibleNews(),
+	getOnlineContent(station),
 ]);
+// Online digital (src/lib/online.ts): the channel's newest videos (pinned ones first), one large and the rest beside it,
+// and a row of its Shorts with the Instagram and TikTok posts from the CMS.
+const { videos: onlineVideos, posts: onlinePosts } = online;
+const featuredVideo = onlineVideos[0];
+const youtubeThumbnail = (id: string, size: 'hqdefault' | 'mqdefault') => `https://i.ytimg.com/vi/${encodeURIComponent(id)}/${size}.jpg`;
+const videoMeta = (video: FeedVideo) => [shortDate(video.publishedAt), viewCount(video.views)].filter(Boolean).join(' · ');
+const platformLabel = { youtube: 'YouTube Shorts', instagram: 'Instagram', tiktok: 'TikTok' } as const;
 const hostsById = new Map(orderedAnnouncers.map((announcer) => [announcer.id, announcer]));
 const programsWithBody = await Promise.all(orderedPrograms.map(async (entry) => ({
 	entry,
@@ -530,87 +539,101 @@ const sections = [
 							<h2 id="online-title">Online <span>digital</span></h2>
 						</div>
 					</div>
-					<div class="feature-grid social-grid">
-						<article class="feature-card social-card youtube-card">
-							<div class="social-topline"><span class="social-mark" aria-hidden="true">▶</span><span>OZ RADIO BANDUNG · YOUTUBE</span></div>
-							<div class="youtube-carousel" data-youtube-carousel>
-								<div class="carousel-stage">
-									<button class="carousel-chevron carousel-chevron-previous carousel-chevron-inset" type="button" data-youtube-previous aria-label="Previous video">
-										<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5" /></svg>
-									</button>
-									<div class="channel-preview" data-youtube-player>
-										<span class="preview-play" aria-hidden="true">▶</span>
-										<span class="preview-caption">PODCASTS<br />&amp; LIVESTREAMS</span>
-										<span class="preview-duration">YOUTUBE VIDEO TO BE ADDED</span>
-									</div>
-									<button class="carousel-chevron carousel-chevron-next carousel-chevron-inset" type="button" data-youtube-next aria-label="Next video">
-										<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 4.5 16.5 12 9 19.5" /></svg>
-									</button>
-								</div>
-								<div class="youtube-carousel-nav">
-									<div class="video-picker" role="group" aria-label="Select a YouTube video">
-										{youtubeVideos.map((video, index) => (
-											<button
-												class="video-picker-item"
-												type="button"
-												data-youtube-video
-												data-youtube-id={video.id}
-												data-youtube-title={video.title}
-												aria-label={`Select ${video.title}`}
-												aria-pressed={index === 0 ? 'true' : 'false'}
-											>
-												<span>{String(index + 1).padStart(2, '0')}</span>
-												{video.title}
-											</button>
-										))}
-									</div>
-								</div>
-								<div class="youtube-current" aria-live="polite">
-									<strong data-youtube-current-title>{youtubeVideos[0].title}</strong>
-									<span data-youtube-current-count>01 / {String(youtubeVideos.length).padStart(2, '0')}</span>
-								</div>
+					<div class="online-grid">
+						<article class="feature-card social-card youtube-card" data-online-videos>
+							<div class="social-topline">
+								<span class="social-mark" aria-hidden="true">▶</span><span>OZ RADIO BANDUNG · YOUTUBE</span>
 							</div>
+							{featuredVideo ? (
+								<div class="youtube-layout">
+									<div class="youtube-stage">
+										<div class="youtube-player" data-youtube-player>
+											<button class="youtube-facade" type="button" data-youtube-facade data-youtube-id={featuredVideo.id} aria-label={`Play ${featuredVideo.title}`}>
+												<img src={youtubeThumbnail(featuredVideo.id, 'hqdefault')} alt="" width="480" height="360" decoding="async" loading="lazy" />
+												<span class="preview-play" aria-hidden="true">▶</span>
+											</button>
+										</div>
+										<p class="youtube-now" aria-live="polite">
+											<strong data-youtube-current-title>{featuredVideo.title}</strong>
+											<span data-youtube-current-meta>{videoMeta(featuredVideo)}</span>
+										</p>
+									</div>
+									{onlineVideos.length > 1 && (
+										<div class="youtube-side">
+											<p class="youtube-side-label" id="youtube-list-label">LATEST VIDEOS</p>
+											<ol class="youtube-list" aria-labelledby="youtube-list-label">
+												{onlineVideos.map((video, index) => (
+													<li>
+														<button
+															class="youtube-list-item"
+															type="button"
+															data-youtube-video
+															data-youtube-id={video.id}
+															data-youtube-title={video.title}
+															data-youtube-meta={videoMeta(video)}
+															aria-pressed={index === 0 ? 'true' : 'false'}
+														>
+															<img src={youtubeThumbnail(video.id, 'mqdefault')} alt="" width="320" height="180" decoding="async" loading="lazy" />
+															<span class="youtube-list-copy">
+																<span class="youtube-list-title">{video.title}</span>
+																<span class="youtube-list-meta">{videoMeta(video)}</span>
+															</span>
+														</button>
+													</li>
+												))}
+											</ol>
+										</div>
+									)}
+								</div>
+							) : (
+								<div class="online-empty">New videos are on the way. Meanwhile, everything is on our channel.</div>
+							)}
 							<div class="social-card-bottom">
 								<div><h3>{station.youtube.heading}</h3><p>{station.youtube.text}</p></div>
-								<a class="outline-link" href={youtubeChannelUrl || undefined} target="_blank" rel="noopener noreferrer" aria-disabled={!youtubeChannelUrl}>
-									{youtubeChannelUrl ? 'VISIT YOUTUBE ↗' : 'CHANNEL LINK COMING SOON'}
-								</a>
+								<div class="online-links">
+									<a class="outline-link" href={`${youtubeChannelUrl.replace(/\/+$/, '')}/streams`} target="_blank" rel="noopener noreferrer">PAST LIVESTREAMS ↗</a>
+									<a class="outline-link" href={youtubeChannelUrl} target="_blank" rel="noopener noreferrer">VISIT YOUTUBE ↗</a>
+								</div>
 							</div>
 						</article>
-						<article class="feature-card social-card instagram-card">
-							<div class="social-topline"><span class="social-mark instagram-mark" aria-hidden="true">◎</span><span>OZ RADIO BANDUNG · INSTAGRAM</span></div>
-							<div class="instagram-preview">
-								<blockquote
-									class="instagram-media"
-									data-instgrm-permalink={`${instagramUrl.replace(/\/+$/, '')}/`}
-									data-instgrm-version="14"
-								>
-									<a href={instagramUrl}>View this profile on Instagram</a>
-								</blockquote>
+						<article class="feature-card social-card posts-card" data-online-posts>
+							<div class="social-topline">
+								<span class="social-mark" aria-hidden="true">◎</span><span>OZ RADIO BANDUNG · SOCIALS</span>
+								{onlinePosts.length > 1 && (
+									<span class="posts-nav">
+										<button class="posts-nav-button" type="button" data-posts-previous aria-label="Previous posts" disabled>
+											<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5" /></svg>
+										</button>
+										<button class="posts-nav-button" type="button" data-posts-next aria-label="More posts">
+											<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M9 4.5 16.5 12 9 19.5" /></svg>
+										</button>
+									</span>
+								)}
 							</div>
+							{onlinePosts.length ? (
+								<ul class="posts-rail" data-posts-rail aria-label="Latest posts">
+									{onlinePosts.map((post) => (
+										<li>
+											<a class="post-card" href={post.url} target="_blank" rel="noopener noreferrer" aria-label={`${post.caption || 'Post'} (${platformLabel[post.platform]}, opens in a new tab)`}>
+												<img src={post.image} alt="" width="400" height="711" decoding="async" loading="lazy" />
+												<span class="post-platform">{platformLabel[post.platform]}</span>
+												<span class="post-copy">
+													{post.caption && <span class="post-caption">{post.caption}</span>}
+													{shortDate(post.postedAt) && <span class="post-date">{shortDate(post.postedAt)}</span>}
+												</span>
+											</a>
+										</li>
+									))}
+								</ul>
+							) : (
+								<div class="online-empty">Follow us for the latest reels and clips.</div>
+							)}
 							<div class="social-card-bottom">
-								<div><h3>{station.instagram.heading}</h3><p>{station.instagram.text}</p></div>
-								<a class="outline-link" href={instagramUrl} target="_blank" rel="noopener noreferrer">VISIT INSTAGRAM ↗</a>
-							</div>
-						</article>
-						<article class="feature-card social-card tiktok-card">
-							<div class="social-topline"><span class="social-mark" aria-hidden="true">♪</span><span>OZ RADIO BANDUNG · TIKTOK</span></div>
-							<div class="tiktok-preview">
-								<blockquote
-									class="tiktok-embed"
-									cite={tiktokUrl}
-									data-unique-id={tiktokHandle}
-									data-embed-type="creator"
-									style="max-width: 720px; min-width: 288px;"
-								>
-									<section>
-										<a target="_blank" rel="noopener noreferrer" href={`${tiktokUrl}?refer=creator_embed`}>@{tiktokHandle}</a>
-									</section>
-								</blockquote>
-							</div>
-							<div class="social-card-bottom">
-								<div><h3>{station.tiktok.heading}</h3><p>{station.tiktok.text}</p></div>
-								<a class="outline-link" href={tiktokUrl} target="_blank" rel="noopener noreferrer">VISIT TIKTOK ↗</a>
+								<div><h3>{station.posts.heading}</h3><p>{station.posts.text}</p></div>
+								<div class="online-links">
+									<a class="outline-link" href={instagramUrl} target="_blank" rel="noopener noreferrer" aria-label={`OZ Radio Bandung on Instagram: @${profileHandle(instagramUrl)}`}>INSTAGRAM ↗</a>
+									<a class="outline-link" href={tiktokUrl} target="_blank" rel="noopener noreferrer" aria-label={`OZ Radio on TikTok: @${tiktokHandle}`}>TIKTOK ↗</a>
+								</div>
 							</div>
 						</article>
 					</div>
@@ -1547,103 +1570,65 @@ const sections = [
 			updateSectionNavigation(window.location.hash.slice(1) || 'listen');
 		}
 
-		const youtubeCarousel = document.querySelector<HTMLElement>('[data-youtube-carousel]');
-		const youtubePlayer = youtubeCarousel?.querySelector<HTMLElement>('[data-youtube-player]');
-		const youtubeVideoButtons = youtubeCarousel?.querySelectorAll<HTMLButtonElement>('[data-youtube-video]');
-		const youtubeCurrentTitle = youtubeCarousel?.querySelector<HTMLElement>('[data-youtube-current-title]');
-		const youtubeCurrentCount = youtubeCarousel?.querySelector<HTMLElement>('[data-youtube-current-count]');
-
-		if (youtubeCarousel && youtubePlayer && youtubeVideoButtons?.length && youtubeCurrentTitle && youtubeCurrentCount) {
-			const videos = Array.from(youtubeVideoButtons, (button) => ({
-				id: button.dataset.youtubeId ?? '',
-				title: button.dataset.youtubeTitle ?? '',
-			}));
-			let currentVideoIndex = 0;
-			// The YouTube player is heavy, so a thumbnail stands in until the visitor presses play.
+		// Online digital: the YouTube card's large player and its list of videos.
+		const onlineVideos = document.querySelector<HTMLElement>('[data-online-videos]');
+		const youtubePlayer = onlineVideos?.querySelector<HTMLElement>('[data-youtube-player]');
+		const youtubeVideoButtons = onlineVideos?.querySelectorAll<HTMLButtonElement>('[data-youtube-video]') ?? [];
+		const youtubeCurrentTitle = onlineVideos?.querySelector<HTMLElement>('[data-youtube-current-title]');
+		const youtubeCurrentMeta = onlineVideos?.querySelector<HTMLElement>('[data-youtube-current-meta]');
+		if (youtubePlayer && youtubeCurrentTitle && youtubeCurrentMeta) {
+			const facade = youtubePlayer.querySelector<HTMLButtonElement>('[data-youtube-facade]');
+			let current = { id: facade?.dataset.youtubeId ?? '', title: youtubeCurrentTitle.textContent ?? '' };
+			const facadeImage = facade?.querySelector('img');
+			// The YouTube player is heavy, so the thumbnail stands in until the visitor presses play. Once one video has
+			// played, picking another plays it straight away.
 			let isPlayerActivated = false;
-
-			const loadVideoIframe = (video: { id: string; title: string }, autoplay: boolean) => {
+			const play = () => {
+				isPlayerActivated = true;
 				const iframe = document.createElement('iframe');
-				iframe.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(video.id)}${autoplay ? '?autoplay=1' : ''}`;
-				iframe.title = video.title;
+				iframe.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(current.id)}?autoplay=1&rel=0`;
+				iframe.title = current.title;
 				iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
 				iframe.allowFullscreen = true;
 				iframe.referrerPolicy = 'strict-origin-when-cross-origin';
 				youtubePlayer.replaceChildren(iframe);
 			};
-
-			const showVideo = (index: number) => {
-				currentVideoIndex = (index + videos.length) % videos.length;
-				const video = videos[currentVideoIndex];
-
-				youtubePlayer.replaceChildren();
-				if (video.id && isPlayerActivated) {
-					loadVideoIframe(video, false);
-				} else if (video.id) {
-					const facade = document.createElement('button');
-					facade.type = 'button';
-					facade.className = 'youtube-facade';
-					facade.setAttribute('aria-label', `Play ${video.title}`);
-					const thumbnail = document.createElement('img');
-					thumbnail.src = `https://i.ytimg.com/vi/${encodeURIComponent(video.id)}/hqdefault.jpg`;
-					thumbnail.alt = '';
-					thumbnail.loading = 'lazy';
-					thumbnail.decoding = 'async';
-					const playIcon = document.createElement('span');
-					playIcon.className = 'preview-play';
-					playIcon.setAttribute('aria-hidden', 'true');
-					playIcon.textContent = '▶';
-					facade.append(thumbnail, playIcon);
-					facade.addEventListener('click', () => {
-						isPlayerActivated = true;
-						loadVideoIframe(video, true);
-					});
-					youtubePlayer.append(facade);
-				} else {
-					const placeholder = document.createElement('div');
-					placeholder.className = 'youtube-placeholder';
-					placeholder.textContent = `Add a YouTube video ID for "${video.title}"`;
-					youtubePlayer.append(placeholder);
-				}
-
-				youtubeCurrentTitle.textContent = video.title;
-				youtubeCurrentCount.textContent = `${String(currentVideoIndex + 1).padStart(2, '0')} / ${String(videos.length).padStart(2, '0')}`;
-				youtubeVideoButtons.forEach((button, buttonIndex) => {
-					button.setAttribute('aria-pressed', String(buttonIndex === currentVideoIndex));
+			facade?.addEventListener('click', play);
+			youtubeVideoButtons.forEach((button) => {
+				button.addEventListener('click', () => {
+					current = { id: button.dataset.youtubeId ?? '', title: button.dataset.youtubeTitle ?? '' };
+					youtubeCurrentTitle.textContent = current.title;
+					youtubeCurrentMeta.textContent = button.dataset.youtubeMeta ?? '';
+					youtubeVideoButtons.forEach((other) => other.setAttribute('aria-pressed', String(other === button)));
+					if (isPlayerActivated || !facade || !facadeImage) {
+						play();
+						return;
+					}
+					facadeImage.src = `https://i.ytimg.com/vi/${encodeURIComponent(current.id)}/hqdefault.jpg`;
+					facade.setAttribute('aria-label', `Play ${current.title}`);
+					if (!youtubePlayer.contains(facade)) youtubePlayer.replaceChildren(facade);
 				});
-			};
-
-			youtubeCarousel.querySelector('[data-youtube-previous]')?.addEventListener('click', () => {
-				showVideo(currentVideoIndex - 1);
 			});
-			youtubeCarousel.querySelector('[data-youtube-next]')?.addEventListener('click', () => {
-				showVideo(currentVideoIndex + 1);
-			});
-			youtubeVideoButtons.forEach((button, index) => {
-				button.addEventListener('click', () => showVideo(index));
-			});
-			showVideo(0);
 		}
 
-		// Instagram and TikTok embeds pull in large third-party scripts, so load them only when the section is near.
-		const onlineSection = document.querySelector<HTMLElement>('#online');
-		if (onlineSection) {
-			const embedObserver = new IntersectionObserver((entries) => {
-				if (!entries.some((entry) => entry.isIntersecting)) return;
-				embedObserver.disconnect();
-				// Back on the page after visiting OZ News, Instagram's script is still loaded and only needs to find the new
-				// embeds; TikTok's looks for them each time it runs.
-				const instagram = (window as Window & { instgrm?: { Embeds: { process: () => void } } }).instgrm;
-				instagram?.Embeds.process();
-				[instagram ? '' : 'https://www.instagram.com/embed.js', 'https://www.tiktok.com/embed.js'].filter(Boolean).forEach((src) => {
-					const script = document.createElement('script');
-					script.src = src;
-					script.async = true;
-					document.body.append(script);
-				});
-			}, { rootMargin: '400px 0px' });
-			embedObserver.observe(onlineSection);
-			onLeave(signal, () => embedObserver.disconnect());
+		// The posts card's arrows page through the row; swiping and scrolling work too.
+		const postsRail = document.querySelector<HTMLElement>('[data-posts-rail]');
+		const postsPrevious = document.querySelector<HTMLButtonElement>('[data-posts-previous]');
+		const postsNext = document.querySelector<HTMLButtonElement>('[data-posts-next]');
+		if (postsRail && postsPrevious && postsNext) {
+			const syncPostsNav = () => {
+				postsPrevious.disabled = postsRail.scrollLeft <= 2;
+				postsNext.disabled = postsRail.scrollLeft + postsRail.clientWidth >= postsRail.scrollWidth - 2;
+			};
+			const page = (direction: 1 | -1) => {
+				const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+				postsRail.scrollBy({ left: direction * postsRail.clientWidth * 0.9, behavior: reduceMotion ? 'auto' : 'smooth' });
+			};
+			postsPrevious.addEventListener('click', () => page(-1));
+			postsNext.addEventListener('click', () => page(1));
+			postsRail.addEventListener('scroll', syncPostsNav, { passive: true, signal });
+			window.addEventListener('resize', syncPostsNav, { passive: true, signal });
+			syncPostsNav();
 		}
 
 		const programDialog = document.querySelector<HTMLDialogElement>('[data-program-dialog]');
@@ -4757,10 +4742,6 @@ const sections = [
 		font-size: 7px;
 	}
 
-	.social-grid {
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-	}
-
 	.social-card {
 		--card-padding: clamp(12px, 2vw, 18px);
 		padding: var(--card-padding);
@@ -4785,29 +4766,339 @@ const sections = [
 		font-size: 15px;
 	}
 
-	.channel-preview {
-		position: relative;
-		height: 260px;
+	/* Online digital: YouTube (player and list) beside the row of Shorts and posts; stacked below 1100px. */
+	.online-grid {
 		display: grid;
-		place-items: center;
-		overflow: hidden;
-		margin: 12px 0;
-		background:
-			linear-gradient(130deg, transparent 46%, rgba(242, 189, 87, 0.16) 46% 48%, transparent 48%),
-			radial-gradient(ellipse at 70% 120%, rgba(242, 189, 87, 0.26), transparent 50%),
-			var(--c-surface);
+		grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr);
+		gap: 18px;
 	}
 
-	:global(.channel-preview iframe) {
+	/* Side by side, the YouTube card sets the height and the posts fill it. */
+	.youtube-card,
+	.posts-card {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.youtube-card .social-card-bottom,
+	.posts-card .social-card-bottom {
+		margin-top: auto;
+	}
+
+	.youtube-layout {
+		display: grid;
+		grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+		gap: 12px;
+		margin-bottom: 12px;
+	}
+
+	.youtube-stage {
+		min-width: 0;
+	}
+
+	.youtube-player {
+		position: relative;
+		overflow: hidden;
+		aspect-ratio: 16 / 9;
+		border: 1.5px solid var(--c-outline);
+		border-radius: 12px;
+		background: #000000;
+		box-shadow: 4px 4px 0 var(--c-shadow);
+	}
+
+	:global(.youtube-player iframe) {
 		position: absolute;
-		top: 50%;
-		left: 0;
+		inset: 0;
 		width: 100%;
+		height: 100%;
+		border: 0;
+	}
+
+	.youtube-now {
+		display: grid;
+		gap: 5px;
+		margin: 12px 0 0;
+	}
+
+	.youtube-now strong {
+		display: -webkit-box;
+		overflow: hidden;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		color: var(--c-text);
+		font-family: var(--font-tango);
+		font-size: clamp(14px, 1.3vw, 18px);
+		line-height: 1.25;
+		letter-spacing: -0.01em;
+	}
+
+	.youtube-now span,
+	.youtube-list-meta {
+		color: var(--c-muted);
+		font-size: 10px;
+		letter-spacing: 0.03em;
+	}
+
+	.youtube-side {
+		min-width: 0;
+		display: grid;
+		align-content: start;
+		gap: 8px;
+	}
+
+	.youtube-side-label {
+		margin: 0;
+		color: var(--c-muted);
+		font-size: 9px;
+		font-weight: 700;
+		letter-spacing: 0.14em;
+	}
+
+	.youtube-list {
+		min-width: 0;
+		display: grid;
+		align-content: start;
+		gap: 6px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.youtube-list-item {
+		width: 100%;
+		display: grid;
+		grid-template-columns: 104px minmax(0, 1fr);
+		align-items: center;
+		gap: 10px;
+		padding: 5px;
+		border: 1.5px solid var(--c-line);
+		border-radius: 12px;
+		background: var(--c-bg);
+		color: var(--c-text);
+		font: inherit;
+		text-align: left;
+		cursor: pointer;
+		transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+	}
+
+	.youtube-list-item img {
+		width: 104px;
 		height: auto;
 		aspect-ratio: 16 / 9;
-		max-height: 100%;
-		transform: translateY(-50%);
-		border: 0;
+		border-radius: 8px;
+		background: #000000;
+		object-fit: cover;
+	}
+
+	.youtube-list-copy {
+		min-width: 0;
+		display: grid;
+		gap: 4px;
+	}
+
+	.youtube-list-title,
+	.post-caption {
+		display: -webkit-box;
+		overflow: hidden;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		font-size: 11.5px;
+		font-weight: 700;
+		line-height: 1.3;
+	}
+
+	.youtube-list-item:hover {
+		border-color: var(--c-outline);
+		background: var(--c-accent-soft);
+	}
+
+	/* The video in the player: accent outline and the site's offset shadow. */
+	.youtube-list-item[aria-pressed='true'] {
+		border-color: var(--c-accent);
+		background: var(--c-accent-soft);
+		box-shadow: 3px 3px 0 var(--c-shadow);
+		transform: translate(-1px, -1px);
+	}
+
+	.youtube-list-item:focus-visible {
+		outline: 2px solid var(--c-accent);
+		outline-offset: 2px;
+	}
+
+	.posts-nav {
+		display: inline-flex;
+		gap: 5px;
+		margin-left: auto;
+	}
+
+	.posts-nav-button {
+		width: 24px;
+		height: 24px;
+		display: grid;
+		place-items: center;
+		padding: 0;
+		border: 1px solid currentColor;
+		border-radius: 50%;
+		background: transparent;
+		color: inherit;
+		cursor: pointer;
+	}
+
+	.posts-nav-button svg {
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 2.4;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+
+	.posts-nav-button:disabled {
+		cursor: default;
+		opacity: 0.35;
+	}
+
+	.posts-nav-button:focus-visible {
+		outline: 2px solid currentColor;
+		outline-offset: 2px;
+	}
+
+	/* Two upright cards in view, the rest a swipe or an arrow away. */
+	.posts-rail {
+		display: grid;
+		grid-auto-flow: column;
+		grid-auto-columns: calc((100% - 8px) / 2);
+		gap: 8px;
+		overflow-x: auto;
+		margin: 0 0 12px;
+		padding: 0;
+		list-style: none;
+		scroll-snap-type: x mandatory;
+		scrollbar-width: none;
+		flex: 1 1 240px;
+		min-height: 240px;
+	}
+
+	.posts-rail::-webkit-scrollbar,
+	.youtube-list::-webkit-scrollbar {
+		display: none;
+	}
+
+	.posts-rail li {
+		min-width: 0;
+		scroll-snap-align: start;
+	}
+
+	.post-card {
+		position: relative;
+		display: block;
+		overflow: hidden;
+		height: 100%;
+		border-radius: 10px;
+		background: #000000;
+		color: #ffffff;
+		text-decoration: none;
+	}
+
+	.post-card img {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		transition: transform 300ms ease;
+	}
+
+	/* Keeps the caption readable over any picture. */
+	.post-card::after {
+		content: '';
+		position: absolute;
+		inset: 45% 0 0;
+		background: linear-gradient(transparent, rgb(0 0 0 / 82%));
+	}
+
+	.post-platform {
+		position: absolute;
+		z-index: 1;
+		top: 9px;
+		left: 9px;
+		padding: 5px 9px;
+		border-radius: 999px;
+		background: rgb(0 0 0 / 60%);
+		font-size: 9px;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+	}
+
+	.post-copy {
+		position: absolute;
+		z-index: 1;
+		right: 11px;
+		bottom: 11px;
+		left: 11px;
+		display: grid;
+		gap: 5px;
+	}
+
+	.post-date {
+		color: rgb(255 255 255 / 78%);
+		font-size: 10px;
+		letter-spacing: 0.03em;
+	}
+
+	.post-card:hover img {
+		transform: scale(1.04);
+	}
+
+	.post-card:focus-visible {
+		outline: 2px solid var(--c-accent);
+		outline-offset: 2px;
+	}
+
+	.online-links {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: flex-end;
+		gap: 6px;
+	}
+
+	.online-empty {
+		min-height: 180px;
+		display: grid;
+		place-items: center;
+		margin-bottom: 12px;
+		padding: 16px;
+		border: 1.5px dashed var(--c-line);
+		border-radius: 10px;
+		color: var(--c-muted);
+		font-size: 10px;
+		text-align: center;
+	}
+
+	@media (max-width: 1100px) {
+		.online-grid {
+			grid-template-columns: minmax(0, 1fr);
+		}
+
+		.posts-rail {
+			grid-auto-columns: calc((100% - 24px) / 4);
+			flex: none;
+			min-height: 0;
+		}
+
+		/* Stacked, nothing sets the row's height, so the cards keep an upright shape. */
+		.post-card {
+			height: auto;
+			aspect-ratio: 9 / 15;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.post-card img {
+			transition: none;
+		}
 	}
 
 	:global(.youtube-facade) {
@@ -4830,18 +5121,18 @@ const sections = [
 		opacity: 0.8;
 	}
 
-	/* Created by script, so it doesn't receive the scoped .preview-play styles. */
+	/* The facade is put back by script when another video is picked before playing, hence global. */
 	:global(.youtube-facade .preview-play) {
 		position: relative;
-		width: 46px;
-		height: 46px;
+		width: clamp(46px, 4.5vw, 64px);
+		height: clamp(46px, 4.5vw, 64px);
 		display: grid;
 		place-items: center;
 		border: 1px solid var(--c-accent);
 		border-radius: 50%;
 		background: rgb(0 0 0 / 45%);
 		color: var(--c-accent);
-		font-size: 12px;
+		font-size: clamp(12px, 1.2vw, 18px);
 	}
 
 	:global(.youtube-facade:hover .preview-play),
@@ -4853,116 +5144,6 @@ const sections = [
 	:global(.youtube-facade:focus-visible) {
 		outline: 2px solid var(--c-accent);
 		outline-offset: -2px;
-	}
-
-	.youtube-placeholder {
-		max-width: 80%;
-		color: var(--c-muted);
-		font-size: 9px;
-		line-height: 1.5;
-		text-align: center;
-	}
-
-	.youtube-carousel-nav {
-		display: flex;
-		align-items: stretch;
-		gap: 6px;
-	}
-
-	.video-picker-item {
-		border: 1.5px solid var(--c-outline);
-		border-radius: 8px;
-		background: var(--c-surface);
-		color: var(--c-text);
-		font: inherit;
-		cursor: pointer;
-	}
-
-	.video-picker {
-		min-width: 0;
-		flex: 1;
-		display: flex;
-		gap: 5px;
-		overflow-x: auto;
-	}
-
-	.video-picker-item {
-		min-width: 0;
-		flex: 1 0 74px;
-		display: grid;
-		gap: 3px;
-		padding: 5px 7px;
-		font-size: 8px;
-		text-align: left;
-		white-space: nowrap;
-	}
-
-	.video-picker-item span {
-		color: var(--c-muted);
-		font-size: 7px;
-		letter-spacing: 0.1em;
-	}
-
-	.video-picker-item[aria-pressed='true'] {
-		border-color: var(--c-accent);
-		color: var(--c-text);
-	}
-
-	.video-picker-item:hover {
-		background: var(--c-accent-soft);
-		color: var(--c-text);
-	}
-
-	.video-picker-item:focus-visible {
-		outline: 2px solid var(--c-accent);
-		outline-offset: 2px;
-	}
-
-	.youtube-current {
-		display: flex;
-		justify-content: space-between;
-		gap: 10px;
-		margin-top: 7px;
-		color: var(--c-muted);
-		font-size: 8px;
-	}
-
-	.youtube-current strong {
-		overflow: hidden;
-		color: var(--c-text);
-		font-weight: 600;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.preview-play {
-		width: 37px;
-		height: 37px;
-		display: grid;
-		place-items: center;
-		border: 1px solid var(--c-accent);
-		border-radius: 50%;
-		color: var(--c-accent);
-		font-size: 10px;
-	}
-
-	.preview-caption {
-		position: absolute;
-		top: 14px;
-		left: 15px;
-		font-size: 9px;
-		font-weight: 700;
-		letter-spacing: 0.13em;
-		line-height: 1.6;
-	}
-
-	.preview-duration {
-		position: absolute;
-		right: 10px;
-		bottom: 9px;
-		color: var(--c-muted);
-		font-size: 7px;
-		letter-spacing: 0.1em;
 	}
 
 	.social-card-bottom {
@@ -5001,49 +5182,6 @@ const sections = [
 	.outline-link[aria-disabled='true'] {
 		cursor: default;
 		opacity: 0.8;
-	}
-
-	.instagram-preview {
-		height: 260px;
-		overflow: auto;
-		scrollbar-width: none;
-		margin: 12px 0;
-		background: var(--c-surface);
-	}
-
-	.tiktok-preview {
-		height: 260px;
-		display: grid;
-		place-items: start center;
-		overflow: auto;
-		margin: 12px 0;
-		background: var(--c-surface);
-	}
-
-	:global(.tiktok-preview .tiktok-embed) {
-		margin: 0 auto !important;
-	}
-
-	@media (max-width: 1100px) {
-		.social-grid {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
-		}
-
-		.tiktok-card {
-			grid-column: 1 / -1;
-		}
-	}
-
-	:global(.instagram-preview::-webkit-scrollbar) {
-		display: none;
-	}
-
-	:global(.instagram-preview iframe) {
-		display: block;
-		width: 100% !important;
-		min-width: 0 !important;
-		max-width: 100% !important;
-		border: 0;
 	}
 
 	/* The section title opens the full OZ News list; the arrow says so and nudges forward on hover. */
@@ -5913,10 +6051,45 @@ const sections = [
 			height: 18px;
 		}
 
-		.social-grid {
-			grid-template-columns: 1fr;
+		.online-grid {
 			gap: 9px;
 		}
+
+		.youtube-layout {
+			grid-template-columns: minmax(0, 1fr);
+		}
+
+		/* The list turns into a row to swipe under the player. */
+		.youtube-list {
+			grid-auto-flow: column;
+			grid-auto-columns: minmax(140px, 44%);
+			overflow-x: auto;
+			scroll-snap-type: x mandatory;
+			scrollbar-width: none;
+		}
+
+		.youtube-list li {
+			scroll-snap-align: start;
+		}
+
+		.youtube-list-item {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 5px;
+		}
+
+		.youtube-list-item img {
+			width: 100%;
+		}
+
+		/* Two cards and a peek at the next. */
+		.posts-rail {
+			grid-auto-columns: calc((100% - 16px) / 2.2);
+		}
+
+		.post-platform {
+			font-size: 8px;
+		}
+
 
 		.social-card {
 			padding: 10px;
@@ -5928,29 +6101,6 @@ const sections = [
 
 		.social-mark {
 			font-size: 12px;
-		}
-
-		.channel-preview {
-			margin: 7px 0;
-		}
-
-		.preview-play {
-			width: 28px;
-			height: 28px;
-		}
-
-		.preview-caption {
-			top: 8px;
-			left: 9px;
-			font-size: 7px;
-		}
-
-		.instagram-preview {
-			margin: 7px 0;
-		}
-
-		.tiktok-preview {
-			margin: 7px 0;
 		}
 
 		.social-card-bottom {
@@ -7052,11 +7202,7 @@ const sections = [
 	:global(:root[data-theme='night']) .card-status,
 	:global(:root[data-theme='night']) :where(.broadcast) .placeholder-caption,
 	:global(:root[data-theme='night']) .program-count,
-	:global(:root[data-theme='night']) .preview-caption,
-	:global(:root[data-theme='night']) .preview-duration,
 	:global(:root[data-theme='night']) .story-date,
-	:global(:root[data-theme='night']) .youtube-current,
-	:global(:root[data-theme='night']) .video-picker-item span,
 	:global(:root[data-theme='night']) .program-dialog-label,
 	:global(:root[data-theme='night']) .listener-confirmation dt,
 	:global(:root[data-theme='night']) .broadcast-label,
@@ -7141,23 +7287,6 @@ const sections = [
 	:global(:root[data-theme='night']) .carousel-chevron:active {
 		box-shadow: none;
 		transform: scale(0.94);
-	}
-
-	:global(:root[data-theme='night']) .video-picker-item {
-		padding: 8px 10px;
-		border: 1px solid var(--c-line);
-		border-radius: 12px;
-		background: var(--c-surface-2);
-	}
-
-	:global(:root[data-theme='night']) .video-picker-item[aria-pressed='true'] {
-		border-color: var(--c-accent);
-		color: var(--c-accent);
-	}
-
-	:global(:root[data-theme='night']) .video-picker-item:hover {
-		background: var(--c-surface);
-		color: var(--c-text);
 	}
 
 	/* ---------- On air: the marathon studio ---------- */
@@ -7439,7 +7568,7 @@ const sections = [
 			right: -8px;
 		}
 
-		:global(:root[data-theme='night']) .social-grid {
+		:global(:root[data-theme='night']) .online-grid {
 			gap: 14px;
 		}
 
@@ -7604,8 +7733,7 @@ const sections = [
 	:global(:root[data-theme='night'][data-tone='light']) .card-index,
 	:global(:root[data-theme='night'][data-tone='light']) .contact-item > span,
 	:global(:root[data-theme='night'][data-tone='light']) .social-mark,
-	:global(:root[data-theme='night'][data-tone='light']) .listen-heading h1 span,
-	:global(:root[data-theme='night'][data-tone='light']) .video-picker-item[aria-pressed='true'] {
+	:global(:root[data-theme='night'][data-tone='light']) .listen-heading h1 span {
 		color: var(--c-accent-strong);
 	}
 

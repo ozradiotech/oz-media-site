@@ -15,7 +15,8 @@ describe('station settings', () => {
 			socials: {
 				youtube: { channelUrl: '', heading: 'Nonton.', text: null, videos: [{ videoId: 'abcdefghijk', title: 'New' }] },
 				instagram: { url: null },
-				tiktok: { url: 'https://www.tiktok.com/@new', heading: '  ' },
+				tiktok: { url: 'https://www.tiktok.com/@new' },
+				posts: { heading: '  ', text: 'Reels.' },
 				threads: null,
 			},
 			page: {
@@ -32,7 +33,7 @@ describe('station settings', () => {
 		assert.deepEqual(merged.youtube.videos, [{ id: 'abcdefghijk', title: 'New' }]);
 		assert.equal(merged.instagram.url, defaultStationSettings.instagram.url);
 		assert.equal(merged.tiktok.url, 'https://www.tiktok.com/@new');
-		assert.equal(merged.tiktok.heading, defaultStationSettings.tiktok.heading);
+		assert.deepEqual(merged.posts, { heading: defaultStationSettings.posts.heading, text: 'Reels.' });
 		assert.equal(merged.threadsUrl, defaultStationSettings.threadsUrl);
 		assert.equal(merged.contactEmail, 'hello@ozradio.test');
 		assert.equal(merged.whatsappNumber, defaultStationSettings.whatsappNumber);
@@ -52,7 +53,7 @@ describe('station settings', () => {
 			page: null,
 		});
 		assert.deepEqual(merged.youtubeLive, { channelId: '', videoId: '' });
-		assert.deepEqual(merged.youtube.videos, defaultStationSettings.youtube.videos);
+		assert.deepEqual(merged.youtube.videos, []);
 	});
 
 	test('offline video: only an uploaded video with an address; nothing set keeps the picture', () => {
