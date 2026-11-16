@@ -35,10 +35,6 @@ export const activityCategories = [
 export const activityCategoryLabel = (value: string) =>
 	activityCategories.find((category) => category.value === value)?.label ?? 'On Ground';
 
-/** The badge for an event that isn't going ahead as planned; empty when it is. */
-export const eventStatusLabel = (status: ActivityData['eventStatus']) =>
-	status === 'postponed' ? 'Postponed' : status === 'cancelled' ? 'Cancelled' : '';
-
 // ---------- Dates ----------
 
 // Events happen in Bandung, so dates print in its time zone (WIB, UTC+7, no daylight saving) whatever the server's is.
@@ -63,6 +59,12 @@ export const isUpcoming = (data: ActivityData, now = new Date()) => {
 	const ends = activityEnds(data);
 	return !ends || ends > now;
 };
+
+/**
+ * Scheduled until the event ends, then Past. The CMS shows the same status, worked out by the same rule
+ * (oz-cms src/activityStatus.ts); keep the two in step.
+ */
+export const activityStatus = (data: ActivityData, now = new Date()) => (isUpcoming(data, now) ? 'Scheduled' : 'Past');
 
 const part = (date: Date, options: Intl.DateTimeFormatOptions) => date.toLocaleString('en-GB', { ...options, timeZone });
 const time = (date: Date) => part(date, { hour: '2-digit', minute: '2-digit', hour12: false }).replace(':', '.');
@@ -109,10 +111,7 @@ export const calendarTile = ({ startDate }: ActivityData) =>
 			}
 		: undefined;
 
-/**
- * Upcoming events (featured first, then the soonest, undated last) and past events (the most recent first).
- * Cancelled events stay in their place, with their badge.
- */
+/** Upcoming events (featured first, then the soonest, undated last) and past events (the most recent first). */
 export const splitActivities = (entries: ActivityEntry[], now = new Date()) => {
 	const upcoming = entries
 		.filter(({ data }) => isUpcoming(data, now))
@@ -124,9 +123,6 @@ export const splitActivities = (entries: ActivityEntry[], now = new Date()) => {
 		.sort((a, b) => (b.data.startDate?.getTime() ?? 0) - (a.data.startDate?.getTime() ?? 0));
 	return { upcoming, past };
 };
-
-/** Tickets and "add to calendar" only make sense for an event that is still ahead and going ahead. */
-export const isBookable = (data: ActivityData, now = new Date()) => isUpcoming(data, now) && data.eventStatus !== 'cancelled';
 
 // ---------- Calendar links ----------
 
@@ -181,7 +177,7 @@ export const activityIcs = (entry: ActivityEntry, pageUrl: string, host: string)
 		entry.data.summary && `DESCRIPTION:${icsText(`${entry.data.summary}\n\n${pageUrl}`)}`,
 		entry.data.venue && `LOCATION:${icsText(entry.data.venue)}`,
 		`URL:${pageUrl}`,
-		entry.data.eventStatus === 'cancelled' ? 'STATUS:CANCELLED' : 'STATUS:CONFIRMED',
+		'STATUS:CONFIRMED',
 		'END:VEVENT',
 		'END:VCALENDAR',
 	].filter(Boolean);

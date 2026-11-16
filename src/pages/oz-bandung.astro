@@ -26,10 +26,8 @@ import {
 	activityPath,
 	activityWhen,
 	calendarTile,
-	eventStatusLabel,
 	formatActivityDate,
 	getActivities,
-	isBookable,
 	splitActivities,
 } from '../lib/activities';
 import { profileHandle, whatsappLink } from '../lib/station-defaults';
@@ -628,80 +626,103 @@ const sections = [
 							<h2 id="activities-title"><a class="news-title-link" href={activitiesIndexPath}>On ground <span>activity.</span><svg class="news-title-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M12.5 5.5 19 12l-6.5 6.5" /></svg></a></h2>
 						</div>
 					</div>
-					<div class="ground-layout" data-past={recentPast.length}>
-						<div class="ground-upcoming" data-card-carousel aria-roledescription="carousel" aria-label="Upcoming activities">
-							<div class="carousel-stage">
-								<button class="carousel-chevron carousel-chevron-previous carousel-chevron-inset" type="button" data-card-previous hidden={upcomingActivities.length < 2} aria-label="Previous upcoming activity">
-									<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5" /></svg>
-								</button>
+					<div class="ground">
+						<div class="ground-layout" data-past={recentPast.length}>
+							<div class="ground-upcoming" data-card-carousel aria-roledescription="carousel" aria-label="Upcoming activities">
+								{upcomingActivities.length > 1 && (
+									<div class="upcoming-nav">
+										<button class="upcoming-nav-button" type="button" data-card-previous aria-label="Previous upcoming activity">
+											<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5" /></svg>
+										</button>
+										<span class="upcoming-nav-count" data-card-count>1 / {upcomingActivities.length}</span>
+										<button class="upcoming-nav-button" type="button" data-card-next aria-label="Next upcoming activity">
+											<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M9 4.5 16.5 12 9 19.5" /></svg>
+										</button>
+									</div>
+								)}
 								{upcomingActivities.length > 0 ? upcomingActivities.map((activity, index) => {
 									const { data } = activity;
 									const tile = calendarTile(data);
-									const badge = eventStatusLabel(data.eventStatus);
 									const ends = activityEnds(data);
+									const poster = optimizeImageUrl(data.image, 1200);
 									return (
 										<article class="feature-card upcoming-card" data-card-slide hidden={index !== 0} aria-roledescription="slide" aria-label={`${index + 1} of ${upcomingActivities.length}: ${data.title}`}>
-											<a class="upcoming-media" href={activityPath(activity)} tabindex="-1" aria-hidden="true" {...imageFrame(data, optimizeImageUrl(data.image, 1200))}>
-												<img src={optimizeImageUrl(data.image, 1200)} alt="" loading="lazy" decoding="async" />
+											<a class="upcoming-media" href={activityPath(activity)} tabindex="-1" aria-hidden="true" {...imageFrame(data, poster)}>
+												<img src={poster} alt="" loading="lazy" decoding="async" />
 											</a>
-											<span class:list={['upcoming-flag', { [`is-${data.eventStatus}`]: Boolean(badge) }]}>{badge || (data.featured ? 'FEATURED' : index === 0 ? 'NEXT UP' : 'COMING UP')}</span>
-											<div class="upcoming-body">
-												<div class="upcoming-tile" aria-hidden="true">
-													{tile ? <><span>{tile.month}</span><strong>{tile.day}</strong><span>{tile.weekday}</span></> : <><span>DATE</span><strong>?</strong><span>TBA</span></>}
+											<span class="upcoming-flag"><span aria-hidden="true"></span>{data.featured ? 'FEATURED' : index === 0 ? 'NEXT UP' : 'COMING UP'}</span>
+											<div class="upcoming-panel">
+												<div class="upcoming-info">
+												<div class="upcoming-head">
+													<div class="upcoming-tile" aria-hidden="true">
+														{tile ? <><span>{tile.month}</span><strong>{tile.day}</strong><span>{tile.weekday}</span></> : <><span>DATE</span><strong>?</strong><span>TBA</span></>}
+													</div>
+													<div class="upcoming-title">
+														<span class="card-index">{activityCategoryLabel(data.category)}</span>
+														<h3><a href={activityPath(activity)}>{data.title}</a></h3>
+													</div>
 												</div>
-												<div class="upcoming-copy">
-													<span class="card-index">{activityCategoryLabel(data.category)}</span>
-													<h3><a href={activityPath(activity)}>{data.title}</a></h3>
-													<p class="upcoming-where">{[formatActivityDate(data), data.venue, data.priceLabel].filter(Boolean).join(' · ')}</p>
-													{data.startDate && ends && data.eventStatus === 'scheduled' && (
-														<p class="upcoming-countdown" data-countdown={data.startDate.toISOString()} data-countdown-end={ends.toISOString()}>
-															{countdownParts(data.startDate).map(({ unit, value }) => (
-																<span data-countdown-part><strong data-countdown-unit={unit}>{String(value).padStart(2, '0')}</strong>{unit}</span>
-															))}
-															<span class="upcoming-live" data-countdown-live hidden><span class="live-dot"></span>HAPPENING NOW</span>
-														</p>
-													)}
+												<dl class="upcoming-facts">
+													<div><dt>WHEN</dt><dd>{formatActivityDate(data)}</dd></div>
+													{data.venue && <div><dt>WHERE</dt><dd>{data.venue}</dd></div>}
+													{data.priceLabel && <div><dt>ENTRY</dt><dd>{data.priceLabel}</dd></div>}
+												</dl>
+												{data.summary && <p class="upcoming-summary">{data.summary}</p>}
 												</div>
-											</div>
-											<div class="upcoming-actions">
-												<a class="outline-link" href={activityPath(activity)}>SEE DETAILS →</a>
-												{isBookable(data) && data.ticketUrl && <a class="outline-link upcoming-ticket" href={data.ticketUrl} target="_blank" rel="noopener noreferrer">GET TICKETS ↗</a>}
+												<div class="upcoming-side">
+												{data.startDate && ends && (
+													<div class="upcoming-countdown" role="timer" aria-live="off" data-countdown={data.startDate.toISOString()} data-countdown-end={ends.toISOString()}>
+														{countdownParts(data.startDate).map(({ unit, value }) => (
+															<span class="upcoming-unit" data-countdown-part><b data-countdown-unit={unit}>{String(value).padStart(2, '0')}</b><small>{unit.toUpperCase()}</small></span>
+														))}
+														<span class="upcoming-live" data-countdown-live hidden><span class="live-dot"></span>HAPPENING NOW</span>
+													</div>
+												)}
+												<div class="upcoming-actions">
+													<a class="outline-link" href={activityPath(activity)}>SEE DETAILS →</a>
+													{data.ticketUrl && <a class="outline-link upcoming-ticket" href={data.ticketUrl} target="_blank" rel="noopener noreferrer">GET TICKETS ↗</a>}
+												</div>
+												</div>
 											</div>
 										</article>
 									);
 								}) : (
-									<article class="feature-card upcoming-card is-empty" data-card-slide>
-										<div class="upcoming-body">
-											<div class="upcoming-tile" aria-hidden="true"><span>NEXT</span><strong>?</strong><span>SOON</span></div>
-											<div class="upcoming-copy">
-												<span class="card-index">SAVE THE DATE</span>
-												<h3>Next OZ Radio event</h3>
-												<p class="upcoming-where">Date and details to be announced</p>
+									<article class="feature-card upcoming-card is-empty">
+										<span class="upcoming-flag"><span aria-hidden="true"></span>SAVE THE DATE</span>
+										<div class="upcoming-panel">
+											<div class="upcoming-info">
+											<div class="upcoming-head">
+												<div class="upcoming-tile" aria-hidden="true"><span>NEXT</span><strong>?</strong><span>SOON</span></div>
+												<div class="upcoming-title">
+													<span class="card-index">ON GROUND</span>
+													<h3>Next OZ Radio event</h3>
+												</div>
 											</div>
-										</div>
-										<div class="upcoming-actions">
-											<a class="outline-link" href={activitiesIndexPath}>SEE PAST ACTIVITIES →</a>
+											<p class="upcoming-summary">Date and details to be announced. Until then, see where we've been.</p>
+											</div>
+											<div class="upcoming-side">
+												<div class="upcoming-actions">
+													<a class="outline-link" href={activitiesIndexPath}>SEE PAST ACTIVITIES →</a>
+												</div>
+											</div>
 										</div>
 									</article>
 								)}
-								<button class="carousel-chevron carousel-chevron-next carousel-chevron-inset" type="button" data-card-next hidden={upcomingActivities.length < 2} aria-label="Next upcoming activity">
-									<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 4.5 16.5 12 9 19.5" /></svg>
-								</button>
 							</div>
+							{recentPast.map((activity) => (
+								<a class="feature-card news-card ground-past" href={activityPath(activity)}>
+									<div class="story-art" {...imageFrame(activity.data, optimizeImageUrl(activity.data.image, 700))}>
+										<img src={optimizeImageUrl(activity.data.image, 700)} alt={activity.data.imageAlt} loading="lazy" decoding="async" />
+										<span class="story-date">{activityWhen(activity.data)}</span>
+									</div>
+									<div class="story-copy">
+										<span class="card-index">PAST · {activityCategoryLabel(activity.data.category)}</span>
+										<h3>{activity.data.title}</h3>
+										<p>{activity.data.summary}</p>
+									</div>
+								</a>
+							))}
 						</div>
-						{recentPast.map((activity) => (
-							<a class="feature-card news-card ground-past" href={activityPath(activity)}>
-								<div class="story-art" {...imageFrame(activity.data, optimizeImageUrl(activity.data.image, 700))}>
-									<img src={optimizeImageUrl(activity.data.image, 700)} alt={activity.data.imageAlt} loading="lazy" decoding="async" />
-									<span class="story-date">{activityWhen(activity.data)}</span>
-								</div>
-								<div class="story-copy">
-									<span class="card-index">PAST · {activityCategoryLabel(activity.data.category)}</span>
-									<h3>{activity.data.title}</h3>
-									<p>{activity.data.summary}</p>
-								</div>
-							</a>
-						))}
 						<a class="news-list-trigger ground-all" href={activitiesIndexPath}>VIEW ALL ACTIVITIES →</a>
 					</div>
 				</div>
@@ -1832,11 +1853,13 @@ const sections = [
 			const slides = carousel.querySelectorAll<HTMLElement>('[data-card-slide]');
 			const previous = carousel.querySelector<HTMLButtonElement>('[data-card-previous]');
 			const next = carousel.querySelector<HTMLButtonElement>('[data-card-next]');
+			const count = carousel.querySelector<HTMLElement>('[data-card-count]');
 			if (slides.length < 2 || !previous || !next) return;
 			let current = 0;
 
 			const show = (index: number, direction: 'next' | 'previous') => {
 				current = (index + slides.length) % slides.length;
+				if (count) count.textContent = `${current + 1} / ${slides.length}`;
 				slides.forEach((slide, slideIndex) => {
 					const isActive = slideIndex === current;
 					slide.hidden = !isActive;
@@ -5085,15 +5108,34 @@ const sections = [
 		animation: news-slide-from-previous 320ms ease both;
 	}
 
-	/* On ground activity: the Upcoming card takes two columns and two rows (it took over from the event calendar
-	   that used to sit beside OZ News), and the two most recent past events stack on its right. */
-	.ground-layout {
-		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
+	/* On ground activity. Every size here comes from the section's own width (container query units), so the cards
+	   keep one size whatever their text, photo or number: the Upcoming card fills two columns and two rows where the
+	   event calendar used to be, and each past event fills one cell, a 16:9 photo over a fixed block of text. */
+	.ground {
+		container: ground / inline-size;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
 		gap: 12px;
 	}
 
+	.ground-layout {
+		--ground-gap: 12px;
+		--ground-columns: 3;
+		/* The past cards' text block, and the Upcoming card's strip under its photo. */
+		--ground-copy: 124px;
+		--upcoming-panel: 196px;
+		--ground-col: calc((100cqw - (var(--ground-columns) - 1) * var(--ground-gap)) / var(--ground-columns));
+		--ground-row: calc(var(--ground-col) * 9 / 16 + var(--ground-copy));
+		width: 100%;
+		display: grid;
+		grid-template-columns: repeat(var(--ground-columns), minmax(0, 1fr));
+		grid-template-rows: repeat(2, var(--ground-row));
+		gap: var(--ground-gap);
+	}
+
 	.ground-upcoming {
+		position: relative;
 		min-width: 0;
 		display: flex;
 		grid-column: span 2;
@@ -5102,26 +5144,30 @@ const sections = [
 
 	.ground-layout[data-past='0'] .ground-upcoming {
 		grid-column: 1 / -1;
-		grid-row: auto;
 	}
 
-	.ground-upcoming .carousel-stage {
-		min-width: 0;
-		display: flex;
-		flex: 1;
+	.ground-past {
+		height: 100%;
 	}
 
-	.ground-all {
-		grid-column: 1;
-		justify-self: start;
+	.ground-past .story-copy {
+		min-height: 0;
+		overflow: hidden;
 	}
 
+	.ground-past .story-copy h3 {
+		-webkit-line-clamp: 2;
+	}
+
+	/* The highlighted event: its photo across the top, then one strip with what it is, when and where on the left
+	   and the countdown and buttons on the right. */
 	.upcoming-card {
 		position: relative;
 		min-width: 0;
-		display: flex;
+		min-height: 0;
+		display: grid;
 		flex: 1;
-		flex-direction: column;
+		grid-template-rows: minmax(0, 1fr) var(--upcoming-panel);
 	}
 
 	.upcoming-card[hidden] {
@@ -5138,18 +5184,16 @@ const sections = [
 
 	.upcoming-media {
 		position: relative;
-		min-height: 180px;
+		min-height: 0;
 		display: block;
-		flex: 1 1 auto;
 		overflow: hidden;
 		background: var(--c-surface-2);
 	}
 
 	.upcoming-media img {
-		position: absolute;
-		inset: 0;
 		width: 100%;
 		height: 100%;
+		display: block;
 		object-fit: cover;
 		transition: scale 400ms cubic-bezier(0.2, 0.8, 0.2, 1);
 	}
@@ -5161,34 +5205,57 @@ const sections = [
 	.upcoming-flag {
 		position: absolute;
 		z-index: 1;
-		top: 12px;
-		left: 12px;
-		padding: 5px 10px;
+		top: 14px;
+		left: 14px;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		margin: 0;
+		padding: 6px 11px;
 		border-radius: 999px;
 		background: var(--c-accent);
 		color: var(--c-on-accent);
+		box-shadow: 0 6px 16px -8px rgb(0 0 0 / 55%);
 		font-size: 8px;
 		font-weight: 800;
-		letter-spacing: 0.12em;
+		letter-spacing: 0.14em;
 		line-height: 1.2;
 	}
 
-	.upcoming-flag.is-postponed,
-	.upcoming-flag.is-cancelled {
-		background: var(--c-danger);
-		color: #FFFFFF;
+	.upcoming-flag span {
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: currentColor;
 	}
 
-	.upcoming-body {
+	.upcoming-panel {
+		min-width: 0;
+		min-height: 0;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		align-items: center;
+		gap: clamp(16px, 2.4vw, 32px);
+		overflow: hidden;
+		padding: clamp(14px, 1.6vw, 20px) clamp(14px, 2vw, 24px);
+		border-top: var(--box-border);
+	}
+
+	.upcoming-info {
+		min-width: 0;
+		display: grid;
+		gap: 10px;
+	}
+
+	.upcoming-head {
 		display: flex;
-		align-items: flex-start;
-		gap: clamp(12px, 1.6vw, 18px);
-		padding: clamp(12px, 1.6vw, 18px) clamp(12px, 1.6vw, 18px) 0;
+		align-items: center;
+		gap: clamp(10px, 1.3vw, 16px);
 	}
 
 	/* A page torn off a desk calendar: month, day, weekday. */
 	.upcoming-tile {
-		width: 64px;
+		width: clamp(50px, 4.6vw, 62px);
 		flex: none;
 		display: grid;
 		justify-items: center;
@@ -5204,95 +5271,155 @@ const sections = [
 		padding: 4px 0;
 		background: var(--c-accent);
 		color: var(--c-on-accent);
-		font-size: 9px;
+		font-size: 8px;
 		font-weight: 800;
 		letter-spacing: 0.14em;
 		text-transform: uppercase;
 	}
 
 	.upcoming-tile strong {
-		padding: 6px 0 2px;
+		padding: 5px 0 1px;
 		font-family: var(--font-tango);
-		font-size: 30px;
+		font-size: clamp(22px, 2.4vw, 30px);
 		line-height: 1;
 	}
 
 	.upcoming-tile > span:last-child {
-		padding-bottom: 6px;
+		padding-bottom: 5px;
 		color: var(--c-muted);
-		font-size: 9px;
+		font-size: 8px;
 		font-weight: 700;
 		letter-spacing: 0.12em;
 		text-transform: uppercase;
 	}
 
-	.upcoming-copy {
+	.upcoming-title {
 		min-width: 0;
 	}
 
-	.upcoming-copy h3 {
-		margin: 8px 0 6px;
-		font-size: clamp(20px, 2.4vw, 30px);
-		line-height: 1.05;
-		text-wrap: balance;
+	.upcoming-title h3 {
+		display: -webkit-box;
+		overflow: hidden;
+		margin: 5px 0 0;
+		font-size: clamp(20px, 2.3vw, 30px);
+		line-height: 1.04;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
 	}
 
-	.upcoming-copy h3 a {
+	.upcoming-title h3 a {
 		color: inherit;
 		text-decoration: none;
 	}
 
-	.upcoming-copy h3 a:hover {
+	.upcoming-title h3 a:hover {
 		text-decoration: underline;
 		text-decoration-thickness: 2px;
 		text-underline-offset: 4px;
 	}
 
-	.upcoming-where {
-		margin: 0;
-		color: var(--c-text-2);
-		font-size: 12px;
-		line-height: 1.45;
-	}
-
-	.upcoming-countdown {
+	/* When, where and entry side by side, each a small label over its value. */
+	.upcoming-facts {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 14px;
-		margin: 12px 0 0;
-		color: var(--c-muted);
-		font-size: 8px;
-		font-weight: 800;
-		letter-spacing: 0.12em;
-		text-transform: uppercase;
+		gap: 6px clamp(14px, 2vw, 26px);
+		margin: 0;
+		font-size: 11px;
 	}
 
+	.upcoming-facts > div {
+		min-width: 0;
+		max-width: 100%;
+		display: grid;
+		gap: 2px;
+	}
+
+	.upcoming-facts dt {
+		color: var(--c-muted);
+		font-size: 7px;
+		font-weight: 800;
+		letter-spacing: 0.14em;
+	}
+
+	.upcoming-facts dd {
+		overflow: hidden;
+		margin: 0;
+		font-weight: 700;
+		line-height: 1.3;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.upcoming-summary {
+		overflow: hidden;
+		margin: 0;
+		color: var(--c-text-2);
+		font-size: 11px;
+		line-height: 1.45;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.upcoming-side {
+		display: grid;
+		justify-items: end;
+		gap: 12px;
+	}
+
+	/* The hero's Ozubathon countdown, at card size. */
+	.upcoming-countdown {
+		display: flex;
+		gap: 6px;
+	}
+
+	.upcoming-countdown[hidden],
 	.upcoming-countdown [hidden] {
 		display: none;
 	}
 
-	.upcoming-countdown strong {
-		display: block;
-		color: var(--c-text);
-		font-size: 22px;
+	.upcoming-unit {
+		width: clamp(46px, 4.6vw, 60px);
+		display: grid;
+		justify-items: center;
+		gap: 3px;
+		padding: 8px 2px 6px;
+		border-radius: 10px;
+		background: var(--c-surface);
+		box-shadow: inset 0 0 0 1px var(--c-line), inset 0 -3px 0 var(--c-accent);
+	}
+
+	.upcoming-unit b {
+		font-family: var(--font-tango);
+		font-size: clamp(18px, 2vw, 26px);
+		font-style: italic;
 		font-variant-numeric: tabular-nums;
-		letter-spacing: 0;
-		line-height: 1.1;
+		font-weight: 700;
+		line-height: 1;
+		text-shadow: -0.06em 0.06em 0 var(--c-accent);
+	}
+
+	.upcoming-unit small {
+		color: var(--c-muted);
+		font-size: 7px;
+		font-weight: 700;
+		letter-spacing: 0.18em;
 	}
 
 	.upcoming-live {
 		display: inline-flex;
 		align-items: center;
 		gap: 8px;
-		color: var(--c-text);
+		margin: 0;
 		font-size: 10px;
+		font-weight: 800;
+		letter-spacing: 0.14em;
 	}
 
 	.upcoming-actions {
 		display: flex;
 		flex-wrap: wrap;
+		justify-content: flex-end;
 		gap: 8px;
-		padding: 14px clamp(12px, 1.6vw, 18px) clamp(12px, 1.6vw, 18px);
 	}
 
 	.outline-link.upcoming-ticket,
@@ -5302,10 +5429,110 @@ const sections = [
 		color: var(--c-on-accent);
 	}
 
-	/* Nothing scheduled: the old event calendar's promise, at the Upcoming card's size. */
+	/* Several upcoming events: "‹ 1 / 3 ›" in the photo's corner. */
+	.upcoming-nav {
+		position: absolute;
+		z-index: 2;
+		top: 14px;
+		right: 14px;
+		display: flex;
+		align-items: center;
+		gap: 2px;
+		padding: 3px;
+		border: 1px solid var(--c-line);
+		border-radius: 999px;
+		background: var(--c-surface);
+		box-shadow: 0 8px 18px -12px rgb(0 0 0 / 55%);
+	}
+
+	.upcoming-nav-button {
+		width: 26px;
+		height: 26px;
+		display: grid;
+		place-items: center;
+		padding: 0;
+		border: 0;
+		border-radius: 50%;
+		background: transparent;
+		color: var(--c-text);
+		cursor: pointer;
+		transition: background-color 160ms ease;
+	}
+
+	.upcoming-nav-button:hover {
+		background: var(--c-accent-soft);
+	}
+
+	.upcoming-nav-button svg {
+		fill: none;
+		stroke: currentColor;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+		stroke-width: 2.4;
+	}
+
+	.upcoming-nav-count {
+		min-width: 32px;
+		font-size: 9px;
+		font-variant-numeric: tabular-nums;
+		font-weight: 800;
+		letter-spacing: 0.08em;
+		text-align: center;
+	}
+
+	/* Nothing scheduled: the old event calendar's promise, at the same size. */
 	.upcoming-card.is-empty {
-		justify-content: center;
+		grid-template-rows: minmax(0, 1fr);
 		background: var(--c-accent-faint, var(--c-surface));
+	}
+
+	.upcoming-card.is-empty .upcoming-panel {
+		padding-top: 56px;
+		border-top: 0;
+	}
+
+	/* Narrow sections (tablets, phones): two columns. The Upcoming card spans both, its photo at 16:9 over a taller
+	   strip that stacks the details over the countdown and buttons. */
+	@container ground (max-width: 760px) {
+		.ground-layout {
+			--ground-columns: 2;
+			--upcoming-panel: 292px;
+			grid-template-rows: calc(100cqw * 9 / 16 + var(--upcoming-panel)) var(--ground-row);
+		}
+
+		.ground-upcoming,
+		.ground-layout[data-past='0'] .ground-upcoming {
+			grid-column: 1 / -1;
+			grid-row: auto;
+		}
+
+		.upcoming-card {
+			grid-template-rows: calc(100cqw * 9 / 16) var(--upcoming-panel);
+		}
+
+		.upcoming-panel {
+			grid-template-columns: minmax(0, 1fr);
+			align-content: start;
+		}
+
+		.upcoming-side {
+			justify-items: start;
+		}
+
+		.upcoming-actions {
+			justify-content: flex-start;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.upcoming-media img,
+		.upcoming-nav-button {
+			transition: none;
+		}
+
+		.upcoming-card:hover .upcoming-media img {
+			scale: 1;
+		}
 	}
 
 	.news-list-trigger {
@@ -5763,34 +5990,44 @@ const sections = [
 		}
 
 		.ground-layout {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
-			gap: 8px;
+			--ground-gap: 8px;
+			--ground-copy: 64px;
 		}
 
-		.ground-upcoming {
-			grid-column: 1 / -1;
-			grid-row: auto;
+		/* Beats the narrow-section value, so the row and the card agree. */
+		.ground .ground-layout {
+			--upcoming-panel: 236px;
 		}
 
-		.upcoming-media {
-			min-height: 0;
-			flex: none;
-			aspect-ratio: 16 / 9;
+		.ground-past .story-copy h3 {
+			-webkit-line-clamp: 2;
+		}
+
+		.upcoming-flag,
+		.upcoming-nav {
+			top: 8px;
 		}
 
 		.upcoming-flag {
-			top: 8px;
 			left: 8px;
 			font-size: 6px;
 		}
 
-		.upcoming-body {
+		.upcoming-nav {
+			right: 8px;
+		}
+
+		.upcoming-panel {
 			gap: 10px;
-			padding: 10px 10px 0;
+			padding: 10px 12px 12px;
+		}
+
+		.upcoming-info {
+			gap: 8px;
 		}
 
 		.upcoming-tile {
-			width: 48px;
+			width: 44px;
 		}
 
 		.upcoming-tile > span:first-child,
@@ -5799,30 +6036,33 @@ const sections = [
 		}
 
 		.upcoming-tile strong {
-			font-size: 22px;
+			font-size: 20px;
 		}
 
-		.upcoming-copy h3 {
-			margin: 4px 0;
-			font-size: 18px;
+		.upcoming-title h3 {
+			font-size: 17px;
 		}
 
-		.upcoming-where {
+		.upcoming-facts,
+		.upcoming-summary {
 			font-size: 9px;
 		}
 
-		.upcoming-countdown {
-			gap: 10px;
-			margin-top: 8px;
+		.upcoming-facts dt {
 			font-size: 6px;
 		}
 
-		.upcoming-countdown strong {
-			font-size: 16px;
+		.upcoming-unit {
+			width: 44px;
+			padding: 6px 2px 5px;
 		}
 
-		.upcoming-actions {
-			padding: 10px;
+		.upcoming-unit b {
+			font-size: 17px;
+		}
+
+		.upcoming-unit small {
+			font-size: 6px;
 		}
 
 		.story-art {
@@ -7225,8 +7465,7 @@ const sections = [
 			max-width: none;
 		}
 
-		:global(:root[data-theme='night']) .card-grid,
-		:global(:root[data-theme='night']) .ground-layout {
+		:global(:root[data-theme='night']) .card-grid {
 			gap: 14px;
 		}
 

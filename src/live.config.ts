@@ -105,7 +105,6 @@ const toActivity = (doc: Doc) => {
 		visible: true,
 		/** The category's value (`live-music`, …); `activityCategoryLabel` turns it into its name. */
 		category: (doc.category ?? '') as string,
-		eventStatus: (doc.eventStatus ?? 'scheduled') as 'scheduled' | 'postponed' | 'cancelled',
 		featured: Boolean(doc.featured),
 		/** Undated activities count as upcoming, "date to be announced". Midnight WIB means a date without a time. */
 		startDate: date(doc.startDate),

@@ -10,7 +10,6 @@ import {
 	activityCategoryLabel,
 	activityPath,
 	activityWhen,
-	eventStatusLabel,
 	getActivities,
 	splitActivities,
 	type ActivityEntry,
@@ -34,8 +33,7 @@ const [lead, ...rest] = upcoming;
 const secondary = rest.slice(0, 2);
 const moreUpcoming = rest.slice(2);
 
-const kicker = (entry: ActivityEntry) =>
-	[activityCategoryLabel(entry.data.category), eventStatusLabel(entry.data.eventStatus)].filter(Boolean).join(' · ');
+const kicker = (entry: ActivityEntry) => activityCategoryLabel(entry.data.category);
 ---
 
 <NewsLayout

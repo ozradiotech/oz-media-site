@@ -675,18 +675,19 @@
 	gap: 8px 10px;
 }
 
-/* Postponed and Cancelled: a stamp that is hard to miss, in any style. */
-.activity-badge {
-	padding: 3px 8px;
-	border: 1.5px solid currentColor;
-	border-radius: 4px;
-	color: var(--c-danger);
+/* Scheduled or Past: a small pill, marigold while the event is still ahead. */
+.activity-status {
+	padding: 3px 9px;
+	border-radius: 999px;
+	background: var(--c-accent);
+	color: var(--c-on-accent);
 	font-size: 10px;
 	letter-spacing: 0.12em;
 }
 
-.activity-badge.is-postponed {
-	color: var(--c-text);
+.activity-status.is-past {
+	background: var(--c-surface-2);
+	color: var(--c-muted);
 }
 
 .activity-facts {

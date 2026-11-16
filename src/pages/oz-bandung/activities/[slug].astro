@@ -11,12 +11,11 @@ import {
 	activityCategoryLabel,
 	activityEnds,
 	activityPath,
+	activityStatus,
 	activityWhen,
-	eventStatusLabel,
 	formatActivityDate,
 	getActivities,
 	googleCalendarUrl,
-	isBookable,
 	isUpcoming,
 	splitActivities,
 	youtubeId,
@@ -39,9 +38,7 @@ const absolute = (value: string) => (Astro.site ? new URL(value, Astro.site).hre
 const pageUrl = absolute(path);
 const shareUrl = Astro.site ? pageUrl : '';
 const category = activityCategoryLabel(data.category);
-const badge = eventStatusLabel(data.eventStatus);
 const upcoming = isUpcoming(data);
-const bookable = isBookable(data);
 const recapId = youtubeId(recap.youtubeUrl);
 const hasRecap = Boolean(recapId || recap.videoUrl);
 // What to look at next: upcoming events first while this one is upcoming, the most recent past ones otherwise.
@@ -57,7 +54,7 @@ const structuredData = {
 	image: photos.length ? photos.map((photo) => absolute(photo.image)) : undefined,
 	startDate: data.startDate?.toISOString(),
 	endDate: (data.endDate ?? activityEnds(data))?.toISOString(),
-	eventStatus: `https://schema.org/Event${data.eventStatus === 'cancelled' ? 'Cancelled' : data.eventStatus === 'postponed' ? 'Postponed' : 'Scheduled'}`,
+	eventStatus: 'https://schema.org/EventScheduled',
 	eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
 	location: data.venue ? { '@type': 'Place', name: data.venue, address: data.venue, hasMap: data.mapsUrl || undefined } : undefined,
 	offers: data.ticketUrl ? { '@type': 'Offer', url: data.ticketUrl, description: data.priceLabel || undefined } : undefined,
@@ -86,8 +83,8 @@ const structuredData = {
 				<a href={activitiesIndexPath}>On Ground Activity</a>
 			</nav>
 			<p class="news-kicker activity-kicker">
-				<span>{upcoming ? 'Upcoming' : 'Past'} · {category}</span>
-				{badge && <span class:list={['activity-badge', `is-${data.eventStatus}`]}>{badge}</span>}
+				<span class:list={['activity-status', { 'is-past': !upcoming }]}>{activityStatus(data)}</span>
+				<span>{category}</span>
 			</p>
 			<h1 class="story-headline">{data.title}</h1>
 			{data.summary && <p class="story-standfirst">{data.summary}</p>}
@@ -111,7 +108,7 @@ const structuredData = {
 						</div>
 					)}
 				</dl>
-				{bookable && (data.ticketUrl || data.startDate) && (
+				{upcoming && (data.ticketUrl || data.startDate) && (
 					<div class="activity-actions">
 						{data.ticketUrl && <a class="news-pill activity-ticket" href={data.ticketUrl} target="_blank" rel="noopener noreferrer">GET TICKETS ↗</a>}
 						{data.startDate && <a class="news-pill" href={`${path}.ics`} download={`${entry.id}.ics`}>ADD TO CALENDAR</a>}
@@ -249,7 +246,7 @@ const structuredData = {
 						<a class="news-card" href={activityPath(other)}>
 							<div class="news-card-image" {...imageFrame(other.data, cmsImage(other.data.image, 600))}><img src={cmsImage(other.data.image, 600)} alt="" loading="lazy" decoding="async" /></div>
 							<div class="news-card-copy">
-								<span class="news-kicker">{activityCategoryLabel(other.data.category)}{eventStatusLabel(other.data.eventStatus) && ` · ${eventStatusLabel(other.data.eventStatus)}`}</span>
+								<span class="news-kicker">{activityStatus(other.data)} · {activityCategoryLabel(other.data.category)}</span>
 								<h3>{other.data.title}</h3>
 								<span class="news-card-when">{activityWhen(other.data)}</span>
 							</div>
