@@ -1,36 +1,49 @@
 ---
-// The On Ground Activity front page, laid out like OZ News: the first activity leads, two more sit beside it, and
-// the rest follow in a grid, all in the order set in the CMS. It is the archive of every event, upcoming and past.
-// ?category=<name> shows one category (the filter links under the title).
+// The On Ground Activity front page, laid out like OZ News. Upcoming events come first (featured, then the soonest:
+// the first leads, two sit beside it, the rest follow), then the archive of past events, the most recent first.
+// ?category=<value> shows one category (the filter links under the title).
 import NewsLayout from '../../../layouts/NewsLayout.astro';
-import { activitiesIndexPath, activitiesSection, activityPath, getActivities } from '../../../lib/activities';
+import {
+	activitiesIndexPath,
+	activitiesSection,
+	activityCategories,
+	activityCategoryLabel,
+	activityPath,
+	activityWhen,
+	eventStatusLabel,
+	getActivities,
+	splitActivities,
+	type ActivityEntry,
+} from '../../../lib/activities';
 import { cmsImage } from '../../../lib/cms';
 import { imageFrame } from '../../../lib/news';
 
-// Rendered per request from the CMS, so a published activity shows up without a rebuild.
+// Rendered per request from the CMS, so a published activity shows up without a rebuild, and an event moves from
+// Upcoming to Past once it is over.
 export const prerender = false;
 
-// Categories are typed freely in the CMS, so "Live music" and "LIVE MUSIC" count as one.
-const categoryKey = (category: string) => category.trim().toLowerCase().replace(/\s+/g, '-');
-const everything = await getActivities();
-const categories = [...new Map(everything.map(({ data }) => [categoryKey(data.category), data.category.trim()])).entries()]
-	.filter(([key]) => key)
-	.map(([value, label]) => ({ value, label }));
 const requested = Astro.url.searchParams.get('category') ?? '';
-const category = categories.find(({ value }) => value === requested);
-const all = category ? everything.filter(({ data }) => categoryKey(data.category) === category.value) : everything;
-const categoryHref = (value?: string) => (value ? `${activitiesIndexPath}?category=${encodeURIComponent(value)}` : activitiesIndexPath);
-const [lead, ...rest] = all;
+const category = activityCategories.find(({ value }) => value === requested);
+const everything = await getActivities();
+const all = category ? everything.filter(({ data }) => data.category === category.value) : everything;
+// Only categories with at least one activity are offered.
+const usedCategories = activityCategories.filter(({ value }) => everything.some(({ data }) => data.category === value));
+const categoryHref = (value?: string) => (value ? `${activitiesIndexPath}?category=${value}` : activitiesIndexPath);
+const { upcoming, past } = splitActivities(all);
+const [lead, ...rest] = upcoming;
 const secondary = rest.slice(0, 2);
-const river = rest.slice(2);
+const moreUpcoming = rest.slice(2);
+
+const kicker = (entry: ActivityEntry) =>
+	[activityCategoryLabel(entry.data.category), eventStatusLabel(entry.data.eventStatus)].filter(Boolean).join(' · ');
 ---
 
 <NewsLayout
 	title={category ? `${category.label} · On Ground Activity` : 'On Ground Activity'}
 	description="OZ Radio Bandung off air: concerts, meet-ups, workshops and every event we have been part of, upcoming and past."
 	path={activitiesIndexPath}
-	image={lead?.data.image}
-	imageAlt={lead?.data.imageAlt}
+	image={(lead ?? past[0])?.data.image}
+	imageAlt={(lead ?? past[0])?.data.imageAlt}
 	section={activitiesSection}
 >
 	<header class="newsroom-head">
@@ -41,69 +54,91 @@ const river = rest.slice(2);
 		</nav>
 		<p class="news-eyebrow">OZ RADIO BANDUNG · OFF AIR</p>
 		<h1 class="newsroom-title">On ground <span>activity.</span></h1>
-		<p class="newsroom-deck">Where OZ Radio Bandung meets its listeners: what's coming up and everything we've done. <span>{all.length} {all.length === 1 ? 'activity' : 'activities'}{category && ` in ${category.label}`}</span></p>
-		{categories.length > 1 && (
+		<p class="newsroom-deck">Where OZ Radio Bandung meets its listeners: what's coming up and everything we've done. <span>{upcoming.length} upcoming · {past.length} past{category && ` in ${category.label}`}</span></p>
+		{usedCategories.length > 1 && (
 			<nav class="newsroom-filter" aria-label="Activity categories">
 				<a class="news-pill" href={categoryHref()} aria-current={category ? undefined : 'page'}>ALL</a>
-				{categories.map(({ value, label }) => (
+				{usedCategories.map(({ value, label }) => (
 					<a class="news-pill" href={categoryHref(value)} aria-current={category?.value === value ? 'page' : undefined}>{label.toUpperCase()}</a>
 				))}
 			</nav>
 		)}
 	</header>
 
-	{lead ? (
-		<>
-			<section class="newsroom-top" aria-label="Featured activities">
-				<a class="news-lead" href={activityPath(lead)}>
-					<div class="news-lead-image" {...imageFrame(lead.data, cmsImage(lead.data.image, 1200))}><img src={cmsImage(lead.data.image, 1200)} alt={lead.data.imageAlt} fetchpriority="high" decoding="async" /></div>
-					<div class="news-lead-copy">
-						<span class="news-kicker">{lead.data.category}</span>
-						<h2>{lead.data.title}</h2>
-						{lead.data.summary && <p>{lead.data.summary}</p>}
-						{lead.data.status && <span class="news-card-when">{lead.data.status}</span>}
-					</div>
-				</a>
-				{secondary.length > 0 && (
-					<div class="newsroom-secondary">
-						{secondary.map((entry) => (
-							<a class="news-card" href={activityPath(entry)}>
-								<div class="news-card-image" {...imageFrame(entry.data, cmsImage(entry.data.image, 600))}><img src={cmsImage(entry.data.image, 600)} alt="" decoding="async" /></div>
-								<div class="news-card-copy">
-									<span class="news-kicker">{entry.data.category}</span>
-									<h3>{entry.data.title}</h3>
-									{entry.data.status && <span class="news-card-when">{entry.data.status}</span>}
-								</div>
-							</a>
-						))}
-					</div>
-				)}
-			</section>
-
-			{river.length > 0 && (
-				<section class="newsroom-river" aria-labelledby="river-title">
-					<div class="newsroom-river-head">
-						<h2 class="news-rule-heading" id="river-title">More activities</h2>
-					</div>
-					<ul class="newsroom-grid" role="list">
-						{river.map((entry) => (
+	<section class="activity-band" aria-labelledby="upcoming-title">
+		<h2 class="news-rule-heading" id="upcoming-title">Upcoming</h2>
+		{lead ? (
+			<>
+				<div class:list={['newsroom-top', { 'is-single': secondary.length === 0 }]}>
+					<a class="news-lead" href={activityPath(lead)}>
+						<div class="news-lead-image" {...imageFrame(lead.data, cmsImage(lead.data.image, 1200))}><img src={cmsImage(lead.data.image, 1200)} alt={lead.data.imageAlt} fetchpriority="high" decoding="async" /></div>
+						<div class="news-lead-copy">
+							<span class="news-kicker">{lead.data.featured ? 'Featured · ' : ''}{kicker(lead)}</span>
+							<h2>{lead.data.title}</h2>
+							{lead.data.summary && <p>{lead.data.summary}</p>}
+							<span class="news-card-when">{activityWhen(lead.data)}</span>
+						</div>
+					</a>
+					{secondary.length > 0 && (
+						<div class="newsroom-secondary">
+							{secondary.map((entry) => (
+								<a class="news-card" href={activityPath(entry)}>
+									<div class="news-card-image" {...imageFrame(entry.data, cmsImage(entry.data.image, 600))}><img src={cmsImage(entry.data.image, 600)} alt="" decoding="async" /></div>
+									<div class="news-card-copy">
+										<span class="news-kicker">{kicker(entry)}</span>
+										<h3>{entry.data.title}</h3>
+										<span class="news-card-when">{activityWhen(entry.data)}</span>
+									</div>
+								</a>
+							))}
+						</div>
+					)}
+				</div>
+				{moreUpcoming.length > 0 && (
+					<ul class="newsroom-grid activity-band-grid" role="list">
+						{moreUpcoming.map((entry) => (
 							<li>
 								<a class="news-card" href={activityPath(entry)}>
 									<div class="news-card-image" {...imageFrame(entry.data, cmsImage(entry.data.image, 600))}><img src={cmsImage(entry.data.image, 600)} alt="" loading="lazy" decoding="async" /></div>
 									<div class="news-card-copy">
-										<span class="news-kicker">{entry.data.category}</span>
+										<span class="news-kicker">{kicker(entry)}</span>
 										<h3>{entry.data.title}</h3>
 										{entry.data.summary && <p>{entry.data.summary}</p>}
-										{entry.data.status && <span class="news-card-when">{entry.data.status}</span>}
+										<span class="news-card-when">{activityWhen(entry.data)}</span>
 									</div>
 								</a>
 							</li>
 						))}
 					</ul>
-				</section>
-			)}
-		</>
-	) : (
-		<p class="newsroom-empty">{category ? <>No {category.label} activities yet. <a href={categoryHref()}>See all activities</a>.</> : 'No activities yet. Check back soon.'}</p>
-	)}
+				)}
+			</>
+		) : (
+			<p class="newsroom-empty">Nothing{category && ` in ${category.label}`} scheduled right now. The next event will be announced here first.</p>
+		)}
+	</section>
+
+	<section class="newsroom-river" aria-labelledby="past-title">
+		<div class="newsroom-river-head">
+			<h2 class="news-rule-heading" id="past-title">Past activities</h2>
+		</div>
+		{past.length > 0 ? (
+			<ul class="newsroom-grid" role="list">
+				{past.map((entry) => (
+					<li>
+						<a class="news-card" href={activityPath(entry)}>
+							<div class="news-card-image" {...imageFrame(entry.data, cmsImage(entry.data.image, 600))}><img src={cmsImage(entry.data.image, 600)} alt="" loading="lazy" decoding="async" /></div>
+							<div class="news-card-copy">
+								<span class="news-kicker">{kicker(entry)}</span>
+								<h3>{entry.data.title}</h3>
+								{entry.data.summary && <p>{entry.data.summary}</p>}
+								<span class="news-card-when">{activityWhen(entry.data)}</span>
+							</div>
+						</a>
+					</li>
+				))}
+			</ul>
+		) : (
+			<p class="newsroom-empty">{category ? <>No past {category.label} activities yet. <a href={categoryHref()}>See all activities</a>.</> : 'The archive fills up after each event.'}</p>
+		)}
+	</section>
 </NewsLayout>

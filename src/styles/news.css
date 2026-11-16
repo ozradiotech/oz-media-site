@@ -666,6 +666,292 @@
 	margin-bottom: 0;
 }
 
+/* ---------- On ground activity: event facts, lineup, recap and partners ---------- */
+
+.activity-kicker {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 10px;
+}
+
+/* Postponed and Cancelled: a stamp that is hard to miss, in any style. */
+.activity-badge {
+	padding: 3px 8px;
+	border: 1.5px solid currentColor;
+	border-radius: 4px;
+	color: var(--c-danger);
+	font-size: 10px;
+	letter-spacing: 0.12em;
+}
+
+.activity-badge.is-postponed {
+	color: var(--c-text);
+}
+
+.activity-facts {
+	display: grid;
+	gap: 16px;
+	margin-top: 26px;
+	padding: clamp(16px, 2.4vw, 22px);
+	border: var(--box-border);
+	border-radius: var(--box-radius);
+	background: var(--c-surface);
+	box-shadow: var(--box-shadow);
+}
+
+.activity-facts dl {
+	display: grid;
+	gap: 12px;
+	margin: 0;
+}
+
+.activity-facts dl > div {
+	display: grid;
+	grid-template-columns: 72px minmax(0, 1fr);
+	gap: 12px;
+	align-items: baseline;
+}
+
+.activity-facts dt {
+	color: var(--c-muted);
+	font-size: 10px;
+	font-weight: 800;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+}
+
+.activity-facts dd {
+	margin: 0;
+	font-size: 16px;
+	font-weight: 600;
+	line-height: 1.45;
+}
+
+.activity-facts dd a {
+	text-decoration-thickness: 1.5px;
+	text-underline-offset: 3px;
+}
+
+.activity-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	padding-top: 16px;
+	border-top: 1px solid var(--c-line);
+}
+
+.activity-ticket {
+	border-color: var(--c-accent);
+	background: var(--c-accent);
+	color: var(--c-on-accent);
+}
+
+.activity-ticket:hover {
+	background: var(--c-accent);
+}
+
+.activity-section {
+	max-width: var(--news-measure);
+	margin: clamp(40px, 6vw, 64px) auto 0;
+}
+
+.activity-hosts {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 18px 22px;
+	margin: 0 0 22px;
+	padding: 0;
+	list-style: none;
+}
+
+.activity-hosts li {
+	width: 96px;
+	display: grid;
+	justify-items: center;
+	gap: 2px;
+	text-align: center;
+}
+
+.activity-hosts img,
+.activity-host-blank {
+	width: 84px;
+	height: 84px;
+	margin-bottom: 6px;
+	border: var(--box-border);
+	border-radius: 50%;
+	background: var(--c-surface-2);
+	object-fit: cover;
+}
+
+.activity-host-blank {
+	display: block;
+}
+
+.activity-hosts strong {
+	font-size: 14px;
+	line-height: 1.25;
+}
+
+.activity-hosts span {
+	color: var(--c-muted);
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+}
+
+.activity-lineup {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.activity-lineup li {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 4px 16px;
+	padding: 12px 0;
+	border-bottom: 1px solid var(--c-line);
+}
+
+.activity-lineup li > :first-child {
+	font-size: clamp(18px, 2vw, 22px);
+	font-weight: 800;
+	letter-spacing: -0.015em;
+	line-height: 1.2;
+}
+
+.activity-lineup a {
+	text-decoration-thickness: 2px;
+	text-underline-offset: 4px;
+}
+
+.activity-lineup small {
+	color: var(--c-muted);
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+}
+
+.activity-recap {
+	overflow: hidden;
+	aspect-ratio: 16 / 9;
+	border: var(--box-border);
+	border-radius: var(--box-radius);
+	background: #000000;
+	box-shadow: var(--box-shadow);
+}
+
+.activity-recap iframe,
+.activity-recap video {
+	width: 100%;
+	height: 100%;
+	display: block;
+	border: 0;
+}
+
+.activity-partners {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+	gap: 12px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.activity-partners li > a,
+.activity-partners li > img,
+.activity-partners li > span {
+	height: 84px;
+	display: grid;
+	place-items: center;
+	padding: 14px;
+	border: 1px solid var(--c-line);
+	border-radius: 10px;
+	background: var(--c-surface);
+	color: var(--c-text);
+	font-size: 13px;
+	font-weight: 800;
+	line-height: 1.25;
+	text-align: center;
+	text-decoration: none;
+	box-sizing: border-box;
+}
+
+.activity-partners li > img,
+.activity-partners a img {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+}
+
+.activity-partners li > img {
+	height: 84px;
+}
+
+.activity-partners a:hover {
+	border-color: var(--c-outline);
+}
+
+/* The list page: Upcoming above the Past archive. The band is already as wide as the page's column. */
+.activity-band {
+	margin-inline: auto;
+	padding-top: clamp(8px, 2vw, 16px);
+}
+
+.activity-band .newsroom-top,
+.activity-band .newsroom-empty {
+	width: auto;
+}
+
+.activity-band > .news-rule-heading,
+.newsroom-river .news-rule-heading {
+	margin-bottom: 20px;
+}
+
+/* A single upcoming event: the photo and its copy side by side. */
+.newsroom-top.is-single {
+	grid-template-columns: minmax(0, 1fr);
+}
+
+.newsroom-top.is-single .news-lead {
+	display: grid;
+	grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+}
+
+.newsroom-top.is-single .news-lead-image {
+	aspect-ratio: auto;
+	min-height: 100%;
+}
+
+.activity-band-grid {
+	margin-top: clamp(16px, 2vw, 24px);
+}
+
+@media (max-width: 720px) {
+	.newsroom-top.is-single .news-lead {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.newsroom-top.is-single .news-lead-image {
+		aspect-ratio: 16 / 9;
+	}
+
+	.activity-facts dl > div {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 2px;
+	}
+
+	.activity-actions .news-pill {
+		width: 100%;
+		justify-content: center;
+	}
+}
+
 .story-body {
 	margin-top: clamp(28px, 4vw, 44px);
 	font-size: clamp(17px, 1.6vw, 19px);
@@ -878,7 +1164,8 @@
 .newsroom-head,
 .newsroom-top,
 .newsroom-river,
-.newsroom-empty {
+.newsroom-empty,
+.activity-band {
 	width: min(100% - var(--news-gutter) * 2, var(--news-wide));
 	margin-inline: auto;
 }

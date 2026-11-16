@@ -1,10 +1,26 @@
 ---
-// One on ground activity, laid out like an OZ News story: title, standfirst, date and place, a swipeable carousel of
-// every photo uploaded in the CMS (no limit), the write-up and sharing, then more activities to look at.
+// One on ground activity, laid out like an OZ News story: title and standfirst, the event's facts (date, venue, price,
+// tickets, add to calendar), a swipeable carousel of every photo uploaded in the CMS, the write-up, the lineup, a recap
+// video, partners, then more activities. Anything left empty in the CMS is left off the page.
 import { render } from 'astro:content';
 import NewsLayout from '../../../layouts/NewsLayout.astro';
 import StoryShare from '../../../components/StoryShare.astro';
-import { activitiesIndexPath, activitiesSection, activityPath, getActivities } from '../../../lib/activities';
+import {
+	activitiesIndexPath,
+	activitiesSection,
+	activityCategoryLabel,
+	activityEnds,
+	activityPath,
+	activityWhen,
+	eventStatusLabel,
+	formatActivityDate,
+	getActivities,
+	googleCalendarUrl,
+	isBookable,
+	isUpcoming,
+	splitActivities,
+	youtubeId,
+} from '../../../lib/activities';
 import { cmsImage } from '../../../lib/cms';
 import { imageFrame } from '../../../lib/news';
 
@@ -15,26 +31,39 @@ const all = await getActivities();
 const entry = all.find((other) => other.id === Astro.params.slug);
 if (!entry) return new Response('Activity not found', { status: 404 });
 const { data } = entry;
-const { photos } = data;
+const { photos, hosts, lineup, partners, recap } = data;
 const { Content } = await render(entry);
 
 const path = activityPath(entry);
-const shareUrl = Astro.site ? new URL(path, Astro.site).href : '';
-// The next three in the CMS's order, wrapping round, so the last activity still has something after it.
-const position = all.indexOf(entry);
-const more = [...new Set([1, 2, 3].map((step) => all[(position + step) % all.length]))].filter((other) => other !== entry);
 const absolute = (value: string) => (Astro.site ? new URL(value, Astro.site).href : value);
+const pageUrl = absolute(path);
+const shareUrl = Astro.site ? pageUrl : '';
+const category = activityCategoryLabel(data.category);
+const badge = eventStatusLabel(data.eventStatus);
+const upcoming = isUpcoming(data);
+const bookable = isBookable(data);
+const recapId = youtubeId(recap.youtubeUrl);
+const hasRecap = Boolean(recapId || recap.videoUrl);
+// What to look at next: upcoming events first while this one is upcoming, the most recent past ones otherwise.
+const { upcoming: next, past } = splitActivities(all.filter((other) => other !== entry));
+const more = (upcoming ? [...next, ...past] : [...past, ...next]).slice(0, 3);
 
+// Search engines read this to list the event, with its date, place, tickets and status.
 const structuredData = {
 	'@context': 'https://schema.org',
-	'@type': 'Article',
-	headline: data.title,
+	'@type': 'Event',
+	name: data.title,
 	description: data.summary || undefined,
-	image: photos.map((photo) => absolute(photo.image)),
-	articleSection: data.category,
-	author: { '@type': 'Organization', name: 'OZ Radio Bandung' },
-	publisher: { '@type': 'Organization', name: 'OZ Radio Bandung' },
-	mainEntityOfPage: Astro.site ? absolute(path) : undefined,
+	image: photos.length ? photos.map((photo) => absolute(photo.image)) : undefined,
+	startDate: data.startDate?.toISOString(),
+	endDate: (data.endDate ?? activityEnds(data))?.toISOString(),
+	eventStatus: `https://schema.org/Event${data.eventStatus === 'cancelled' ? 'Cancelled' : data.eventStatus === 'postponed' ? 'Postponed' : 'Scheduled'}`,
+	eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+	location: data.venue ? { '@type': 'Place', name: data.venue, address: data.venue, hasMap: data.mapsUrl || undefined } : undefined,
+	offers: data.ticketUrl ? { '@type': 'Offer', url: data.ticketUrl, description: data.priceLabel || undefined } : undefined,
+	performer: lineup.length ? lineup.map((act) => ({ '@type': 'PerformingGroup', name: act.name })) : undefined,
+	organizer: { '@type': 'Organization', name: 'OZ Radio Bandung', url: absolute('/oz-bandung') },
+	url: Astro.site ? pageUrl : undefined,
 };
 ---
 
@@ -56,17 +85,45 @@ const structuredData = {
 				<span aria-hidden="true">/</span>
 				<a href={activitiesIndexPath}>On Ground Activity</a>
 			</nav>
-			<p class="news-kicker">{data.category}</p>
+			<p class="news-kicker activity-kicker">
+				<span>{upcoming ? 'Upcoming' : 'Past'} · {category}</span>
+				{badge && <span class:list={['activity-badge', `is-${data.eventStatus}`]}>{badge}</span>}
+			</p>
 			<h1 class="story-headline">{data.title}</h1>
 			{data.summary && <p class="story-standfirst">{data.summary}</p>}
+
+			<div class="activity-facts">
+				<dl>
+					<div>
+						<dt>When</dt>
+						<dd>{data.startDate ? <time datetime={data.startDate.toISOString()}>{formatActivityDate(data)}</time> : formatActivityDate(data)}</dd>
+					</div>
+					{data.venue && (
+						<div>
+							<dt>Where</dt>
+							<dd>{data.mapsUrl ? <a href={data.mapsUrl} target="_blank" rel="noopener noreferrer">{data.venue} <span aria-hidden="true">↗</span></a> : data.venue}</dd>
+						</div>
+					)}
+					{data.priceLabel && (
+						<div>
+							<dt>Price</dt>
+							<dd>{data.priceLabel}</dd>
+						</div>
+					)}
+				</dl>
+				{bookable && (data.ticketUrl || data.startDate) && (
+					<div class="activity-actions">
+						{data.ticketUrl && <a class="news-pill activity-ticket" href={data.ticketUrl} target="_blank" rel="noopener noreferrer">GET TICKETS ↗</a>}
+						{data.startDate && <a class="news-pill" href={`${path}.ics`} download={`${entry.id}.ics`}>ADD TO CALENDAR</a>}
+						{data.startDate && <a class="news-pill" href={googleCalendarUrl(entry, pageUrl)} target="_blank" rel="noopener noreferrer">GOOGLE CALENDAR ↗</a>}
+					</div>
+				)}
+			</div>
 
 			<div class="story-meta">
 				<div class="story-byline">
 					<img class="story-byline-mark" src="/images/logo-oz-logogram.png" alt="" width="40" height="40" />
-					<p>
-						<span>By <strong>OZ Radio Bandung</strong></span>
-						{data.status && <span class="story-dateline">{data.status}</span>}
-					</p>
+					<p><span>By <strong>OZ Radio Bandung</strong></span></p>
 				</div>
 				<StoryShare url={shareUrl} title={data.title} type="activity" />
 			</div>
@@ -116,6 +173,67 @@ const structuredData = {
 			<Content />
 		</div>
 
+		{(hosts.length > 0 || lineup.length > 0) && (
+			<section class="activity-section" aria-labelledby="lineup-title">
+				<h2 class="news-rule-heading" id="lineup-title">Lineup</h2>
+				{hosts.length > 0 && (
+					<ul class="activity-hosts" role="list" aria-label="OZ hosts">
+						{hosts.map((host) => (
+							<li>
+								{host.image ? <img src={cmsImage(host.image, 300)} alt="" loading="lazy" decoding="async" /> : <span class="activity-host-blank" aria-hidden="true"></span>}
+								<strong>{host.name}</strong>
+								<span>OZ host</span>
+							</li>
+						))}
+					</ul>
+				)}
+				{lineup.length > 0 && (
+					<ol class="activity-lineup">
+						{lineup.map((act) => (
+							<li>
+								{act.url ? <a href={act.url} target="_blank" rel="noopener noreferrer">{act.name}</a> : <span>{act.name}</span>}
+								{act.note && <small>{act.note}</small>}
+							</li>
+						))}
+					</ol>
+				)}
+			</section>
+		)}
+
+		{hasRecap && (
+			<section class="activity-section" aria-labelledby="recap-title">
+				<h2 class="news-rule-heading" id="recap-title">Recap</h2>
+				<div class="activity-recap">
+					{recapId ? (
+						<iframe
+							src={`https://www.youtube-nocookie.com/embed/${recapId}?rel=0`}
+							title={`${data.title}: recap video`}
+							loading="lazy"
+							allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+							referrerpolicy="strict-origin-when-cross-origin"
+							allowfullscreen
+						></iframe>
+					) : (
+						<video controls playsinline preload="metadata" poster={data.image ? cmsImage(data.image, 1200) : undefined}>
+							<source src={recap.videoUrl} type={recap.videoType} />
+						</video>
+					)}
+				</div>
+			</section>
+		)}
+
+		{partners.length > 0 && (
+			<section class="activity-section" aria-labelledby="partners-title">
+				<h2 class="news-rule-heading" id="partners-title">Partners &amp; sponsors</h2>
+				<ul class="activity-partners" role="list">
+					{partners.map((partner) => {
+						const mark = partner.logo ? <img src={cmsImage(partner.logo, 400)} alt={partner.name} loading="lazy" decoding="async" /> : <span>{partner.name}</span>;
+						return <li>{partner.url ? <a href={partner.url} target="_blank" rel="noopener noreferrer" title={partner.name}>{mark}</a> : mark}</li>;
+					})}
+				</ul>
+			</section>
+		)}
+
 		<footer class="story-end">
 			<a class="news-pill" href={activitiesIndexPath}>← ALL ON GROUND ACTIVITY</a>
 			<a class="news-pill" href="/oz-bandung#listen"><span class="news-live-dot" aria-hidden="true"></span>LISTEN TO OZ RADIO BANDUNG</a>
@@ -131,9 +249,9 @@ const structuredData = {
 						<a class="news-card" href={activityPath(other)}>
 							<div class="news-card-image" {...imageFrame(other.data, cmsImage(other.data.image, 600))}><img src={cmsImage(other.data.image, 600)} alt="" loading="lazy" decoding="async" /></div>
 							<div class="news-card-copy">
-								<span class="news-kicker">{other.data.category}</span>
+								<span class="news-kicker">{activityCategoryLabel(other.data.category)}{eventStatusLabel(other.data.eventStatus) && ` · ${eventStatusLabel(other.data.eventStatus)}`}</span>
 								<h3>{other.data.title}</h3>
-								{other.data.status && <span class="news-card-when">{other.data.status}</span>}
+								<span class="news-card-when">{activityWhen(other.data)}</span>
 							</div>
 						</a>
 					))}

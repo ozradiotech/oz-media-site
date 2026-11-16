@@ -19,7 +19,19 @@ import { getLiveCollection, render } from 'astro:content';
 import { cmsImage } from '../lib/cms';
 import { ageRanges } from '../lib/listener';
 import { getVisibleNews, imageFrame, newsCategoryLabel, newsIndexPath, newsPath } from '../lib/news';
-import { activitiesIndexPath, activityPath, getActivities } from '../lib/activities';
+import {
+	activitiesIndexPath,
+	activityCategoryLabel,
+	activityEnds,
+	activityPath,
+	activityWhen,
+	calendarTile,
+	eventStatusLabel,
+	formatActivityDate,
+	getActivities,
+	isBookable,
+	splitActivities,
+} from '../lib/activities';
 import { profileHandle, whatsappLink } from '../lib/station-defaults';
 import { getStationSettings } from '../lib/station-settings';
 import '../styles/ozubathon.css';
@@ -63,15 +75,25 @@ const announcersWithBody = await Promise.all(orderedAnnouncers.map(async (entry)
 	Content: (await render(entry)).Content,
 })));
 // Each article has its own page (src/pages/oz-bandung/news/); the cards here link to it.
-// Five cards a page: with the calendar they fill the grid, 3 x 2 on desktop and 2 x 3 on phones.
-const newsPageSize = 5;
+// Six cards a page: 3 x 2 on desktop and 2 x 3 on phones.
+const newsPageSize = 6;
 const newsPages = Array.from({ length: Math.ceil(orderedNews.length / newsPageSize) }, (_, page) =>
 	orderedNews.slice(page * newsPageSize, (page + 1) * newsPageSize));
-// On ground activity works the same way, with its own pages (src/pages/oz-bandung/activities/) and six cards a page:
-// 3 x 2 on desktop and 2 x 3 on phones.
-const activityPageSize = 6;
-const activityPages = Array.from({ length: Math.ceil(orderedActivities.length / activityPageSize) }, (_, page) =>
-	orderedActivities.slice(page * activityPageSize, (page + 1) * activityPageSize));
+// On ground activity: the Upcoming card (every upcoming event, one at a time: featured first, then the soonest) takes
+// two columns and two rows, and the two most recent past events sit on its right. Each opens its own page
+// (src/pages/oz-bandung/activities/).
+const { upcoming: upcomingActivities, past: pastActivities } = splitActivities(orderedActivities);
+const recentPast = pastActivities.slice(0, 2);
+// The countdown as it stands when the page is made; the page script keeps it ticking.
+const countdownParts = (start: Date) => {
+	const left = Math.max(0, start.getTime() - Date.now());
+	return [
+		{ unit: 'days', value: Math.floor(left / 86400000) },
+		{ unit: 'hrs', value: Math.floor(left / 3600000) % 24 },
+		{ unit: 'min', value: Math.floor(left / 60000) % 60 },
+		{ unit: 'sec', value: Math.floor(left / 1000) % 60 },
+	];
+};
 
 // Unsplash serves resized images on request; CMS images come in a few stored sizes.
 const optimizeImageUrl = (src: string, width: number) => {
@@ -606,33 +628,81 @@ const sections = [
 							<h2 id="activities-title"><a class="news-title-link" href={activitiesIndexPath}>On ground <span>activity.</span><svg class="news-title-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M12.5 5.5 19 12l-6.5 6.5" /></svg></a></h2>
 						</div>
 					</div>
-					<div class="activity-carousel" data-card-carousel aria-roledescription="carousel" aria-label="On ground activities">
-						<div class="carousel-stage">
-							<button class="carousel-chevron carousel-chevron-previous carousel-chevron-inset" type="button" data-card-previous hidden={activityPages.length < 2} aria-label="Previous activities">
-								<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5" /></svg>
-							</button>
-							{activityPages.map((page, pageIndex) => (
-							<div class="activity-grid" data-card-slide hidden={pageIndex !== 0}>
-								{page.map((activity) => (
-									<a class="feature-card news-card" href={activityPath(activity)}>
-										<div class="story-art" {...imageFrame(activity.data, optimizeImageUrl(activity.data.image, 700))}>
-											<img src={optimizeImageUrl(activity.data.image, 700)} alt={activity.data.imageAlt} loading="lazy" decoding="async" />
-											<span class="story-date">{activity.data.status || 'OZ ON GROUND'}</span>
+					<div class="ground-layout" data-past={recentPast.length}>
+						<div class="ground-upcoming" data-card-carousel aria-roledescription="carousel" aria-label="Upcoming activities">
+							<div class="carousel-stage">
+								<button class="carousel-chevron carousel-chevron-previous carousel-chevron-inset" type="button" data-card-previous hidden={upcomingActivities.length < 2} aria-label="Previous upcoming activity">
+									<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5" /></svg>
+								</button>
+								{upcomingActivities.length > 0 ? upcomingActivities.map((activity, index) => {
+									const { data } = activity;
+									const tile = calendarTile(data);
+									const badge = eventStatusLabel(data.eventStatus);
+									const ends = activityEnds(data);
+									return (
+										<article class="feature-card upcoming-card" data-card-slide hidden={index !== 0} aria-roledescription="slide" aria-label={`${index + 1} of ${upcomingActivities.length}: ${data.title}`}>
+											<a class="upcoming-media" href={activityPath(activity)} tabindex="-1" aria-hidden="true" {...imageFrame(data, optimizeImageUrl(data.image, 1200))}>
+												<img src={optimizeImageUrl(data.image, 1200)} alt="" loading="lazy" decoding="async" />
+											</a>
+											<span class:list={['upcoming-flag', { [`is-${data.eventStatus}`]: Boolean(badge) }]}>{badge || (data.featured ? 'FEATURED' : index === 0 ? 'NEXT UP' : 'COMING UP')}</span>
+											<div class="upcoming-body">
+												<div class="upcoming-tile" aria-hidden="true">
+													{tile ? <><span>{tile.month}</span><strong>{tile.day}</strong><span>{tile.weekday}</span></> : <><span>DATE</span><strong>?</strong><span>TBA</span></>}
+												</div>
+												<div class="upcoming-copy">
+													<span class="card-index">{activityCategoryLabel(data.category)}</span>
+													<h3><a href={activityPath(activity)}>{data.title}</a></h3>
+													<p class="upcoming-where">{[formatActivityDate(data), data.venue, data.priceLabel].filter(Boolean).join(' · ')}</p>
+													{data.startDate && ends && data.eventStatus === 'scheduled' && (
+														<p class="upcoming-countdown" data-countdown={data.startDate.toISOString()} data-countdown-end={ends.toISOString()}>
+															{countdownParts(data.startDate).map(({ unit, value }) => (
+																<span data-countdown-part><strong data-countdown-unit={unit}>{String(value).padStart(2, '0')}</strong>{unit}</span>
+															))}
+															<span class="upcoming-live" data-countdown-live hidden><span class="live-dot"></span>HAPPENING NOW</span>
+														</p>
+													)}
+												</div>
+											</div>
+											<div class="upcoming-actions">
+												<a class="outline-link" href={activityPath(activity)}>SEE DETAILS →</a>
+												{isBookable(data) && data.ticketUrl && <a class="outline-link upcoming-ticket" href={data.ticketUrl} target="_blank" rel="noopener noreferrer">GET TICKETS ↗</a>}
+											</div>
+										</article>
+									);
+								}) : (
+									<article class="feature-card upcoming-card is-empty" data-card-slide>
+										<div class="upcoming-body">
+											<div class="upcoming-tile" aria-hidden="true"><span>NEXT</span><strong>?</strong><span>SOON</span></div>
+											<div class="upcoming-copy">
+												<span class="card-index">SAVE THE DATE</span>
+												<h3>Next OZ Radio event</h3>
+												<p class="upcoming-where">Date and details to be announced</p>
+											</div>
 										</div>
-										<div class="story-copy">
-											<span class="card-index">{activity.data.category}</span>
-											<h3>{activity.data.title}</h3>
-											<p>{activity.data.summary}</p>
+										<div class="upcoming-actions">
+											<a class="outline-link" href={activitiesIndexPath}>SEE PAST ACTIVITIES →</a>
 										</div>
-									</a>
-								))}
+									</article>
+								)}
+								<button class="carousel-chevron carousel-chevron-next carousel-chevron-inset" type="button" data-card-next hidden={upcomingActivities.length < 2} aria-label="Next upcoming activity">
+									<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 4.5 16.5 12 9 19.5" /></svg>
+								</button>
 							</div>
-							))}
-							<button class="carousel-chevron carousel-chevron-next carousel-chevron-inset" type="button" data-card-next hidden={activityPages.length < 2} aria-label="Next activities">
-								<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 4.5 16.5 12 9 19.5" /></svg>
-							</button>
 						</div>
-						<a class="news-list-trigger" href={activitiesIndexPath}>VIEW ALL ACTIVITIES →</a>
+						{recentPast.map((activity) => (
+							<a class="feature-card news-card ground-past" href={activityPath(activity)}>
+								<div class="story-art" {...imageFrame(activity.data, optimizeImageUrl(activity.data.image, 700))}>
+									<img src={optimizeImageUrl(activity.data.image, 700)} alt={activity.data.imageAlt} loading="lazy" decoding="async" />
+									<span class="story-date">{activityWhen(activity.data)}</span>
+								</div>
+								<div class="story-copy">
+									<span class="card-index">PAST · {activityCategoryLabel(activity.data.category)}</span>
+									<h3>{activity.data.title}</h3>
+									<p>{activity.data.summary}</p>
+								</div>
+							</a>
+						))}
+						<a class="news-list-trigger ground-all" href={activitiesIndexPath}>VIEW ALL ACTIVITIES →</a>
 					</div>
 				</div>
 			</section>
@@ -646,45 +716,37 @@ const sections = [
 							<h2 id="news-title"><a class="news-title-link" href={newsIndexPath}>OZ <span>News.</span><svg class="news-title-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M12.5 5.5 19 12l-6.5 6.5" /></svg></a></h2>
 						</div>
 					</div>
-					<div class="news-layout">
-						<div class="news-articles" data-card-carousel aria-roledescription="carousel" aria-label="Latest OZ News articles">
-							<div class="carousel-stage">
-								<button class="carousel-chevron carousel-chevron-previous carousel-chevron-inset" type="button" data-card-previous hidden={newsPages.length < 2} aria-label="Previous articles">
-									<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5" /></svg>
-								</button>
-								{newsPages.map((page, pageIndex) => (
-								<div class="news-grid" data-card-slide hidden={pageIndex !== 0}>
-									{page.map((article) => (
-										<a class="feature-card news-card" href={newsPath(article)}>
-											<div class="story-art" {...imageFrame(article.data, optimizeImageUrl(article.data.image, 700))}>
-												<img src={optimizeImageUrl(article.data.image, 700)} alt={article.data.imageAlt} loading="lazy" decoding="async" />
-												<span class="story-date">
-													{article.data.publishedAt
-														? <time datetime={article.data.publishedAt.toISOString()}>{article.data.publishedAt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</time>
-														: 'OZ NEWS'}
-												</span>
-											</div>
-											<div class="story-copy">
-												<span class="card-index">{newsCategoryLabel(article.data.category)}</span>
-												<h3>{article.data.title}</h3>
-												<p>{article.data.summary}</p>
-											</div>
-										</a>
-									))}
-								</div>
+					<div class="card-carousel" data-card-carousel aria-roledescription="carousel" aria-label="Latest OZ News articles">
+						<div class="carousel-stage">
+							<button class="carousel-chevron carousel-chevron-previous carousel-chevron-inset" type="button" data-card-previous hidden={newsPages.length < 2} aria-label="Previous articles">
+								<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5" /></svg>
+							</button>
+							{newsPages.map((page, pageIndex) => (
+							<div class="card-grid" data-card-slide hidden={pageIndex !== 0}>
+								{page.map((article) => (
+									<a class="feature-card news-card" href={newsPath(article)}>
+										<div class="story-art" {...imageFrame(article.data, optimizeImageUrl(article.data.image, 700))}>
+											<img src={optimizeImageUrl(article.data.image, 700)} alt={article.data.imageAlt} loading="lazy" decoding="async" />
+											<span class="story-date">
+												{article.data.publishedAt
+													? <time datetime={article.data.publishedAt.toISOString()}>{article.data.publishedAt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</time>
+													: 'OZ NEWS'}
+											</span>
+										</div>
+										<div class="story-copy">
+											<span class="card-index">{newsCategoryLabel(article.data.category)}</span>
+											<h3>{article.data.title}</h3>
+											<p>{article.data.summary}</p>
+										</div>
+									</a>
 								))}
-								<button class="carousel-chevron carousel-chevron-next carousel-chevron-inset" type="button" data-card-next hidden={newsPages.length < 2} aria-label="Next articles">
-									<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 4.5 16.5 12 9 19.5" /></svg>
-								</button>
 							</div>
-							<a class="news-list-trigger" href={newsIndexPath}>VIEW ALL ARTICLES →</a>
+							))}
+							<button class="carousel-chevron carousel-chevron-next carousel-chevron-inset" type="button" data-card-next hidden={newsPages.length < 2} aria-label="Next articles">
+								<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 4.5 16.5 12 9 19.5" /></svg>
+							</button>
 						</div>
-						<aside class="feature-card calendar-card">
-							<div class="calendar-head"><span class="card-index">SAVE THE DATE</span><span class="calendar-icon" aria-hidden="true">▦</span></div>
-							<div class="calendar-date"><span>OZ NEWS</span><strong>Event<br />calendar.</strong></div>
-							<div class="calendar-event"><span class="live-dot idle-dot"></span><div><strong>Next OZ Radio event</strong><span>Date and details to be announced</span></div></div>
-							<a class="outline-link" href="#activities">EXPLORE ACTIVITIES ↓</a>
-						</aside>
+						<a class="news-list-trigger" href={newsIndexPath}>VIEW ALL ARTICLES →</a>
 					</div>
 				</div>
 			</section>
@@ -1786,6 +1848,35 @@ const sections = [
 			previous.addEventListener('click', () => show(current - 1, 'previous'), { signal });
 			next.addEventListener('click', () => show(current + 1, 'next'), { signal });
 		});
+
+		// The Upcoming card's countdown to each event's start, then "Happening now" until it ends.
+		const countdowns = Array.from(document.querySelectorAll<HTMLElement>('[data-countdown]'));
+		if (countdowns.length) {
+			const tickCountdowns = () => {
+				const now = Date.now();
+				countdowns.forEach((countdown) => {
+					const start = Date.parse(countdown.dataset.countdown ?? '');
+					const end = Date.parse(countdown.dataset.countdownEnd ?? '');
+					const left = Math.max(0, start - now);
+					const values: Record<string, number> = {
+						days: Math.floor(left / 86400000),
+						hrs: Math.floor(left / 3600000) % 24,
+						min: Math.floor(left / 60000) % 60,
+						sec: Math.floor(left / 1000) % 60,
+					};
+					countdown.hidden = now >= end;
+					countdown.querySelectorAll<HTMLElement>('[data-countdown-part]').forEach((part) => { part.hidden = now >= start; });
+					const live = countdown.querySelector<HTMLElement>('[data-countdown-live]');
+					if (live) live.hidden = now < start;
+					countdown.querySelectorAll<HTMLElement>('[data-countdown-unit]').forEach((unit) => {
+						unit.textContent = String(values[unit.dataset.countdownUnit ?? ''] ?? 0).padStart(2, '0');
+					});
+				});
+			};
+			tickCountdowns();
+			const countdownTimer = window.setInterval(tickCountdowns, 1000);
+			onLeave(signal, () => window.clearInterval(countdownTimer));
+		}
 
 		if (window.matchMedia('(hover: hover) and (pointer: fine)').matches && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
 			const tiltCards = [
@@ -4964,89 +5055,257 @@ const sections = [
 		outline-offset: 4px;
 	}
 
-	/* One grid of equal cells: the carousel's cards and the event calendar share its columns and rows through
-	   subgrid, so the calendar is always exactly one card in size. It sits in the top-right cell, which every
-	   carousel page leaves free (.news-grid::before), and "view all" takes the last row. */
-	.news-layout {
-		--news-columns: 3;
-		display: grid;
-		grid-template-columns: repeat(var(--news-columns), minmax(0, 1fr));
-		grid-template-rows: auto auto auto;
-		gap: 12px;
-	}
-
-	.news-articles,
-	.news-articles .carousel-stage,
-	.news-grid {
-		display: grid;
-		grid-template: subgrid / subgrid;
-		grid-column: 1 / -1;
-	}
-
-	.news-articles {
-		grid-row: 1 / -1;
-	}
-
-	.news-articles .carousel-stage {
-		grid-row: 1 / -2;
-	}
-
-	.news-grid {
-		grid-row: 1 / -1;
-	}
-
-	.news-grid::before {
-		grid-row: 1;
-		grid-column: -2 / -1;
-		content: '';
-	}
-
-	.news-articles .news-list-trigger {
-		grid-row: -2 / -1;
-		grid-column: 1;
-		justify-self: start;
-	}
-
-	.news-grid[hidden] {
-		display: none;
-	}
-
-	.news-grid.from-next {
-		animation: news-slide-from-next 320ms ease both;
-	}
-
-	.news-grid.from-previous {
-		animation: news-slide-from-previous 320ms ease both;
-	}
-
-	/* On ground activity: the OZ News cards and carousel without the calendar, six to a page. */
-	.activity-carousel {
+	/* OZ News: six cards a page, flipped with the chevrons. */
+	.card-carousel {
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
 		gap: 12px;
 	}
 
-	.activity-carousel .carousel-stage {
+	.card-carousel .carousel-stage {
 		width: 100%;
 	}
 
-	.activity-grid {
+	.card-grid {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: 12px;
 	}
 
-	.activity-grid[hidden] {
+	.card-grid[hidden] {
 		display: none;
 	}
 
-	.activity-grid.from-next {
+	.card-grid.from-next {
 		animation: news-slide-from-next 320ms ease both;
 	}
 
-	.activity-grid.from-previous {
+	.card-grid.from-previous {
 		animation: news-slide-from-previous 320ms ease both;
+	}
+
+	/* On ground activity: the Upcoming card takes two columns and two rows (it took over from the event calendar
+	   that used to sit beside OZ News), and the two most recent past events stack on its right. */
+	.ground-layout {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 12px;
+	}
+
+	.ground-upcoming {
+		min-width: 0;
+		display: flex;
+		grid-column: span 2;
+		grid-row: span 2;
+	}
+
+	.ground-layout[data-past='0'] .ground-upcoming {
+		grid-column: 1 / -1;
+		grid-row: auto;
+	}
+
+	.ground-upcoming .carousel-stage {
+		min-width: 0;
+		display: flex;
+		flex: 1;
+	}
+
+	.ground-all {
+		grid-column: 1;
+		justify-self: start;
+	}
+
+	.upcoming-card {
+		position: relative;
+		min-width: 0;
+		display: flex;
+		flex: 1;
+		flex-direction: column;
+	}
+
+	.upcoming-card[hidden] {
+		display: none;
+	}
+
+	.upcoming-card.from-next {
+		animation: news-slide-from-next 320ms ease both;
+	}
+
+	.upcoming-card.from-previous {
+		animation: news-slide-from-previous 320ms ease both;
+	}
+
+	.upcoming-media {
+		position: relative;
+		min-height: 180px;
+		display: block;
+		flex: 1 1 auto;
+		overflow: hidden;
+		background: var(--c-surface-2);
+	}
+
+	.upcoming-media img {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		transition: scale 400ms cubic-bezier(0.2, 0.8, 0.2, 1);
+	}
+
+	.upcoming-card:hover .upcoming-media img {
+		scale: 1.03;
+	}
+
+	.upcoming-flag {
+		position: absolute;
+		z-index: 1;
+		top: 12px;
+		left: 12px;
+		padding: 5px 10px;
+		border-radius: 999px;
+		background: var(--c-accent);
+		color: var(--c-on-accent);
+		font-size: 8px;
+		font-weight: 800;
+		letter-spacing: 0.12em;
+		line-height: 1.2;
+	}
+
+	.upcoming-flag.is-postponed,
+	.upcoming-flag.is-cancelled {
+		background: var(--c-danger);
+		color: #FFFFFF;
+	}
+
+	.upcoming-body {
+		display: flex;
+		align-items: flex-start;
+		gap: clamp(12px, 1.6vw, 18px);
+		padding: clamp(12px, 1.6vw, 18px) clamp(12px, 1.6vw, 18px) 0;
+	}
+
+	/* A page torn off a desk calendar: month, day, weekday. */
+	.upcoming-tile {
+		width: 64px;
+		flex: none;
+		display: grid;
+		justify-items: center;
+		overflow: hidden;
+		border: var(--box-border);
+		border-radius: 10px;
+		background: var(--c-surface);
+		text-align: center;
+	}
+
+	.upcoming-tile > span:first-child {
+		width: 100%;
+		padding: 4px 0;
+		background: var(--c-accent);
+		color: var(--c-on-accent);
+		font-size: 9px;
+		font-weight: 800;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+	}
+
+	.upcoming-tile strong {
+		padding: 6px 0 2px;
+		font-family: var(--font-tango);
+		font-size: 30px;
+		line-height: 1;
+	}
+
+	.upcoming-tile > span:last-child {
+		padding-bottom: 6px;
+		color: var(--c-muted);
+		font-size: 9px;
+		font-weight: 700;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+	}
+
+	.upcoming-copy {
+		min-width: 0;
+	}
+
+	.upcoming-copy h3 {
+		margin: 8px 0 6px;
+		font-size: clamp(20px, 2.4vw, 30px);
+		line-height: 1.05;
+		text-wrap: balance;
+	}
+
+	.upcoming-copy h3 a {
+		color: inherit;
+		text-decoration: none;
+	}
+
+	.upcoming-copy h3 a:hover {
+		text-decoration: underline;
+		text-decoration-thickness: 2px;
+		text-underline-offset: 4px;
+	}
+
+	.upcoming-where {
+		margin: 0;
+		color: var(--c-text-2);
+		font-size: 12px;
+		line-height: 1.45;
+	}
+
+	.upcoming-countdown {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 14px;
+		margin: 12px 0 0;
+		color: var(--c-muted);
+		font-size: 8px;
+		font-weight: 800;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+	}
+
+	.upcoming-countdown [hidden] {
+		display: none;
+	}
+
+	.upcoming-countdown strong {
+		display: block;
+		color: var(--c-text);
+		font-size: 22px;
+		font-variant-numeric: tabular-nums;
+		letter-spacing: 0;
+		line-height: 1.1;
+	}
+
+	.upcoming-live {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		color: var(--c-text);
+		font-size: 10px;
+	}
+
+	.upcoming-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		padding: 14px clamp(12px, 1.6vw, 18px) clamp(12px, 1.6vw, 18px);
+	}
+
+	.outline-link.upcoming-ticket,
+	:global(:root[data-theme='night']) .outline-link.upcoming-ticket {
+		border-color: var(--c-accent);
+		background: var(--c-accent);
+		color: var(--c-on-accent);
+	}
+
+	/* Nothing scheduled: the old event calendar's promise, at the Upcoming card's size. */
+	.upcoming-card.is-empty {
+		justify-content: center;
+		background: var(--c-accent-faint, var(--c-surface));
 	}
 
 	.news-list-trigger {
@@ -5144,89 +5403,6 @@ const sections = [
 		margin: 0;
 		-webkit-box-orient: vertical;
 		-webkit-line-clamp: 2;
-	}
-
-	.calendar-card {
-		--card-padding: clamp(15px, 2vw, 22px);
-		/* Above the carousel, whose box spans this cell too. */
-		position: relative;
-		z-index: 1;
-		grid-row: 1;
-		grid-column: -2 / -1;
-		display: flex;
-		flex-direction: column;
-		padding: var(--card-padding);
-	}
-
-	.calendar-head {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		margin: calc(var(--card-padding) * -1) calc(var(--card-padding) * -1) 0;
-		padding: 9px var(--card-padding);
-		border-bottom: var(--box-border);
-		background: var(--c-accent);
-	}
-
-	.calendar-head .card-index {
-		color: var(--c-on-accent);
-	}
-
-	.calendar-icon {
-		color: var(--c-on-accent);
-		font-size: 19px;
-	}
-
-	.calendar-date {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		gap: 9px;
-		padding: 18px 0;
-	}
-
-	.calendar-date > span {
-		color: var(--c-accent);
-		font-size: 8px;
-		font-weight: 700;
-		letter-spacing: 0.12em;
-	}
-
-	.calendar-date strong {
-		font-size: clamp(26px, 4vw, 40px);
-		letter-spacing: -0.07em;
-		line-height: 0.95;
-	}
-
-	.calendar-event {
-		display: flex;
-		align-items: flex-start;
-		gap: 11px;
-		padding: 14px 0;
-		border-top: 1px solid var(--c-line);
-	}
-
-	.calendar-event .live-dot {
-		margin-top: 4px;
-	}
-
-	.calendar-event div {
-		display: grid;
-		gap: 5px;
-	}
-
-	.calendar-event strong {
-		font-size: 10px;
-	}
-
-	.calendar-event div span {
-		color: var(--c-muted);
-		font-size: 9px;
-	}
-
-	.calendar-card .outline-link {
-		align-self: flex-start;
 	}
 
 	.contact-layout {
@@ -5581,16 +5757,72 @@ const sections = [
 			font-size: 6px;
 		}
 
-		.activity-grid {
+		.card-grid {
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 			gap: 8px;
 		}
 
-		/* Two columns on phones: the calendar and the first card share the top row. */
-		.news-layout {
-			--news-columns: 2;
-			grid-template-rows: auto auto auto auto;
+		.ground-layout {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
 			gap: 8px;
+		}
+
+		.ground-upcoming {
+			grid-column: 1 / -1;
+			grid-row: auto;
+		}
+
+		.upcoming-media {
+			min-height: 0;
+			flex: none;
+			aspect-ratio: 16 / 9;
+		}
+
+		.upcoming-flag {
+			top: 8px;
+			left: 8px;
+			font-size: 6px;
+		}
+
+		.upcoming-body {
+			gap: 10px;
+			padding: 10px 10px 0;
+		}
+
+		.upcoming-tile {
+			width: 48px;
+		}
+
+		.upcoming-tile > span:first-child,
+		.upcoming-tile > span:last-child {
+			font-size: 6px;
+		}
+
+		.upcoming-tile strong {
+			font-size: 22px;
+		}
+
+		.upcoming-copy h3 {
+			margin: 4px 0;
+			font-size: 18px;
+		}
+
+		.upcoming-where {
+			font-size: 9px;
+		}
+
+		.upcoming-countdown {
+			gap: 10px;
+			margin-top: 8px;
+			font-size: 6px;
+		}
+
+		.upcoming-countdown strong {
+			font-size: 16px;
+		}
+
+		.upcoming-actions {
+			padding: 10px;
 		}
 
 		.story-art {
@@ -5617,32 +5849,6 @@ const sections = [
 
 		.story-copy .card-status {
 			padding-top: 6px;
-		}
-
-		.calendar-card {
-			padding: 10px 12px;
-		}
-
-		.calendar-date {
-			gap: 4px;
-			padding: 4px 0;
-		}
-
-		.calendar-date strong {
-			font-size: 20px;
-		}
-
-		.calendar-event {
-			padding: 8px 0;
-		}
-
-		.calendar-event div span {
-			font-size: 8px;
-		}
-
-		/* Keeps the calendar to one card's height; On Ground sits just above anyway. */
-		.calendar-card .outline-link {
-			display: none;
 		}
 
 		.contact-layout {
@@ -5834,10 +6040,10 @@ const sections = [
 			animation: none;
 		}
 
-		.news-grid.from-next,
-		.news-grid.from-previous,
-		.activity-grid.from-next,
-		.activity-grid.from-previous {
+		.card-grid.from-next,
+		.card-grid.from-previous,
+		.upcoming-card.from-next,
+		.upcoming-card.from-previous {
 			animation: none;
 		}
 
@@ -6615,7 +6821,6 @@ const sections = [
 	:global(:root[data-theme='night']) .card-status,
 	:global(:root[data-theme='night']) :where(.broadcast) .placeholder-caption,
 	:global(:root[data-theme='night']) .program-count,
-	:global(:root[data-theme='night']) .calendar-date > span,
 	:global(:root[data-theme='night']) .preview-caption,
 	:global(:root[data-theme='night']) .preview-duration,
 	:global(:root[data-theme='night']) .story-date,
@@ -6638,14 +6843,12 @@ const sections = [
 	}
 
 	:global(:root[data-theme='night']) .card-index,
-	:global(:root[data-theme='night']) .contact-item > span,
-	:global(:root[data-theme='night']) .calendar-date > span {
+	:global(:root[data-theme='night']) .contact-item > span {
 		color: var(--c-accent);
 	}
 
 	:global(:root[data-theme='night']) .feature-card p,
 	:global(:root[data-theme='night']) .contact-intro p,
-	:global(:root[data-theme='night']) .calendar-event div span,
 	:global(:root[data-theme='night']) .contact-item small,
 	:global(:root[data-theme='night']) .listener-confirmation p,
 	:global(:root[data-theme='night']) .listener-confirmation dd {
@@ -6878,15 +7081,12 @@ const sections = [
 
 	/* ---------- Cards and the rest ---------- */
 
-	:global(:root[data-theme='night']) .social-topline,
-	:global(:root[data-theme='night']) .calendar-head {
+	:global(:root[data-theme='night']) .social-topline {
 		background: transparent;
 		color: var(--c-muted);
 	}
 
-	:global(:root[data-theme='night']) .social-mark,
-	:global(:root[data-theme='night']) .calendar-head .card-index,
-	:global(:root[data-theme='night']) .calendar-icon {
+	:global(:root[data-theme='night']) .social-mark {
 		color: var(--c-accent);
 	}
 
@@ -7025,8 +7225,8 @@ const sections = [
 			max-width: none;
 		}
 
-		:global(:root[data-theme='night']) .news-layout,
-		:global(:root[data-theme='night']) .activity-grid {
+		:global(:root[data-theme='night']) .card-grid,
+		:global(:root[data-theme='night']) .ground-layout {
 			gap: 14px;
 		}
 
@@ -7173,10 +7373,7 @@ const sections = [
 	:global(:root[data-theme='night'][data-tone='light']) .ozb-chip,
 	:global(:root[data-theme='night'][data-tone='light']) .card-index,
 	:global(:root[data-theme='night'][data-tone='light']) .contact-item > span,
-	:global(:root[data-theme='night'][data-tone='light']) .calendar-date > span,
 	:global(:root[data-theme='night'][data-tone='light']) .social-mark,
-	:global(:root[data-theme='night'][data-tone='light']) .calendar-head .card-index,
-	:global(:root[data-theme='night'][data-tone='light']) .calendar-icon,
 	:global(:root[data-theme='night'][data-tone='light']) .listen-heading h1 span,
 	:global(:root[data-theme='night'][data-tone='light']) .video-picker-item[aria-pressed='true'] {
 		color: var(--c-accent-strong);

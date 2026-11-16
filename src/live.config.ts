@@ -90,24 +90,61 @@ const announcers = defineLiveCollection({
 	),
 });
 
+/** An optional text field: trimmed, or empty. */
+const optional = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
+/** An optional link: only full http(s) addresses get through. */
+const link = (value: unknown) => (/^https?:\/\/\S+$/.test(optional(value)) ? optional(value) : '');
+const date = (value: unknown) => (typeof value === 'string' && Number.isFinite(Date.parse(value)) ? new Date(value) : undefined);
+const videoTypes = new Set(['video/mp4', 'video/webm']);
+
 const toActivity = (doc: Doc) => {
 	const cover = image(doc.image, doc.title);
+	const recapVideo = doc.recap?.video && typeof doc.recap.video === 'object' ? doc.recap.video : undefined;
 	return {
 		title: doc.title as string,
 		visible: true,
-		category: doc.category as string,
-		status: (doc.status ?? '') as string,
-		order: 0,
-		summary: (doc.summary ?? '') as string,
+		/** The category's value (`live-music`, …); `activityCategoryLabel` turns it into its name. */
+		category: (doc.category ?? '') as string,
+		eventStatus: (doc.eventStatus ?? 'scheduled') as 'scheduled' | 'postponed' | 'cancelled',
+		featured: Boolean(doc.featured),
+		/** Undated activities count as upcoming, "date to be announced". Midnight WIB means a date without a time. */
+		startDate: date(doc.startDate),
+		endDate: date(doc.endDate),
+		venue: optional(doc.venue),
+		mapsUrl: link(doc.mapsUrl),
+		priceLabel: optional(doc.priceLabel),
+		ticketUrl: link(doc.ticketUrl),
+		summary: optional(doc.summary),
 		...cover,
 		/** The photo carousel on the activity's page: the cover first, then "More photos" in the CMS's order. */
 		photos: [cover, ...(doc.gallery ?? []).map((media: CmsMedia | number) => image(media, doc.title))].filter((photo) => photo.image),
+		/** OZ announcers at the event, with their portraits. */
+		hosts: (doc.hosts ?? [])
+			.filter((host: Doc | number): host is Doc => typeof host === 'object' && Boolean(host?.name))
+			.map((host: Doc) => ({ slug: host.slug as string, name: host.name as string, instagram: optional(host.instagram), ...image(host.image, host.name) })),
+		lineup: (doc.lineup ?? [])
+			.filter((act: { name?: string }) => optional(act?.name))
+			.map((act: { name: string; note?: string; url?: string }) => ({ name: optional(act.name), note: optional(act.note), url: link(act.url) })),
+		partners: (doc.partners ?? [])
+			.filter((partner: { name?: string }) => optional(partner?.name))
+			.map((partner: { name: string; url?: string; logo?: CmsMedia | number | null }) => ({
+				name: optional(partner.name),
+				url: link(partner.url),
+				logo: mediaUrl(partner.logo),
+			})),
+		/** A YouTube link wins over an uploaded video; empty when neither is set. */
+		recap: {
+			youtubeUrl: link(doc.recap?.youtubeUrl),
+			videoUrl: recapVideo && /^https?:\/\//.test(recapVideo.url ?? '') ? (recapVideo.url as string) : '',
+			videoType: recapVideo && videoTypes.has(recapVideo.mimeType) ? (recapVideo.mimeType as string) : 'video/mp4',
+		},
 	};
 };
 export type ActivityData = ReturnType<typeof toActivity>;
 
+// Depth 2 so the hosts come with their portraits.
 const activities = defineLiveCollection({
-	loader: payload('activities', toActivity, { html: 'bodyHtml' }),
+	loader: payload('activities', toActivity, { sort: '-startDate', html: 'bodyHtml', depth: 2 }),
 });
 
 const toNews = (doc: Doc) => ({
