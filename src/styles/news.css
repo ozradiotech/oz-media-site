@@ -734,14 +734,6 @@
 	text-underline-offset: 3px;
 }
 
-.activity-actions {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 10px;
-	padding-top: 16px;
-	border-top: 1px solid var(--c-line);
-}
-
 .activity-section {
 	max-width: var(--news-measure);
 	margin: clamp(40px, 6vw, 64px) auto 0;
@@ -935,11 +927,6 @@
 	.activity-facts dl > div {
 		grid-template-columns: minmax(0, 1fr);
 		gap: 2px;
-	}
-
-	.activity-actions .news-pill {
-		width: 100%;
-		justify-content: center;
 	}
 }
 

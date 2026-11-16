@@ -124,52 +124,6 @@ export const splitActivities = (entries: ActivityEntry[], now = new Date()) => {
 	return { upcoming, past };
 };
 
-// ---------- Calendar links ----------
-
-const compactUtc = (date: Date) => date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-const compactDay = (date: Date) => part(date, { year: 'numeric', month: '2-digit', day: '2-digit' }).split('/').reverse().join('');
-
-/** Start and end in calendar format: whole days for date-only events (end exclusive), UTC times otherwise. */
-const calendarSpan = (data: ActivityData) => {
-	const { startDate, endDate } = data;
-	if (!startDate) return undefined;
-	if (isMidnight(startDate)) {
-		const last = endDate ?? startDate;
-		return { allDay: true, start: compactDay(startDate), end: compactDay(new Date(endOfDay(last).getTime() + 1)) };
-	}
-	// Two hours when no end is given, so the calendar shows a block rather than a point.
-	const end = endDate ?? new Date(startDate.getTime() + 2 * 3600_000);
-	return { allDay: false, start: compactUtc(startDate), end: compactUtc(end) };
-};
-
-const icsText = (value: string) => value.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/[,;]/g, (match) => `\\${match}`);
-
-/** An .ics file for Apple Calendar, Outlook and the rest. */
-export const activityIcs = (entry: ActivityEntry, pageUrl: string, host: string) => {
-	const span = calendarSpan(entry.data);
-	if (!span) return '';
-	const when = span.allDay ? [`DTSTART;VALUE=DATE:${span.start}`, `DTEND;VALUE=DATE:${span.end}`] : [`DTSTART:${span.start}`, `DTEND:${span.end}`];
-	const lines = [
-		'BEGIN:VCALENDAR',
-		'VERSION:2.0',
-		'PRODID:-//OZ Radio Bandung//On Ground Activity//EN',
-		'CALSCALE:GREGORIAN',
-		'METHOD:PUBLISH',
-		'BEGIN:VEVENT',
-		`UID:${entry.id}@${host}`,
-		`DTSTAMP:${compactUtc(new Date())}`,
-		...when,
-		`SUMMARY:${icsText(entry.data.title)}`,
-		entry.data.summary && `DESCRIPTION:${icsText(`${entry.data.summary}\n\n${pageUrl}`)}`,
-		entry.data.venue && `LOCATION:${icsText(entry.data.venue)}`,
-		`URL:${pageUrl}`,
-		'STATUS:CONFIRMED',
-		'END:VEVENT',
-		'END:VCALENDAR',
-	].filter(Boolean);
-	return `${lines.join('\r\n')}\r\n`;
-};
-
 // ---------- Recap video ----------
 
 /** The 11-character id in any YouTube link (watch, youtu.be, shorts, live, embed). */

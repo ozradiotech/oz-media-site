@@ -1,6 +1,6 @@
 ---
-// One on ground activity, laid out like an OZ News story: title and standfirst, the event's facts (date, venue,
-// add to calendar) and organizer, a swipeable carousel of every photo uploaded in the CMS, the write-up, the lineup, a recap
+// One on ground activity, laid out like an OZ News story: title and standfirst, the event's facts (date, venue)
+// and organizer, a swipeable carousel of every photo uploaded in the CMS, the write-up, the lineup, a recap
 // video, partners, then more activities. Anything left empty in the CMS is left off the page.
 import { render } from 'astro:content';
 import NewsLayout from '../../../layouts/NewsLayout.astro';
@@ -102,11 +102,6 @@ const structuredData = {
 						</div>
 					)}
 				</dl>
-				{upcoming && data.startDate && (
-					<div class="activity-actions">
-						<a class="news-pill" href={`${path}.ics`} download={`${entry.id}.ics`}>ADD TO CALENDAR</a>
-					</div>
-				)}
 			</div>
 
 			<div class="story-meta">
