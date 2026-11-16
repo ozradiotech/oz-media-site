@@ -25,7 +25,7 @@ On this branch the site reads its content from Payload at request time through A
 | :--- | :--- | :--- |
 | Live collections | `src/live.config.ts` | `programs`, `announcers`, `activities`, `news` and `analytics` (the social numbers), each mapped to the shape the old Markdown had, so pages read `entry.data` as before. Rich text arrives as HTML for `render(entry)`. |
 | CMS client | `src/lib/cms.ts` | Fetches `/api/...` from the CMS with the website API key, caches each response for 30 seconds, and picks the smallest stored image size that is wide enough (`cmsImage`). |
-| Pages | `oz-bandung.astro`, `oz-bandung/news/*`, `sitemap.xml.ts`, `analytics.astro` | Render on demand (`prerender = false`). If the CMS is down, a section comes out empty and the error is logged, rather than the page failing. |
+| Pages | `oz-bandung.astro`, `oz-bandung/news/*`, `oz-bandung/activities/*`, `sitemap.xml.ts`, `analytics.astro` | Render on demand (`prerender = false`). If the CMS is down, a section comes out empty and the error is logged, rather than the page failing. |
 
 Only published items reach the site. Unpublishing an item in the CMS hides it without deleting it, which replaces Decap's "Show on site" switch. The order of programs, announcers and activities is set by dragging in the CMS list.
 
@@ -54,6 +54,7 @@ Three things need to run:
 | The category kicker on every news card, and the filter on `/oz-bandung/news` (`?category=sports` etc.; only categories with published stories are offered) | The article's **Category**. The list lives in `oz-cms/src/newsCategories.ts` and `src/lib/news.ts`; change both together |
 | `/about` (starter text shows until the page is written) | **About page** (editorial) |
 | Programs, announcers, activities and their order | **Programs**, **Announcers**, **On-ground activities** |
+| On ground activity pages (`/oz-bandung/activities` and `/oz-bandung/activities/<slug>`), with a photo carousel of the **Cover photo** followed by every **More photos** image, in order and without a limit | **On-ground activities**. The category filter on the list is built from the categories in use, so "Live music" and "LIVE MUSIC" count as one |
 | `/analytics` social numbers | **Social media numbers** (digital) |
 | Chat badges and who can moderate | **Chat roles** (developers only), see Live chat → Moderation |
 | OZ Bandung's audio stream URL, and the YouTube livestream channel (or a pinned video) | **Broadcast → Streams** (developer). Clear the channel to follow the one connected under Broadcast → YouTube |
@@ -70,7 +71,7 @@ News pictures are meant to be landscape 16:9 (best 1600 × 900 px, at least 1200
 
 The mini player is one component, `StationDock.astro`, on both OZ News and OZ Bandung, and it always holds the station itself (`data-station`), so it has the same controls everywhere. On OZ News the client router carries the playing station into it. On OZ Bandung (`<StationDock persist={false} />`) the page script moves the station into it once a stream is playing and the visitor has scrolled past the broadcast section, and back just before the section scrolls into view (`moveBefore` where the browser has it, so the livestream keeps playing). OZ Bandung's own styles for the station's parts are written as `:where(.broadcast) …`, so they stop applying once the station is in the dock and it looks exactly as on OZ News; keep new station styles that way.
 
-On-ground activity cards take their photo's own shape (between 3:4 and 2:1), so posters aren't cropped; the activity popup frames tall photos at 16:9 on a blurred copy of themselves, like OZ News.
+On ground activity works like OZ News: on OZ Bandung its cards are the OZ News cards, six to a carousel page (3 × 2 on desktop, 2 × 3 on phones; `data-card-carousel` drives both carousels), and each opens its own page (`src/pages/oz-bandung/activities/`, helpers in `src/lib/activities.ts`) in the OZ News layout. The photo carousel there is a scroll-snapping strip, so it swipes on phones; tall photos sit whole on a blurred copy of themselves at 16:9. The share row on both kinds of page is `src/components/StoryShare.astro`.
 
 **Page scale.** The layout sizes itself from the window's width, so wide but short windows (a 1080p monitor, or a laptop with display scaling) showed everything about a quarter too big. `src/styles/page-zoom.css` zooms the page to 80% on windows at least 1200 px wide and at most 1100 px tall; phones, tablets and tall monitors are unchanged. Anything meant to fill the screen's height divides by it: `height: calc(100svh / var(--page-zoom))`. Scripts that turn `getBoundingClientRect()` into pixel positions divide by the root's computed `zoom` too (the hero logo morph, the chat's ⋯ menu); ratios and scrolling need nothing.
 

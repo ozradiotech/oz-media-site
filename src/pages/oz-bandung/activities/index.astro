@@ -1,0 +1,109 @@
+---
+// The On Ground Activity front page, laid out like OZ News: the first activity leads, two more sit beside it, and
+// the rest follow in a grid, all in the order set in the CMS. It is the archive of every event, upcoming and past.
+// ?category=<name> shows one category (the filter links under the title).
+import NewsLayout from '../../../layouts/NewsLayout.astro';
+import { activitiesIndexPath, activitiesSection, activityPath, getActivities } from '../../../lib/activities';
+import { cmsImage } from '../../../lib/cms';
+import { imageFrame } from '../../../lib/news';
+
+// Rendered per request from the CMS, so a published activity shows up without a rebuild.
+export const prerender = false;
+
+// Categories are typed freely in the CMS, so "Live music" and "LIVE MUSIC" count as one.
+const categoryKey = (category: string) => category.trim().toLowerCase().replace(/\s+/g, '-');
+const everything = await getActivities();
+const categories = [...new Map(everything.map(({ data }) => [categoryKey(data.category), data.category.trim()])).entries()]
+	.filter(([key]) => key)
+	.map(([value, label]) => ({ value, label }));
+const requested = Astro.url.searchParams.get('category') ?? '';
+const category = categories.find(({ value }) => value === requested);
+const all = category ? everything.filter(({ data }) => categoryKey(data.category) === category.value) : everything;
+const categoryHref = (value?: string) => (value ? `${activitiesIndexPath}?category=${encodeURIComponent(value)}` : activitiesIndexPath);
+const [lead, ...rest] = all;
+const secondary = rest.slice(0, 2);
+const river = rest.slice(2);
+---
+
+<NewsLayout
+	title={category ? `${category.label} · On Ground Activity` : 'On Ground Activity'}
+	description="OZ Radio Bandung off air: concerts, meet-ups, workshops and every event we have been part of, upcoming and past."
+	path={activitiesIndexPath}
+	image={lead?.data.image}
+	imageAlt={lead?.data.imageAlt}
+	section={activitiesSection}
+>
+	<header class="newsroom-head">
+		<nav class="news-crumbs" aria-label="Breadcrumb">
+			<a href="/oz-bandung">OZ Radio Bandung</a>
+			<span aria-hidden="true">/</span>
+			<span aria-current="page">On Ground Activity</span>
+		</nav>
+		<p class="news-eyebrow">OZ RADIO BANDUNG · OFF AIR</p>
+		<h1 class="newsroom-title">On ground <span>activity.</span></h1>
+		<p class="newsroom-deck">Where OZ Radio Bandung meets its listeners: what's coming up and everything we've done. <span>{all.length} {all.length === 1 ? 'activity' : 'activities'}{category && ` in ${category.label}`}</span></p>
+		{categories.length > 1 && (
+			<nav class="newsroom-filter" aria-label="Activity categories">
+				<a class="news-pill" href={categoryHref()} aria-current={category ? undefined : 'page'}>ALL</a>
+				{categories.map(({ value, label }) => (
+					<a class="news-pill" href={categoryHref(value)} aria-current={category?.value === value ? 'page' : undefined}>{label.toUpperCase()}</a>
+				))}
+			</nav>
+		)}
+	</header>
+
+	{lead ? (
+		<>
+			<section class="newsroom-top" aria-label="Featured activities">
+				<a class="news-lead" href={activityPath(lead)}>
+					<div class="news-lead-image" {...imageFrame(lead.data, cmsImage(lead.data.image, 1200))}><img src={cmsImage(lead.data.image, 1200)} alt={lead.data.imageAlt} fetchpriority="high" decoding="async" /></div>
+					<div class="news-lead-copy">
+						<span class="news-kicker">{lead.data.category}</span>
+						<h2>{lead.data.title}</h2>
+						{lead.data.summary && <p>{lead.data.summary}</p>}
+						{lead.data.status && <span class="news-card-when">{lead.data.status}</span>}
+					</div>
+				</a>
+				{secondary.length > 0 && (
+					<div class="newsroom-secondary">
+						{secondary.map((entry) => (
+							<a class="news-card" href={activityPath(entry)}>
+								<div class="news-card-image" {...imageFrame(entry.data, cmsImage(entry.data.image, 600))}><img src={cmsImage(entry.data.image, 600)} alt="" decoding="async" /></div>
+								<div class="news-card-copy">
+									<span class="news-kicker">{entry.data.category}</span>
+									<h3>{entry.data.title}</h3>
+									{entry.data.status && <span class="news-card-when">{entry.data.status}</span>}
+								</div>
+							</a>
+						))}
+					</div>
+				)}
+			</section>
+
+			{river.length > 0 && (
+				<section class="newsroom-river" aria-labelledby="river-title">
+					<div class="newsroom-river-head">
+						<h2 class="news-rule-heading" id="river-title">More activities</h2>
+					</div>
+					<ul class="newsroom-grid" role="list">
+						{river.map((entry) => (
+							<li>
+								<a class="news-card" href={activityPath(entry)}>
+									<div class="news-card-image" {...imageFrame(entry.data, cmsImage(entry.data.image, 600))}><img src={cmsImage(entry.data.image, 600)} alt="" loading="lazy" decoding="async" /></div>
+									<div class="news-card-copy">
+										<span class="news-kicker">{entry.data.category}</span>
+										<h3>{entry.data.title}</h3>
+										{entry.data.summary && <p>{entry.data.summary}</p>}
+										{entry.data.status && <span class="news-card-when">{entry.data.status}</span>}
+									</div>
+								</a>
+							</li>
+						))}
+					</ul>
+				</section>
+			)}
+		</>
+	) : (
+		<p class="newsroom-empty">{category ? <>No {category.label} activities yet. <a href={categoryHref()}>See all activities</a>.</> : 'No activities yet. Check back soon.'}</p>
+	)}
+</NewsLayout>

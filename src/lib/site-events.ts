@@ -18,7 +18,7 @@ export const vitalThresholds: Partial<Record<VitalName, { good: number; poor: nu
 };
 
 /** Pages are reported by kind, not address, so query strings and article slugs never leave the browser. */
-export const pageGroups = ['Home', 'OZ Bandung', 'OZ News', 'News article', 'OZ Bali', 'Privacy policy', 'Other'] as const;
+export const pageGroups = ['Home', 'OZ Bandung', 'OZ News', 'News article', 'On Ground Activity', 'Activity page', 'OZ Bali', 'Privacy policy', 'Other'] as const;
 export type PageGroup = (typeof pageGroups)[number];
 
 export const pageGroup = (path: string): PageGroup => {
@@ -27,6 +27,8 @@ export const pageGroup = (path: string): PageGroup => {
 	if (clean === '/oz-bandung') return 'OZ Bandung';
 	if (clean === '/oz-bandung/news') return 'OZ News';
 	if (clean.startsWith('/oz-bandung/news/')) return 'News article';
+	if (clean === '/oz-bandung/activities') return 'On Ground Activity';
+	if (clean.startsWith('/oz-bandung/activities/')) return 'Activity page';
 	if (clean === '/oz-bali') return 'OZ Bali';
 	if (clean === '/privacy-policy') return 'Privacy policy';
 	return 'Other';

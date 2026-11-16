@@ -313,7 +313,8 @@
 }
 
 .news-card time,
-.news-lead time {
+.news-lead time,
+.news-card-when {
 	margin-top: auto;
 	padding-top: 4px;
 	color: var(--c-muted);
@@ -495,6 +496,174 @@
 	color: var(--c-muted);
 	font-size: 13px;
 	line-height: 1.5;
+}
+
+/* On ground activity photos: a scroll-snapping strip in the lead photo's 16:9 frame, swipeable on touch, with
+   arrows, a counter and a strip of thumbnails. Portrait photos sit whole on a blurred copy (media-fit.css). */
+.activity-gallery-stage {
+	position: relative;
+	overflow: hidden;
+	border: var(--box-border);
+	border-radius: var(--box-radius);
+	background: var(--c-surface-2);
+	box-shadow: var(--box-shadow);
+}
+
+.activity-gallery-track {
+	display: flex;
+	overflow-x: auto;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	overscroll-behavior-x: contain;
+	scroll-snap-type: x mandatory;
+	scrollbar-width: none;
+}
+
+.activity-gallery-track::-webkit-scrollbar {
+	display: none;
+}
+
+.activity-gallery-track:focus-visible {
+	outline-offset: -4px;
+}
+
+.activity-gallery-slide {
+	flex: 0 0 100%;
+	aspect-ratio: 16 / 9;
+	max-height: min(78vh, 720px);
+	scroll-snap-align: start;
+	scroll-snap-stop: always;
+}
+
+.story-figure .activity-gallery-slide img {
+	height: 100%;
+	max-height: none;
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+	background: transparent;
+}
+
+.activity-gallery-arrow {
+	position: absolute;
+	top: 50%;
+	width: 44px;
+	height: 44px;
+	display: grid;
+	place-items: center;
+	padding: 0;
+	border: var(--box-border);
+	border-radius: 50%;
+	background: var(--c-surface);
+	color: var(--c-text);
+	box-shadow: 3px 3px 0 var(--c-shadow);
+	cursor: pointer;
+	translate: 0 -50%;
+	transition: background-color 160ms ease, scale 160ms ease;
+}
+
+.activity-gallery-arrow:hover {
+	background: var(--c-accent-soft);
+}
+
+.activity-gallery-arrow:active {
+	scale: 0.94;
+}
+
+.activity-gallery-arrow svg {
+	width: 20px;
+	height: 20px;
+	fill: none;
+	stroke: currentColor;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+	stroke-width: 2.4;
+}
+
+.activity-gallery-previous {
+	left: 12px;
+}
+
+.activity-gallery-next {
+	right: 12px;
+}
+
+.activity-gallery-count {
+	position: absolute;
+	right: 12px;
+	bottom: 12px;
+	padding: 5px 10px;
+	border-radius: 999px;
+	background: rgb(0 0 0 / 62%);
+	color: #FFFFFF;
+	font-size: 11px;
+	font-weight: 800;
+	font-variant-numeric: tabular-nums;
+	letter-spacing: 0.08em;
+}
+
+.activity-gallery-thumbs {
+	display: flex;
+	gap: 8px;
+	overflow-x: auto;
+	margin-top: 10px;
+	padding: 2px 2px 6px;
+	scrollbar-width: thin;
+}
+
+.activity-gallery-thumb {
+	flex: 0 0 auto;
+	width: 88px;
+	aspect-ratio: 16 / 10;
+	overflow: hidden;
+	padding: 0;
+	border: 2px solid transparent;
+	border-radius: 6px;
+	background: var(--c-surface-2);
+	opacity: 0.6;
+	cursor: pointer;
+	transition: opacity 160ms ease, border-color 160ms ease;
+}
+
+.activity-gallery-thumb:hover,
+.activity-gallery-thumb[aria-current] {
+	opacity: 1;
+}
+
+.activity-gallery-thumb[aria-current] {
+	border-color: var(--c-accent);
+}
+
+.story-figure .activity-gallery-thumb img {
+	width: 100%;
+	height: 100%;
+	max-height: none;
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+	object-fit: cover;
+}
+
+/* Under OZ News's two-thirds/one-third read-next band there is no latest list here, so the cards take the full width. */
+.activity-next {
+	grid-template-columns: minmax(0, 1fr);
+}
+
+.activity-next .story-related {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 20px;
+}
+
+.activity-next .story-related-grid {
+	width: 100%;
+}
+
+.activity-next .news-rule-heading {
+	width: 100%;
+	margin-bottom: 0;
 }
 
 .story-body {
@@ -1044,7 +1213,8 @@
 		display: none;
 	}
 
-	.news-card time {
+	.news-card time,
+	.news-card-when {
 		font-size: 11px;
 	}
 
@@ -1110,10 +1280,19 @@
 	}
 
 	.story-figure img,
-	.story-figure-frame[data-boxed] {
+	.story-figure-frame[data-boxed],
+	.activity-gallery-stage {
 		border-inline: 0;
 		border-radius: 0;
 		box-shadow: none;
+	}
+
+	.activity-gallery-arrow {
+		display: none;
+	}
+
+	.activity-gallery-thumbs {
+		padding-inline: var(--news-gutter);
 	}
 
 	.story-figure figcaption {

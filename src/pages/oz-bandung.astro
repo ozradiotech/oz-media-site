@@ -19,6 +19,7 @@ import { getLiveCollection, render } from 'astro:content';
 import { cmsImage } from '../lib/cms';
 import { ageRanges } from '../lib/listener';
 import { getVisibleNews, imageFrame, newsCategoryLabel, newsIndexPath, newsPath } from '../lib/news';
+import { activitiesIndexPath, activityPath, getActivities } from '../lib/activities';
 import { profileHandle, whatsappLink } from '../lib/station-defaults';
 import { getStationSettings } from '../lib/station-settings';
 import '../styles/ozubathon.css';
@@ -41,7 +42,7 @@ const tiktokHandle = profileHandle(tiktokUrl);
 
 // Published items only, in the order set in the CMS. Unpublished announcers are left out as program hosts too.
 // A CMS outage empties a section rather than breaking the page.
-const live = async <C extends 'programs' | 'announcers' | 'activities'>(collection: C) => {
+const live = async <C extends 'programs' | 'announcers'>(collection: C) => {
 	const { entries, error } = await getLiveCollection(collection);
 	if (error) console.error(`[${collection}]`, error);
 	return entries ?? [];
@@ -49,7 +50,7 @@ const live = async <C extends 'programs' | 'announcers' | 'activities'>(collecti
 const [orderedPrograms, orderedAnnouncers, orderedActivities, orderedNews] = await Promise.all([
 	live('programs'),
 	live('announcers'),
-	live('activities'),
+	getActivities(),
 	getVisibleNews(),
 ]);
 const hostsById = new Map(orderedAnnouncers.map((announcer) => [announcer.id, announcer]));
@@ -61,24 +62,16 @@ const announcersWithBody = await Promise.all(orderedAnnouncers.map(async (entry)
 	entry,
 	Content: (await render(entry)).Content,
 })));
-const activitiesWithBody = await Promise.all(orderedActivities.map(async (entry) => ({
-	entry,
-	Content: (await render(entry)).Content,
-})));
-// On-ground activity cards take their photo's own shape (kept between tall 3:4 and wide 2:1) so nothing is cropped;
-// a photo outside that range, or on a phone (16:10 cards), is shown whole on a blurred copy of itself. Photos
-// without a known size keep the old rotating shapes.
-const activityRatio = (data: { imageWidth?: number; imageHeight?: number }, index: number) =>
-	data.imageWidth && data.imageHeight
-		? Math.min(2, Math.max(0.75, data.imageWidth / data.imageHeight)).toFixed(3)
-		: [1.2, 0.82, 1.6, 0.95, 1.35][index % 5];
-const activityBackdrop = (data: { image: string; imageWidth?: number }) =>
-	data.imageWidth ? ` --media-fit-image: url("${optimizeImageUrl(data.image, 900).replace(/"/g, '%22')}");` : '';
 // Each article has its own page (src/pages/oz-bandung/news/); the cards here link to it.
 // Five cards a page: with the calendar they fill the grid, 3 x 2 on desktop and 2 x 3 on phones.
 const newsPageSize = 5;
 const newsPages = Array.from({ length: Math.ceil(orderedNews.length / newsPageSize) }, (_, page) =>
 	orderedNews.slice(page * newsPageSize, (page + 1) * newsPageSize));
+// On ground activity works the same way, with its own pages (src/pages/oz-bandung/activities/) and six cards a page:
+// 3 x 2 on desktop and 2 x 3 on phones.
+const activityPageSize = 6;
+const activityPages = Array.from({ length: Math.ceil(orderedActivities.length / activityPageSize) }, (_, page) =>
+	orderedActivities.slice(page * activityPageSize, (page + 1) * activityPageSize));
 
 // Unsplash serves resized images on request; CMS images come in a few stored sizes.
 const optimizeImageUrl = (src: string, width: number) => {
@@ -610,36 +603,36 @@ const sections = [
 					<div class="section-heading">
 						<div>
 							<p class="eyebrow">ON GROUND ACTIVITY</p>
-							<h2 id="activities-title">On ground <span>activity.</span></h2>
+							<h2 id="activities-title"><a class="news-title-link" href={activitiesIndexPath}>On ground <span>activity.</span><svg class="news-title-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M12.5 5.5 19 12l-6.5 6.5" /></svg></a></h2>
 						</div>
 					</div>
-					<div
-						class="feature-grid activity-grid"
-						id="activity-grid"
-						role="region"
-						aria-label="On ground activities"
-						tabindex="0"
-						style={`--activity-desktop-columns: ${Math.max(1, Math.min(3, activitiesWithBody.length))}; --activity-tablet-columns: ${Math.max(1, Math.min(2, activitiesWithBody.length))}; --activity-mobile-columns: ${Math.max(1, Math.min(2, activitiesWithBody.length))};`}
-					>
-						{activitiesWithBody.map(({ entry: activity, Content }, index) => (
-							<article class="feature-card activity-card" data-article-card data-activity-card aria-haspopup="dialog" aria-label={`Read full article: ${activity.data.title}`} role="button" tabindex="0">
-								<div
-									class:list={['activity-art', `art-${activity.data.artStyle}`]}
-									style={`--activity-image-ratio: ${activityRatio(activity.data, index)};${activityBackdrop(activity.data)}`}
-									data-boxed={activity.data.imageWidth ? '' : undefined}
-								>
-									<img src={optimizeImageUrl(activity.data.image, 900)} alt={activity.data.imageAlt} loading="lazy" decoding="async" />
-									<span>{activity.data.artLabel}</span>
-								</div>
-								<div class="activity-info">
-									<span class="card-index">{activity.data.category}</span>
-									<h3>{activity.data.title}</h3>
-									<p>{activity.data.summary}</p>
-									{activity.data.status && <span class="card-status">{activity.data.status}</span>}
-								</div>
-								<template data-article-body><Content /></template>
-							</article>
-						))}
+					<div class="activity-carousel" data-card-carousel aria-roledescription="carousel" aria-label="On ground activities">
+						<div class="carousel-stage">
+							<button class="carousel-chevron carousel-chevron-previous carousel-chevron-inset" type="button" data-card-previous hidden={activityPages.length < 2} aria-label="Previous activities">
+								<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5" /></svg>
+							</button>
+							{activityPages.map((page, pageIndex) => (
+							<div class="activity-grid" data-card-slide hidden={pageIndex !== 0}>
+								{page.map((activity) => (
+									<a class="feature-card news-card" href={activityPath(activity)}>
+										<div class="story-art" {...imageFrame(activity.data, optimizeImageUrl(activity.data.image, 700))}>
+											<img src={optimizeImageUrl(activity.data.image, 700)} alt={activity.data.imageAlt} loading="lazy" decoding="async" />
+											<span class="story-date">{activity.data.status || 'OZ ON GROUND'}</span>
+										</div>
+										<div class="story-copy">
+											<span class="card-index">{activity.data.category}</span>
+											<h3>{activity.data.title}</h3>
+											<p>{activity.data.summary}</p>
+										</div>
+									</a>
+								))}
+							</div>
+							))}
+							<button class="carousel-chevron carousel-chevron-next carousel-chevron-inset" type="button" data-card-next hidden={activityPages.length < 2} aria-label="Next activities">
+								<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 4.5 16.5 12 9 19.5" /></svg>
+							</button>
+						</div>
+						<a class="news-list-trigger" href={activitiesIndexPath}>VIEW ALL ACTIVITIES →</a>
 					</div>
 				</div>
 			</section>
@@ -654,13 +647,13 @@ const sections = [
 						</div>
 					</div>
 					<div class="news-layout">
-						<div class="news-articles" data-news-carousel aria-roledescription="carousel" aria-label="Latest OZ News articles">
+						<div class="news-articles" data-card-carousel aria-roledescription="carousel" aria-label="Latest OZ News articles">
 							<div class="carousel-stage">
-								<button class="carousel-chevron carousel-chevron-previous carousel-chevron-inset" type="button" data-news-previous hidden={newsPages.length < 2} aria-label="Previous articles">
+								<button class="carousel-chevron carousel-chevron-previous carousel-chevron-inset" type="button" data-card-previous hidden={newsPages.length < 2} aria-label="Previous articles">
 									<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 4.5 7.5 12l7.5 7.5" /></svg>
 								</button>
 								{newsPages.map((page, pageIndex) => (
-								<div class="news-grid" data-news-slide hidden={pageIndex !== 0}>
+								<div class="news-grid" data-card-slide hidden={pageIndex !== 0}>
 									{page.map((article) => (
 										<a class="feature-card news-card" href={newsPath(article)}>
 											<div class="story-art" {...imageFrame(article.data, optimizeImageUrl(article.data.image, 700))}>
@@ -680,7 +673,7 @@ const sections = [
 									))}
 								</div>
 								))}
-								<button class="carousel-chevron carousel-chevron-next carousel-chevron-inset" type="button" data-news-next hidden={newsPages.length < 2} aria-label="Next articles">
+								<button class="carousel-chevron carousel-chevron-next carousel-chevron-inset" type="button" data-card-next hidden={newsPages.length < 2} aria-label="Next articles">
 									<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 4.5 16.5 12 9 19.5" /></svg>
 								</button>
 							</div>
@@ -734,28 +727,6 @@ const sections = [
 		</main>
 		<!-- The OZ News mini player; the page script moves the station into it once the visitor scrolls past the broadcast section. -->
 		<StationDock persist={false} />
-		<dialog class="article-dialog" data-article-dialog aria-labelledby="article-dialog-title">
-			<!-- Zero-height bar pinned to the top while reading: holds the close button and the reading progress line. -->
-			<div class="article-dialog-bar">
-				<span class="article-dialog-progress" data-article-progress aria-hidden="true"></span>
-				<button class="dialog-close article-dialog-close" type="button" data-article-close aria-label="Close article">×</button>
-			</div>
-			<!-- The card's photo, whole; tall ones sit on a blurred copy of themselves (data-boxed, src/styles/media-fit.css). -->
-			<div class="article-dialog-media" data-article-media>
-				<img class="article-dialog-image" data-article-image alt="Article image" />
-			</div>
-			<div class="article-dialog-copy">
-				<p class="eyebrow" data-article-category></p>
-				<h2 id="article-dialog-title" data-article-title></h2>
-				<p class="article-dialog-meta" data-article-meta hidden>
-					<time data-article-date hidden></time>
-					<span data-article-reading-time></span>
-				</p>
-				<p class="article-dialog-description" data-article-description></p>
-				<div class="article-dialog-body" data-article-body-content hidden></div>
-				<p class="article-dialog-status" data-article-status hidden></p>
-			</div>
-		</dialog>
 		<dialog class="program-dialog" data-program-dialog aria-labelledby="program-dialog-title">
 			<button class="dialog-close program-dialog-close" type="button" data-program-close aria-label="Close program details">×</button>
 			<div class="program-dialog-media">
@@ -1594,50 +1565,7 @@ const sections = [
 			onLeave(signal, () => embedObserver.disconnect());
 		}
 
-		const articleDialog = document.querySelector<HTMLDialogElement>('[data-article-dialog]');
 		const programDialog = document.querySelector<HTMLDialogElement>('[data-program-dialog]');
-		const activityGrid = document.querySelector<HTMLElement>('#activity-grid');
-		const activityCards = activityGrid?.querySelectorAll<HTMLElement>('[data-activity-card]');
-		if (activityGrid && activityCards?.length) {
-			const cards = Array.from(activityCards);
-			let lastLayoutWidth = 0;
-			let lastColumnCount = 0;
-
-			const layoutActivityCards = () => {
-				const gridWidth = activityGrid.clientWidth;
-				const columnCount = Number.parseInt(getComputedStyle(activityGrid).getPropertyValue('--activity-column-count'), 10) || 1;
-				if (gridWidth === lastLayoutWidth && columnCount === lastColumnCount) return;
-				lastLayoutWidth = gridWidth;
-				lastColumnCount = columnCount;
-				const columns = Array.from({ length: columnCount }, () => {
-					const column = document.createElement('div');
-					column.className = 'activity-column';
-					return column;
-				});
-
-				activityGrid.replaceChildren(...columns);
-				cards.forEach((card, index) => columns[index % columnCount].append(card));
-				const cardHeights = new Map(cards.map((card) => [card, card.getBoundingClientRect().height]));
-				const columnHeights = Array<number>(columnCount).fill(0);
-				const columnGap = Number.parseFloat(getComputedStyle(columns[0]).rowGap) || 0;
-
-				columns.forEach((column) => column.replaceChildren());
-				cards.forEach((card) => {
-					const shortestColumn = columnHeights.indexOf(Math.min(...columnHeights));
-					columns[shortestColumn].append(card);
-					columnHeights[shortestColumn] += (cardHeights.get(card) ?? 0) + columnGap;
-				});
-			};
-
-			layoutActivityCards();
-
-			let resizeFrame = 0;
-			window.addEventListener('resize', () => {
-				window.cancelAnimationFrame(resizeFrame);
-				resizeFrame = window.requestAnimationFrame(layoutActivityCards);
-			}, { signal });
-		}
-
 		const announcerMarquee = document.querySelector<HTMLElement>('[data-announcer-marquee]');
 		const announcerDialog = document.querySelector<HTMLDialogElement>('[data-announcer-dialog]');
 		if (announcerMarquee) {
@@ -1794,7 +1722,7 @@ const sections = [
 			};
 			const startAutoplay = () => {
 				stopAutoplay();
-				if (pageCount < 2 || reducedMotion.matches || document.hidden || isHovered || isFocused || articleDialog?.open || programDialog?.open) return;
+				if (pageCount < 2 || reducedMotion.matches || document.hidden || isHovered || isFocused || programDialog?.open) return;
 				autoplayTimer = window.setTimeout(() => {
 					showProgramPage(currentPageIndex + 1);
 					startAutoplay();
@@ -1833,32 +1761,31 @@ const sections = [
 			document.addEventListener('visibilitychange', startAutoplay, { signal });
 			reducedMotion.addEventListener('change', startAutoplay, { signal });
 			onLeave(signal, stopAutoplay);
-			articleDialog?.addEventListener('close', startAutoplay);
 			programDialog?.addEventListener('close', startAutoplay);
 			startAutoplay();
 		}
 
-		const newsCarousel = document.querySelector<HTMLElement>('[data-news-carousel]');
-		const newsSlides = newsCarousel?.querySelectorAll<HTMLElement>('[data-news-slide]');
-		const newsPrevious = newsCarousel?.querySelector<HTMLButtonElement>('[data-news-previous]');
-		const newsNext = newsCarousel?.querySelector<HTMLButtonElement>('[data-news-next]');
+		// OZ News and On ground activity: pages of cards, flipped with the chevrons, wrapping round at either end.
+		document.querySelectorAll<HTMLElement>('[data-card-carousel]').forEach((carousel) => {
+			const slides = carousel.querySelectorAll<HTMLElement>('[data-card-slide]');
+			const previous = carousel.querySelector<HTMLButtonElement>('[data-card-previous]');
+			const next = carousel.querySelector<HTMLButtonElement>('[data-card-next]');
+			if (slides.length < 2 || !previous || !next) return;
+			let current = 0;
 
-		if (newsSlides?.length && newsPrevious && newsNext) {
-			let currentNewsIndex = 0;
-
-			const showNewsSlide = (index: number, direction: 'next' | 'previous') => {
-				currentNewsIndex = (index + newsSlides.length) % newsSlides.length;
-				newsSlides.forEach((slide, slideIndex) => {
-					const isActive = slideIndex === currentNewsIndex;
+			const show = (index: number, direction: 'next' | 'previous') => {
+				current = (index + slides.length) % slides.length;
+				slides.forEach((slide, slideIndex) => {
+					const isActive = slideIndex === current;
 					slide.hidden = !isActive;
 					slide.classList.toggle('from-next', isActive && direction === 'next');
 					slide.classList.toggle('from-previous', isActive && direction === 'previous');
 				});
 			};
 
-			newsPrevious.addEventListener('click', () => showNewsSlide(currentNewsIndex - 1, 'previous'));
-			newsNext.addEventListener('click', () => showNewsSlide(currentNewsIndex + 1, 'next'));
-		}
+			previous.addEventListener('click', () => show(current - 1, 'previous'), { signal });
+			next.addEventListener('click', () => show(current + 1, 'next'), { signal });
+		});
 
 		if (window.matchMedia('(hover: hover) and (pointer: fine)').matches && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
 			const tiltCards = [
@@ -1896,89 +1823,6 @@ const sections = [
 				card.addEventListener('pointercancel', resetTilt);
 			});
 		}
-
-		const articleImage = articleDialog?.querySelector<HTMLImageElement>('[data-article-image]');
-		const articleMedia = articleDialog?.querySelector<HTMLElement>('[data-article-media]');
-		// Once the photo's shape is known: anything narrower than 3:2 goes in a 16:9 frame over a blurred copy of itself.
-		const frameArticleImage = () => {
-			if (!articleImage || !articleMedia) return;
-			const ratio = articleImage.naturalWidth / (articleImage.naturalHeight || 1);
-			const boxed = articleImage.naturalWidth > 0 && ratio < 1.5;
-			articleMedia.toggleAttribute('data-boxed', boxed);
-			articleMedia.style.setProperty('--media-fit-image', boxed ? `url("${articleImage.currentSrc.replace(/"/g, '%22')}")` : '');
-		};
-		const articleCategory = articleDialog?.querySelector<HTMLElement>('[data-article-category]');
-		const articleTitle = articleDialog?.querySelector<HTMLElement>('[data-article-title]');
-		const articleDescription = articleDialog?.querySelector<HTMLElement>('[data-article-description]');
-		const articleBody = articleDialog?.querySelector<HTMLElement>('[data-article-body-content]');
-		const articleStatus = articleDialog?.querySelector<HTMLElement>('[data-article-status]');
-		const articleMeta = articleDialog?.querySelector<HTMLElement>('[data-article-meta]');
-		const articleDate = articleDialog?.querySelector<HTMLTimeElement>('[data-article-date]');
-		const articleReadingTime = articleDialog?.querySelector<HTMLElement>('[data-article-reading-time]');
-		const articleProgress = articleDialog?.querySelector<HTMLElement>('[data-article-progress]');
-
-		const updateArticleProgress = () => {
-			if (!articleDialog || !articleProgress) return;
-			const scrollable = articleDialog.scrollHeight - articleDialog.clientHeight;
-			articleProgress.hidden = scrollable < 40;
-			articleProgress.style.setProperty('--article-progress', String(scrollable > 0 ? Math.min(1, articleDialog.scrollTop / scrollable) : 0));
-		};
-
-		const openArticle = (card: HTMLElement) => {
-			if (!articleDialog || !articleImage || !articleCategory || !articleTitle || !articleDescription || !articleBody || !articleStatus || !articleMeta || !articleDate || !articleReadingTime) return;
-			const heading = card.querySelector<HTMLElement>('h3');
-			const image = card.querySelector<HTMLImageElement>('img');
-			if (!heading || !image) return;
-
-			articleMedia?.removeAttribute('data-boxed');
-			articleImage.src = image.currentSrc || image.src;
-			articleImage.alt = heading.textContent?.trim() ?? '';
-			if (articleImage.complete) frameArticleImage();
-			articleCategory.textContent = card.querySelector('.card-index')?.textContent?.trim() ?? '';
-			articleTitle.textContent = heading.textContent?.trim() ?? '';
-			articleDescription.textContent = card.querySelector('p')?.textContent?.trim() ?? '';
-			articleDescription.hidden = !articleDescription.textContent;
-			const bodyTemplate = card.querySelector<HTMLTemplateElement>('template[data-article-body]');
-			const body = bodyTemplate?.content.cloneNode(true) ?? document.createDocumentFragment();
-			articleBody.replaceChildren(body);
-			articleBody.hidden = !articleBody.textContent?.trim();
-			const status = card.querySelector<HTMLElement>('.card-status');
-			articleStatus.textContent = status?.textContent?.trim() ?? '';
-			articleStatus.hidden = !articleStatus.textContent;
-
-			// Date comes from the card when it has one; reading time is counted from the summary and body at ~200 words a minute.
-			const date = card.querySelector<HTMLTimeElement>('time[datetime]');
-			articleDate.textContent = date?.textContent?.trim() ?? '';
-			articleDate.dateTime = date?.dateTime ?? '';
-			articleDate.hidden = !articleDate.textContent;
-			const words = `${articleDescription.textContent} ${articleBody.textContent ?? ''}`.trim().split(/\s+/).filter(Boolean).length;
-			articleReadingTime.textContent = words ? `${Math.max(1, Math.round(words / 200))} min read` : '';
-			articleMeta.hidden = articleDate.hidden && !articleReadingTime.textContent;
-
-			articleDialog.showModal();
-			// The dialog is reused, so start each article from its top.
-			articleDialog.scrollTop = 0;
-			updateArticleProgress();
-		};
-
-		document.querySelectorAll<HTMLElement>('[data-article-card]').forEach((card) => {
-			card.addEventListener('click', () => openArticle(card));
-			if (!(card instanceof HTMLButtonElement)) {
-				card.addEventListener('keydown', (event) => {
-					if (event.key !== 'Enter' && event.key !== ' ') return;
-					event.preventDefault();
-					openArticle(card);
-				});
-			}
-		});
-
-		articleDialog?.querySelector('[data-article-close]')?.addEventListener('click', () => articleDialog.close());
-		articleDialog?.addEventListener('click', (event) => {
-			if (event.target === articleDialog) articleDialog.close();
-		});
-		articleDialog?.addEventListener('scroll', updateArticleProgress, { passive: true });
-		articleImage?.addEventListener('load', updateArticleProgress);
-		articleImage?.addEventListener('load', frameArticleImage);
 
 		const programImage = programDialog?.querySelector<HTMLImageElement>('[data-program-image]');
 		const programEyebrow = programDialog?.querySelector<HTMLElement>('[data-program-eyebrow]');
@@ -3372,259 +3216,14 @@ const sections = [
 		box-shadow: 0 24px 80px rgb(0 0 0 / 55%);
 	}
 
-	.article-dialog {
-		width: min(820px, calc(100% - 28px));
-		max-width: none;
-		max-height: min(92dvh, 960px);
-		overflow: auto;
-		overscroll-behavior: contain;
-		scroll-padding-top: 64px;
-		padding: 0;
-		border: 1px solid var(--c-line);
-		border-radius: 4px;
-		background: var(--c-surface);
-		color: var(--c-text);
-		box-shadow: 0 24px 80px rgb(0 0 0 / 55%);
-	}
-
 	.news-list-trigger:focus-visible {
 		outline: 2px solid var(--c-accent);
 		outline-offset: 3px;
 	}
 
-	.article-dialog[open] {
-		animation: dialog-reveal 220ms ease-out both;
-	}
-
-	.article-dialog::backdrop {
-		background: rgb(0 0 0 / 78%);
-		backdrop-filter: blur(3px);
-		animation: backdrop-reveal 220ms ease-out both;
-	}
-
-	/* Sticky but zero-height, so it overlays the photo instead of pushing it down, and stays put while reading. */
-	.article-dialog-bar {
-		position: sticky;
-		z-index: 2;
-		top: 0;
-		height: 0;
-	}
-
-	.article-dialog-progress {
-		position: absolute;
-		top: 0;
-		left: 0;
-		width: 100%;
-		height: 3px;
-		background: var(--c-accent);
-		transform: scaleX(var(--article-progress, 0));
-		transform-origin: left;
-		pointer-events: none;
-	}
-
-	.article-dialog-close {
-		box-shadow: 0 4px 14px rgb(0 0 0 / 22%);
-	}
-
 	/* The whole photo is shown at its own proportions: full width when landscape. A tall one (data-boxed, set by the
 	   script) sits in a 16:9 frame on a blurred copy of itself, like OZ News (src/styles/media-fit.css). */
-	.article-dialog-image {
-		display: block;
-		width: auto;
-		max-width: 100%;
-		height: auto;
-		max-height: min(70dvh, 640px);
-		margin: 0 auto;
-	}
 
-	.article-dialog-media[data-boxed] {
-		width: 100%;
-		aspect-ratio: 16 / 9;
-		max-height: min(70dvh, 640px);
-	}
-
-	.article-dialog-media[data-boxed] .article-dialog-image {
-		width: 100%;
-		height: 100%;
-		max-height: none;
-	}
-
-	/* Reading column: ~65 characters a line, larger text and roomier leading than the rest of the site. */
-	.article-dialog-copy {
-		max-width: calc(66ch + 2 * clamp(20px, 5vw, 48px));
-		margin: 0 auto;
-		padding: clamp(22px, 5vw, 44px) clamp(20px, 5vw, 48px) clamp(32px, 6vw, 56px);
-		font-size: clamp(16px, 1.1vw + 12px, 18px);
-	}
-
-	.article-dialog-copy .eyebrow {
-		margin: 0 0 12px;
-		color: var(--c-accent-strong);
-		font-size: 10px;
-		font-weight: 700;
-		letter-spacing: 0.14em;
-	}
-
-	.article-dialog-copy h2 {
-		margin: 0 0 14px;
-		font-size: clamp(26px, 4.6vw, 42px);
-		letter-spacing: -0.025em;
-		line-height: 1.1;
-		text-wrap: balance;
-	}
-
-	.article-dialog-meta {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 4px 14px;
-		margin: 0 0 22px;
-		padding-bottom: 18px;
-		border-bottom: 1px solid var(--c-line);
-		color: var(--c-muted);
-		font-size: 11px;
-		font-weight: 700;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-	}
-
-	.article-dialog-meta time:not([hidden]) + span:not(:empty)::before {
-		content: '·';
-		margin-right: 14px;
-	}
-
-	/* The summary reads as the standfirst. */
-	.article-dialog-description {
-		margin: 0;
-		color: var(--c-text);
-		font-size: 1.12em;
-		font-weight: 500;
-		line-height: 1.6;
-		white-space: pre-wrap;
-		text-wrap: pretty;
-	}
-
-	.article-dialog-body {
-		margin-top: 1.6em;
-		color: var(--c-text);
-		font-size: 1em;
-		line-height: 1.75;
-		overflow-wrap: break-word;
-		text-wrap: pretty;
-	}
-
-	:global(.article-dialog-body > :first-child) {
-		margin-top: 0;
-	}
-
-	:global(.article-dialog-body > :last-child) {
-		margin-bottom: 0;
-	}
-
-	:global(.article-dialog-body p),
-	:global(.article-dialog-body ul),
-	:global(.article-dialog-body ol) {
-		margin: 0 0 1.25em;
-	}
-
-	:global(.article-dialog-body ul),
-	:global(.article-dialog-body ol) {
-		padding-left: 1.4em;
-	}
-
-	:global(.article-dialog-body li + li) {
-		margin-top: 0.4em;
-	}
-
-	:global(.article-dialog-body h2),
-	:global(.article-dialog-body h3),
-	:global(.article-dialog-body h4) {
-		margin: 1.8em 0 0.6em;
-		color: var(--c-text);
-		line-height: 1.25;
-		letter-spacing: -0.01em;
-		text-wrap: balance;
-	}
-
-	:global(.article-dialog-body h2) { font-size: 1.4em; }
-	:global(.article-dialog-body h3) { font-size: 1.2em; }
-	:global(.article-dialog-body h4) { font-size: 1.05em; }
-
-	:global(.article-dialog-body a) {
-		color: var(--c-link);
-		text-decoration: underline;
-		text-underline-offset: 0.18em;
-	}
-
-	:global(.article-dialog-body strong) {
-		color: var(--c-text);
-	}
-
-	:global(.article-dialog-body img) {
-		display: block;
-		max-width: 100%;
-		height: auto;
-		margin: 1.6em auto;
-		border-radius: 3px;
-	}
-
-	:global(.article-dialog-body blockquote) {
-		margin: 1.6em 0;
-		padding: 0.2em 0 0.2em 1.1em;
-		border-left: 3px solid var(--c-accent);
-		color: var(--c-text-2);
-		font-size: 1.08em;
-		font-style: italic;
-	}
-
-	:global(.article-dialog-body blockquote p:last-child) {
-		margin-bottom: 0;
-	}
-
-	:global(.article-dialog-body hr) {
-		margin: 2em 0;
-		border: 0;
-		border-top: 1px solid var(--c-line);
-	}
-
-	:global(.article-dialog-body code) {
-		padding: 0.1em 0.35em;
-		border-radius: 3px;
-		background: var(--c-accent-faint);
-		font-size: 0.9em;
-	}
-
-	:global(.article-dialog-body table) {
-		display: block;
-		max-width: 100%;
-		margin: 1.6em 0;
-		overflow-x: auto;
-		border-collapse: collapse;
-		font-size: 0.9em;
-	}
-
-	:global(.article-dialog-body th),
-	:global(.article-dialog-body td) {
-		padding: 0.5em 0.75em;
-		border: 1px solid var(--c-line);
-		text-align: left;
-	}
-
-	.article-dialog-status {
-		margin: 2em 0 0;
-		padding-top: 14px;
-		border-top: 1px solid var(--c-line);
-		color: var(--c-muted);
-		font-size: 9px;
-		font-weight: 700;
-		letter-spacing: 0.12em;
-	}
-
-	.article-dialog .dialog-close {
-		position: absolute;
-		z-index: 1;
-		top: 12px;
-		right: 12px;
-	}
 
 	.listener-dialog[open] {
 		animation: dialog-reveal 220ms ease-out both;
@@ -4158,25 +3757,6 @@ const sections = [
 		display: grid;
 		gap: 18px;
 		
-	}
-
-	.activity-grid {
-		--activity-column-count: var(--activity-desktop-columns);
-		min-height: 0;
-		display: grid;
-		flex: 1 1 0;
-		grid-template-columns: repeat(var(--activity-column-count), minmax(0, 1fr));
-		align-items: start;
-		gap: 18px;
-		overflow-x: hidden;
-		overflow-y: auto;
-		/* Room for the cards' block shadow and hover lift. */
-		padding: 6px 12px calc(var(--box-offset) + 10px) 4px;
-		overscroll-behavior-y: contain;
-		scroll-behavior: smooth;
-		scrollbar-color: var(--c-scrollbar) transparent;
-		scrollbar-gutter: stable;
-		scrollbar-width: thin;
 	}
 
 	.feature-card {
@@ -4844,13 +4424,11 @@ const sections = [
 		box-shadow: var(--box-shadow);
 	}
 
-	.program-slide[data-program-card],
-	.activity-card[data-article-card] {
+	.program-slide[data-program-card] {
 		cursor: pointer;
 	}
 
 	.program-slide[data-program-card]:hover,
-	.activity-card[data-article-card]:hover,
 	a.news-card:hover {
 		box-shadow: var(--box-shadow-hover);
 	}
@@ -4872,7 +4450,6 @@ const sections = [
 	}
 
 	.program-slide[data-program-card]:focus-visible,
-	.activity-card[data-article-card]:focus-visible,
 	a.news-card:focus-visible {
 		outline: 2px solid var(--c-accent);
 		outline-offset: 3px;
@@ -5340,10 +4917,6 @@ const sections = [
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 
-		.activity-grid {
-			--activity-column-count: var(--activity-tablet-columns);
-		}
-
 		.tiktok-card {
 			grid-column: 1 / -1;
 		}
@@ -5359,114 +4932,6 @@ const sections = [
 		min-width: 0 !important;
 		max-width: 100% !important;
 		border: 0;
-	}
-
-	.activity-card {
-		display: flex;
-		flex-direction: column;
-		width: 100%;
-		transform-origin: center;
-		transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
-	}
-
-	.activity-card:hover,
-	.activity-card:focus-visible {
-		z-index: 1;
-		box-shadow: var(--box-shadow-hover);
-		transform: translate(-2px, -4px);
-	}
-
-	.activity-card:focus-visible {
-		outline: 2px solid var(--c-accent);
-		outline-offset: 2px;
-	}
-
-	:global(.activity-column) {
-		min-width: 0;
-		align-self: start;
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-	}
-
-	#activities .screen-content {
-		min-height: 0;
-		display: flex;
-		flex: 1 1 auto;
-		flex-direction: column;
-		margin-block: 0;
-	}
-
-	.activity-art {
-		position: relative;
-		overflow: hidden;
-		min-height: 100px;
-		aspect-ratio: var(--activity-image-ratio, 2.4 / 1);
-		display: flex;
-		align-items: flex-end;
-		padding: 12px;
-		color: #FFFFFF;
-		font-size: 10px;
-		font-weight: 800;
-		letter-spacing: 0.1em;
-		line-height: 1.35;
-	}
-
-	.activity-art::after {
-		position: absolute;
-		inset: 0;
-		background: linear-gradient(0deg, rgb(0 0 0 / 58%), transparent 75%);
-		content: '';
-	}
-
-	.activity-art img {
-		position: absolute;
-		inset: 0;
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-		transition: transform 350ms ease;
-	}
-
-	.activity-card:hover .activity-art img,
-	.activity-card:focus-visible .activity-art img {
-		transform: scale(1.045);
-	}
-
-	.activity-art > span {
-		position: relative;
-		z-index: 1;
-		white-space: pre-line;
-	}
-
-	.art-listen {
-		background: radial-gradient(ellipse at 70% 100%, rgba(242, 189, 87, 0.40), transparent 50%), #FFF5DF;
-	}
-
-	.art-meet {
-		background: linear-gradient(135deg, var(--c-accent), var(--c-surface) 64%);
-	}
-
-	.art-create {
-		background: radial-gradient(circle at 30% 30%, rgba(242, 189, 87, 0.22), transparent 50%), #FFF8E8;
-	}
-
-	.activity-info {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
-		padding: clamp(12px, 1.6vw, 18px);
-	}
-
-	.activity-info h3 {
-		margin: 10px 0 6px;
-		font-size: clamp(16px, 2vw, 21px);
-	}
-
-	.activity-info .card-status {
-		width: 100%;
-		margin-top: auto;
 	}
 
 	/* The section title opens the full OZ News list; the arrow says so and nudges forward on hover. */
@@ -5551,6 +5016,36 @@ const sections = [
 	}
 
 	.news-grid.from-previous {
+		animation: news-slide-from-previous 320ms ease both;
+	}
+
+	/* On ground activity: the OZ News cards and carousel without the calendar, six to a page. */
+	.activity-carousel {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 12px;
+	}
+
+	.activity-carousel .carousel-stage {
+		width: 100%;
+	}
+
+	.activity-grid {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 12px;
+	}
+
+	.activity-grid[hidden] {
+		display: none;
+	}
+
+	.activity-grid.from-next {
+		animation: news-slide-from-next 320ms ease both;
+	}
+
+	.activity-grid.from-previous {
 		animation: news-slide-from-previous 320ms ease both;
 	}
 
@@ -5995,15 +5490,6 @@ const sections = [
 			font-size: 6px;
 		}
 
-		.activity-grid {
-			--activity-column-count: var(--activity-mobile-columns);
-			gap: 7px;
-		}
-
-		:global(.activity-column) {
-			gap: 7px;
-		}
-
 		.program-slides {
 			gap: 7px;
 		}
@@ -6095,40 +5581,9 @@ const sections = [
 			font-size: 6px;
 		}
 
-		.activity-card {
-			display: flex;
-			min-height: 0;
-		}
-
-		.activity-art {
-			min-height: 0;
-			aspect-ratio: var(--activity-image-ratio, 2.4 / 1);
-			padding: 8px;
-			font-size: 8px;
-		}
-
-		.activity-info {
-			padding: 10px;
-		}
-
-		.activity-info .card-index {
-			font-size: 6px;
-		}
-
-		.activity-info h3 {
-			margin: 4px 0;
-			font-size: 13px;
-		}
-
-		.activity-info p {
-			font-size: 8px;
-			line-height: 1.3;
-		}
-
-		.activity-info .card-status {
-			padding-top: 5px;
-			margin-top: 5px;
-			font-size: 6px;
+		.activity-grid {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: 8px;
 		}
 
 		/* Two columns on phones: the calendar and the first card share the top row. */
@@ -6188,20 +5643,6 @@ const sections = [
 		/* Keeps the calendar to one card's height; On Ground sits just above anyway. */
 		.calendar-card .outline-link {
 			display: none;
-		}
-
-		/* On phones the article opens as a full-screen reader. */
-		.article-dialog {
-			width: 100%;
-			height: 100dvh;
-			max-height: 100dvh;
-			border: 0;
-			border-radius: 0;
-		}
-
-		.article-dialog-image,
-		.article-dialog-media[data-boxed] {
-			max-height: 55dvh;
 		}
 
 		.contact-layout {
@@ -6376,11 +5817,6 @@ const sections = [
 			animation: none;
 		}
 
-		.article-dialog[open],
-		.article-dialog::backdrop {
-			animation: none;
-		}
-
 		.program-dialog[open],
 		.program-dialog::backdrop,
 		.program-dialog[open] .program-dialog-media img,
@@ -6399,7 +5835,9 @@ const sections = [
 		}
 
 		.news-grid.from-next,
-		.news-grid.from-previous {
+		.news-grid.from-previous,
+		.activity-grid.from-next,
+		.activity-grid.from-previous {
 			animation: none;
 		}
 
@@ -6431,25 +5869,6 @@ const sections = [
 			box-shadow: none;
 		}
 
-		.activity-grid {
-			scroll-behavior: auto;
-		}
-
-		.activity-card,
-		.activity-art img {
-			transition: none;
-		}
-
-		.activity-card:hover,
-		.activity-card:focus-visible {
-			box-shadow: none;
-			transform: none;
-		}
-
-		.activity-card:hover .activity-art img,
-		.activity-card:focus-visible .activity-art img {
-			transform: none;
-		}
 	}
 
 	@keyframes broadcast-reveal {
@@ -6741,18 +6160,6 @@ const sections = [
 
 	:global(:root[data-theme='night']) #online.screen {
 		overflow: visible;
-	}
-
-	:global(:root[data-theme='night']) #activities .screen-content {
-		flex: 0 0 auto;
-		margin-block: auto;
-	}
-
-	:global(:root[data-theme='night']) .activity-grid {
-		flex: none;
-		overflow: visible;
-		padding: 4px 0 8px;
-		scrollbar-gutter: auto;
 	}
 
 	/* ---------- Topbar ---------- */
@@ -7215,7 +6622,6 @@ const sections = [
 	:global(:root[data-theme='night']) .youtube-current,
 	:global(:root[data-theme='night']) .video-picker-item span,
 	:global(:root[data-theme='night']) .program-dialog-label,
-	:global(:root[data-theme='night']) .article-dialog-status,
 	:global(:root[data-theme='night']) .listener-confirmation dt,
 	:global(:root[data-theme='night']) .broadcast-label,
 	:global(:root[data-theme='night']) .on-air,
@@ -7484,10 +6890,6 @@ const sections = [
 		color: var(--c-accent);
 	}
 
-	:global(:root[data-theme='night']) .activity-art > span {
-		font-weight: 800;
-	}
-
 	:global(:root[data-theme='night']) .contact-layout {
 		background:
 			radial-gradient(rgb(var(--ozb-glow) / 12%) 1px, transparent 1.6px) right bottom / 13px 13px,
@@ -7529,7 +6931,6 @@ const sections = [
 	}
 
 	:global(:root[data-theme='night']) .listener-dialog,
-	:global(:root[data-theme='night']) .article-dialog,
 	:global(:root[data-theme='night']) .announcer-dialog,
 	:global(:root[data-theme='night']) .program-dialog {
 		border-radius: 20px;
@@ -7554,10 +6955,6 @@ const sections = [
 	/* ---------- Phones ---------- */
 
 	@media (max-width: 650px) {
-		:global(:root[data-theme='night']) .article-dialog {
-			border-radius: 0;
-			box-shadow: none;
-		}
 
 		:global(:root[data-theme='night']) .screen {
 			padding-inline: 18px;
@@ -7611,10 +7008,6 @@ const sections = [
 			right: -8px;
 		}
 
-		:global(:root[data-theme='night']) .activity-grid {
-			gap: 14px;
-		}
-
 		:global(:root[data-theme='night']) .social-grid {
 			gap: 14px;
 		}
@@ -7632,7 +7025,8 @@ const sections = [
 			max-width: none;
 		}
 
-		:global(:root[data-theme='night']) .news-layout {
+		:global(:root[data-theme='night']) .news-layout,
+		:global(:root[data-theme='night']) .activity-grid {
 			gap: 14px;
 		}
 
@@ -7661,16 +7055,6 @@ const sections = [
 
 	}
 
-	@media (max-width: 480px) {
-		:global(:root[data-theme='night']) .activity-grid {
-			--activity-column-count: 1;
-		}
-
-		/* One column: keep the photos landscape so a card fits on screen. */
-		:global(:root[data-theme='night']) .activity-art {
-			aspect-ratio: 16 / 10;
-		}
-	}
 
 	/* ---------- Motion: transform and opacity only, so every loop stays on the compositor ---------- */
 
@@ -7823,7 +7207,6 @@ const sections = [
 	}
 
 	:global(:root[data-theme='night'][data-tone='light']) .listener-dialog,
-	:global(:root[data-theme='night'][data-tone='light']) .article-dialog,
 	:global(:root[data-theme='night'][data-tone='light']) .announcer-dialog,
 	:global(:root[data-theme='night'][data-tone='light']) .program-dialog {
 		box-shadow: 0 0 0 1px var(--c-line), 0 40px 100px -24px rgb(60 40 0 / 45%);
@@ -7835,9 +7218,4 @@ const sections = [
 			linear-gradient(140deg, var(--c-surface), var(--c-bg-alt) 120%);
 	}
 
-	@media (max-width: 650px) {
-		:global(:root[data-theme='night'][data-tone='light']) .article-dialog {
-			box-shadow: none;
-		}
-	}
 </style>

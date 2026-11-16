@@ -1,20 +1,22 @@
 import type { APIRoute } from 'astro';
+import { activitiesIndexPath, activityPath, getActivities } from '../lib/activities';
 import { getVisibleNews, newsIndexPath, newsPath } from '../lib/news';
 
-// Rendered per request, like the news pages, so new articles are listed as soon as they are published.
+// Rendered per request, like the news and activity pages, so new ones are listed as soon as they are published.
 // Add new public pages to staticPaths; /admin and /analytics stay out on purpose.
 export const prerender = false;
 
-const staticPaths = ['/', '/oz-bandung', '/oz-bali', newsIndexPath, '/about', '/privacy-policy'];
+const staticPaths = ['/', '/oz-bandung', '/oz-bali', newsIndexPath, activitiesIndexPath, '/about', '/privacy-policy'];
 
 const escapeXml = (value: string) =>
 	value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 
 export const GET: APIRoute = async ({ site }) => {
-	const news = await getVisibleNews();
+	const [news, activities] = await Promise.all([getVisibleNews(), getActivities()]);
 	const urls = [
 		...staticPaths.map((path) => ({ path, lastmod: undefined as Date | undefined })),
 		...news.map((entry) => ({ path: newsPath(entry), lastmod: entry.data.publishedAt })),
+		...activities.map((entry) => ({ path: activityPath(entry), lastmod: undefined })),
 	];
 
 	const body = [

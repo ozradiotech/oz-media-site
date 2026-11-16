@@ -90,22 +90,24 @@ const announcers = defineLiveCollection({
 	),
 });
 
+const toActivity = (doc: Doc) => {
+	const cover = image(doc.image, doc.title);
+	return {
+		title: doc.title as string,
+		visible: true,
+		category: doc.category as string,
+		status: (doc.status ?? '') as string,
+		order: 0,
+		summary: (doc.summary ?? '') as string,
+		...cover,
+		/** The photo carousel on the activity's page: the cover first, then "More photos" in the CMS's order. */
+		photos: [cover, ...(doc.gallery ?? []).map((media: CmsMedia | number) => image(media, doc.title))].filter((photo) => photo.image),
+	};
+};
+export type ActivityData = ReturnType<typeof toActivity>;
+
 const activities = defineLiveCollection({
-	loader: payload(
-		'activities',
-		(doc) => ({
-			title: doc.title as string,
-			visible: true,
-			category: doc.category as string,
-			artStyle: (doc.artStyle ?? 'listen') as 'listen' | 'meet' | 'create',
-			artLabel: (doc.artLabel ?? '') as string,
-			status: (doc.status ?? '') as string,
-			order: 0,
-			summary: (doc.summary ?? '') as string,
-			...image(doc.image, doc.title),
-		}),
-		{ html: 'bodyHtml' },
-	),
+	loader: payload('activities', toActivity, { html: 'bodyHtml' }),
 });
 
 const toNews = (doc: Doc) => ({

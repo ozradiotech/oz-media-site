@@ -19,6 +19,7 @@ import SiteMonitor from '../components/SiteMonitor.astro';
 import StationDock from '../components/StationDock.astro';
 import ThemeSwitch from '../components/ThemeSwitch.astro';
 import SiteFooter from '../components/SiteFooter.astro';
+import { activitiesIndexPath } from '../lib/activities';
 import { newsIndexPath } from '../lib/news';
 
 interface Props {
@@ -32,7 +33,7 @@ interface Props {
 	article?: { publishedAt?: Date; section: string };
 	/** Shows the reading progress line under the masthead. */
 	readingProgress?: boolean;
-	/** The masthead's section label, OZ News by default (the privacy policy uses its own). */
+	/** The masthead's section label, OZ News by default (On ground activity and the privacy policy use their own). */
 	section?: { name: string; accent: string; href: string };
 }
 
@@ -50,7 +51,14 @@ const isNews = section.href === newsIndexPath;
 
 // Share previews want absolute URLs; they become absolute once `site` is set in astro.config.mjs.
 const absolute = (value: string) => (Astro.site ? new URL(value, Astro.site).href : value);
-const pageTitle = path === newsIndexPath ? 'OZ News · OZ Radio Bandung' : isNews ? `${title} | OZ News · OZ Radio Bandung` : `${title} · OZ Radio`;
+const isActivities = section.href === activitiesIndexPath;
+const pageTitle = path === newsIndexPath
+	? 'OZ News · OZ Radio Bandung'
+	: isNews
+		? `${title} | OZ News · OZ Radio Bandung`
+		: isActivities
+			? `${path === activitiesIndexPath ? title : `${title} | On Ground Activity`} · OZ Radio Bandung`
+			: `${title} · OZ Radio`;
 ---
 
 <!doctype html>
@@ -80,7 +88,7 @@ const pageTitle = path === newsIndexPath ? 'OZ News · OZ Radio Bandung' : isNew
 		<Font cssVariable="--font-tango" preload={[{ style: 'normal' }]} />
 		<Font cssVariable="--font-jakarta" preload={[{ style: 'normal' }]} />
 		<Font cssVariable="--font-mono" />
-		<script type="speculationrules" is:inline set:html={JSON.stringify({ prefetch: [{ where: { or: [{ href_matches: '/oz-bandung' }, { href_matches: `${newsIndexPath}{/*}?` }] }, eagerness: 'moderate' }] })} />
+		<script type="speculationrules" is:inline set:html={JSON.stringify({ prefetch: [{ where: { or: [{ href_matches: '/oz-bandung' }, { href_matches: `${newsIndexPath}{/*}?` }, { href_matches: `${section.href}{/*}?` }] }, eagerness: 'moderate' }] })} />
 		<slot name="head" />
 	</head>
 	<body class="news-site">
