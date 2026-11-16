@@ -142,20 +142,6 @@ const calendarSpan = (data: ActivityData) => {
 	return { allDay: false, start: compactUtc(startDate), end: compactUtc(end) };
 };
 
-export const googleCalendarUrl = (entry: ActivityEntry, pageUrl: string) => {
-	const span = calendarSpan(entry.data);
-	if (!span) return '';
-	const params = new URLSearchParams({
-		action: 'TEMPLATE',
-		text: entry.data.title,
-		dates: `${span.start}/${span.end}`,
-		details: [entry.data.summary, pageUrl].filter(Boolean).join('\n\n'),
-		ctz: timeZone,
-	});
-	if (entry.data.venue) params.set('location', entry.data.venue);
-	return `https://calendar.google.com/calendar/render?${params}`;
-};
-
 const icsText = (value: string) => value.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/[,;]/g, (match) => `\\${match}`);
 
 /** An .ics file for Apple Calendar, Outlook and the rest. */

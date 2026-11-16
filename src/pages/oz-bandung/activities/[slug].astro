@@ -1,6 +1,6 @@
 ---
-// One on ground activity, laid out like an OZ News story: title and standfirst, the event's facts (date, venue, price,
-// tickets, add to calendar), a swipeable carousel of every photo uploaded in the CMS, the write-up, the lineup, a recap
+// One on ground activity, laid out like an OZ News story: title and standfirst, the event's facts (date, venue,
+// add to calendar) and organizer, a swipeable carousel of every photo uploaded in the CMS, the write-up, the lineup, a recap
 // video, partners, then more activities. Anything left empty in the CMS is left off the page.
 import { render } from 'astro:content';
 import NewsLayout from '../../../layouts/NewsLayout.astro';
@@ -15,7 +15,6 @@ import {
 	activityWhen,
 	formatActivityDate,
 	getActivities,
-	googleCalendarUrl,
 	isUpcoming,
 	splitActivities,
 	youtubeId,
@@ -40,12 +39,14 @@ const shareUrl = Astro.site ? pageUrl : '';
 const category = activityCategoryLabel(data.category);
 const upcoming = isUpcoming(data);
 const recapId = youtubeId(recap.youtubeUrl);
+// The OZ mark sits next to the byline only when OZ organises the event.
+const isOzOrganizer = /^oz\b/i.test(data.organizer);
 const hasRecap = Boolean(recapId || recap.videoUrl);
 // What to look at next: upcoming events first while this one is upcoming, the most recent past ones otherwise.
 const { upcoming: next, past } = splitActivities(all.filter((other) => other !== entry));
 const more = (upcoming ? [...next, ...past] : [...past, ...next]).slice(0, 3);
 
-// Search engines read this to list the event, with its date, place, tickets and status.
+// Search engines read this to list the event, with its date, place and organizer.
 const structuredData = {
 	'@context': 'https://schema.org',
 	'@type': 'Event',
@@ -57,9 +58,8 @@ const structuredData = {
 	eventStatus: 'https://schema.org/EventScheduled',
 	eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
 	location: data.venue ? { '@type': 'Place', name: data.venue, address: data.venue, hasMap: data.mapsUrl || undefined } : undefined,
-	offers: data.ticketUrl ? { '@type': 'Offer', url: data.ticketUrl, description: data.priceLabel || undefined } : undefined,
 	performer: lineup.length ? lineup.map((act) => ({ '@type': 'PerformingGroup', name: act.name })) : undefined,
-	organizer: { '@type': 'Organization', name: 'OZ Radio Bandung', url: absolute('/oz-bandung') },
+	organizer: data.organizer ? { '@type': 'Organization', name: data.organizer } : undefined,
 	url: Astro.site ? pageUrl : undefined,
 };
 ---
@@ -101,27 +101,21 @@ const structuredData = {
 							<dd>{data.mapsUrl ? <a href={data.mapsUrl} target="_blank" rel="noopener noreferrer">{data.venue} <span aria-hidden="true">↗</span></a> : data.venue}</dd>
 						</div>
 					)}
-					{data.priceLabel && (
-						<div>
-							<dt>Price</dt>
-							<dd>{data.priceLabel}</dd>
-						</div>
-					)}
 				</dl>
-				{upcoming && (data.ticketUrl || data.startDate) && (
+				{upcoming && data.startDate && (
 					<div class="activity-actions">
-						{data.ticketUrl && <a class="news-pill activity-ticket" href={data.ticketUrl} target="_blank" rel="noopener noreferrer">GET TICKETS ↗</a>}
-						{data.startDate && <a class="news-pill" href={`${path}.ics`} download={`${entry.id}.ics`}>ADD TO CALENDAR</a>}
-						{data.startDate && <a class="news-pill" href={googleCalendarUrl(entry, pageUrl)} target="_blank" rel="noopener noreferrer">GOOGLE CALENDAR ↗</a>}
+						<a class="news-pill" href={`${path}.ics`} download={`${entry.id}.ics`}>ADD TO CALENDAR</a>
 					</div>
 				)}
 			</div>
 
 			<div class="story-meta">
-				<div class="story-byline">
-					<img class="story-byline-mark" src="/images/logo-oz-logogram.png" alt="" width="40" height="40" />
-					<p><span>By <strong>OZ Radio Bandung</strong></span></p>
-				</div>
+				{data.organizer && (
+					<div class="story-byline">
+						{isOzOrganizer && <img class="story-byline-mark" src="/images/logo-oz-logogram.png" alt="" width="40" height="40" />}
+						<p><span>By <strong>{data.organizer}</strong></span></p>
+					</div>
+				)}
 				<StoryShare url={shareUrl} title={data.title} type="activity" />
 			</div>
 		</header>

@@ -665,7 +665,6 @@ const sections = [
 												<dl class="upcoming-facts">
 													<div><dt>WHEN</dt><dd>{formatActivityDate(data)}</dd></div>
 													{data.venue && <div><dt>WHERE</dt><dd>{data.venue}</dd></div>}
-													{data.priceLabel && <div><dt>ENTRY</dt><dd>{data.priceLabel}</dd></div>}
 												</dl>
 												{data.summary && <p class="upcoming-summary">{data.summary}</p>}
 												</div>
@@ -680,7 +679,6 @@ const sections = [
 												)}
 												<div class="upcoming-actions">
 													<a class="outline-link" href={activityPath(activity)}>SEE DETAILS →</a>
-													{data.ticketUrl && <a class="outline-link upcoming-ticket" href={data.ticketUrl} target="_blank" rel="noopener noreferrer">GET TICKETS ↗</a>}
 												</div>
 												</div>
 											</div>
@@ -5420,13 +5418,6 @@ const sections = [
 		flex-wrap: wrap;
 		justify-content: flex-end;
 		gap: 8px;
-	}
-
-	.outline-link.upcoming-ticket,
-	:global(:root[data-theme='night']) .outline-link.upcoming-ticket {
-		border-color: var(--c-accent);
-		background: var(--c-accent);
-		color: var(--c-on-accent);
 	}
 
 	/* Several upcoming events: "‹ 1 / 3 ›" in the photo's corner. */

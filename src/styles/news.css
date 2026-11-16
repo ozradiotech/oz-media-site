@@ -742,16 +742,6 @@
 	border-top: 1px solid var(--c-line);
 }
 
-.activity-ticket {
-	border-color: var(--c-accent);
-	background: var(--c-accent);
-	color: var(--c-on-accent);
-}
-
-.activity-ticket:hover {
-	background: var(--c-accent);
-}
-
 .activity-section {
 	max-width: var(--news-measure);
 	margin: clamp(40px, 6vw, 64px) auto 0;

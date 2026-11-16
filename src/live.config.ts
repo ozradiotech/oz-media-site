@@ -111,8 +111,8 @@ const toActivity = (doc: Doc) => {
 		endDate: date(doc.endDate),
 		venue: optional(doc.venue),
 		mapsUrl: link(doc.mapsUrl),
-		priceLabel: optional(doc.priceLabel),
-		ticketUrl: link(doc.ticketUrl),
+		/** "By …" on the activity's page; empty shows no organizer. */
+		organizer: optional(doc.organizer),
 		summary: optional(doc.summary),
 		...cover,
 		/** The photo carousel on the activity's page: the cover first, then "More photos" in the CMS's order. */
